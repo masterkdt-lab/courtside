@@ -89,16 +89,17 @@ No accounts, no payments, no CMS, no pricing in the Sheet, no server-side price 
 
 ```
 repo/
-  index.html            gate only
-  site.html             header + main + footer + request modal
-  privacy.html
-  style.css
-  js/gate.js            gate logic
-  js/site.js            site logic (weeks, builder, request modal)
-  js/images.js          the remote image URLs, one place
-  assets/
-  robots.txt
-  middleware.js         Vercel Edge Middleware: /site* requires valid cookie, else redirect to /
+  public/               the web root: everything Vercel may serve statically lives here, nothing else does
+    index.html          gate only
+    site.html           header + main + footer + request modal
+    privacy.html
+    style.css
+    js/gate.js          gate logic
+    js/site.js          site logic (weeks, builder, request modal)
+    js/images.js        the remote image URLs, one place
+    assets/
+    robots.txt
+  middleware.js         Vercel Routing Middleware: /site* requires valid cookie, else redirect to /
   api/code.js
   api/session.js
   api/trips.js
@@ -286,7 +287,7 @@ Launch each agent as a built-in general-purpose subagent. Each agent's prompt mu
 | `repo-auditor` | nothing, read-only | Verify the split is lossless against `git show main:index.html` (CSS and JS text identical, assets byte-identical to the decoded base64). Map `js/site.js`: every handler, state, the pricing functions, how the modal is filled. Inventory `style.css` classes the new states can reuse (disabled/closed chip, error line, success state, identity line). List assets and remote URLs. Report anything that contradicts this plan. |
 | `data-layer` | `lib/store*.js`, `scripts/setup-sheet.js`, `tests/store*`, `tests/fixtures/`, `package.json`, `.gitignore`, `.env.example` | Store interface, mock and Sheets implementations, `setup-sheet.js` with headers, dropdowns and the seed rows from section 2. |
 | `api-builder` | `api/`, `middleware.js`, `lib/` except `store*`, `scripts/dev-server.js`, `tests/api*`, `vercel.json` | The four routes, the guard, the middleware and the local server, to the contracts in 4.4, calling the store interface only. |
-| `frontend-wirer` | `*.html`, `style.css`, `js/`, `robots.txt` | Everything in section 5. Minimal CSS additions, reusing existing classes. |
+| `frontend-wirer` | `public/**` (`*.html`, `style.css`, `js/`, `robots.txt`) | Everything in section 5. Minimal CSS additions, reusing existing classes. |
 | `qa-verifier` | `tests/e2e*`, `QA_REPORT.md` | Starts with no knowledge of how the others worked. Runs `npm test`, starts `npm run dev` in mock mode, walks every item in section 8 and records pass or fail with evidence. Does not fix anything. |
 
 Shared rules for every agent:
@@ -372,3 +373,11 @@ The audit verified the split is byte-exact. These items refine sections 4 and 5;
 13. **Prototype wording lines** (as split): `index.html` lines 9, 31, 232, 307, 310; `SPAIN27` at lines 30 and 31. Nothing in `style.css` or `js/site.js`.
 14. **EXIF.** `life-eva-paella.jpg`, `life-friends-court.jpg` and `life-friends-family.jpg` carry GPS coordinates and capture dates. Do not modify them; the README must flag this under "Images to replace" so KC decides before go-live.
 15. **Reduced motion.** `html{scroll-behavior:smooth}` and the gate/site transitions go behind `@media (prefers-reduced-motion: no-preference)` or are disabled under `reduce`.
+
+## 11. Wave 2 findings (binding clarifications)
+
+1. **Static files live in `public/`.** With the "Other" preset Vercel serves `public/` when it exists and otherwise the whole repo root, which would expose `lib/`, `tests/fixtures/seed.json` and this plan. All served files moved to `public/` after Wave 2; URLs are unchanged (`/style.css`, `/js/site.js`, `/assets/...`). `api/`, `lib/`, `middleware.js`, `scripts/`, `tests/` stay at the root. The dev server serves from `public/`.
+2. **Middleware pass-through is explicit.** Vercel Routing Middleware now defaults to the Node runtime, where returning `undefined` ends the response blank. When the cookie is valid, `middleware.js` returns `new Response(null, { headers: { 'x-middleware-next': '1' } })`, which is what `next()` from `@vercel/functions` builds, without adding the dependency. Verified against the Vercel docs and package source on 2026-10-05; not yet exercised by a deploy.
+3. **Catalog test.** `tests/api.catalog.test.js` parses `public/site.html` and `public/js/site.js`, so any change to add-on names, option values or week labels on the page must be mirrored in `lib/catalog.js` or the suite fails. Wave 3 must keep those strings intact.
+4. **Reason strings and messages** the front end must handle: code → `missing_code | invalid | paused | used_up | rate_limited`; trips/request 401 → `unauthorized`; request 409 → `trip_closed` or `week_closed` + `weeks:[ids]`; 429 → `rate_limited`; 500 → `server_error`; 400 → `errors:{ field: message }` where `field` may be `body`, messages are complete short sentences safe to join into one line. `partnerEstimate` may be `""`; `playerEstimate` and `groupEstimate` are required for private; `website` must be `""`.
+5. **`EMAIL_MODE`** values are `log` and `resend`.
