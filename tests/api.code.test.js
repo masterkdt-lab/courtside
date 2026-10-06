@@ -4,6 +4,7 @@
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 import { POST } from '../api/code.js';
 import { GET as session } from '../api/session.js';
 import { COOKIE_MAX_AGE, sign, verify } from '../lib/cookie.js';
@@ -143,4 +144,21 @@ describe('GET /api/session', () => {
     delete process.env.COOKIE_SECRET;
     await expectJson(await session(getRequest('/api/session', { cookie })), 401, { ok: false });
   });
+});
+
+test('a failed Log write never changes the response (best-effort logging)', async () => {
+  await expectJson(await post({ code: 'NOPE' }), 401, { ok: false, reason: 'invalid' });
+  assert.equal(readMock().log.length, 1);
+  const mockFile = process.env.MOCK_DATA_PATH;
+  const mockDir = path.dirname(mockFile);
+  fs.chmodSync(mockFile, 0o444);
+  fs.chmodSync(mockDir, 0o555);
+  try {
+    await expectJson(await post({ code: 'NOPE' }), 401, { ok: false, reason: 'invalid' });
+    await expectJson(await post({ code: '' }), 400, { ok: false, reason: 'missing_code' });
+  } finally {
+    fs.chmodSync(mockDir, 0o755);
+    fs.chmodSync(mockFile, 0o644);
+  }
+  assert.equal(readMock().log.length, 1, 'the failed writes left the log unchanged');
 });

@@ -3,7 +3,8 @@
 //   400 { ok:false, reason:"missing_code" }
 //   401 { ok:false, reason:"invalid"|"paused"|"used_up" }
 //   429 { ok:false, reason:"rate_limited" }
-// Every outcome is written to the Log tab via store.logAttempt.
+// Every outcome is written to the Log tab via store.logAttempt, best effort: a failed log write is
+// reported to the console and never changes the response, so a Sheets hiccup cannot lock the gate.
 
 import * as store from '../lib/store.js';
 import { COOKIE_MAX_AGE, buildSetCookie, sign } from '../lib/cookie.js';
@@ -18,8 +19,15 @@ export async function POST(request) {
   const body = await readJson(request);
   const code = body && typeof body === 'object' && typeof body.code === 'string' ? body.code.trim().toUpperCase() : '';
 
+  const logSafely = async (entry) => {
+    try {
+      await store.logAttempt(entry);
+    } catch (err) {
+      console.error('[api/code] logAttempt failed', err);
+    }
+  };
   const fail = async (status, reason) => {
-    await store.logAttempt({ code, result: reason, ipHash: hash });
+    await logSafely({ code, result: reason, ipHash: hash });
     return json(status, { ok: false, reason });
   };
 
@@ -33,7 +41,7 @@ export async function POST(request) {
     if (invite.maxUses !== null && invite.uses >= invite.maxUses) return await fail(401, 'used_up');
 
     await store.recordInviteUse(invite.code);
-    await store.logAttempt({ code: invite.code, result: 'ok', ipHash: hash });
+    await logSafely({ code: invite.code, result: 'ok', ipHash: hash });
 
     const exp = Date.now() + COOKIE_MAX_AGE * 1000;
     const token = await sign({ code: invite.code, invitedBy: invite.invitedBy, issuedTo: invite.issuedTo, exp }, secret);
