@@ -11,8 +11,8 @@ import {
 } from '../lib/catalog.js';
 
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
-const html = read('site.html');
-const siteJs = read('js/site.js');
+const html = read('public/site.html');
+const siteJs = read('public/js/site.js');
 const seed = JSON.parse(read('tests/fixtures/seed.json'));
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 const all = (re, text, pick = (m) => m[1]) => [...text.matchAll(re)].map(pick);
