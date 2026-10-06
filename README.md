@@ -128,7 +128,8 @@ If shared codes become the norm, the alternative is to collect name, email and m
 
 - `POST /api/code` checks the invite in the Sheet, records the use, and sets a signed `cs_session` cookie (30 days, HttpOnly). The code is never in the page source.
 - `GET /api/session` tells the site who the guest is. `GET /api/trips` returns the trip and the weeks, cached for 60 seconds.
-- `POST /api/request` validates the builder state, re-checks that the trip and the chosen weeks are open, appends the Requests row, and sends the emails. An identical request within 60 seconds returns the first request's ID instead of a second row.
+- `POST /api/request` validates the builder state, re-checks that the invite is still `active` and that the trip and the chosen weeks are open, appends the Requests row, and sends the emails. An identical request within 60 seconds returns the first request's ID instead of a second row; an edited one is a new row.
+- Pausing or revoking a code in the Sheet blocks new sign-ins and new requests right away. Someone already inside can still look at the page until their 30-day cookie expires.
 - Rate limits: 10 code attempts and 5 request posts per 10 minutes per IP, kept in memory per server instance. A hidden honeypot field drops bots silently. Every code attempt is logged to the Log tab with a hashed IP.
 - Only `public/` is served statically. `lib/`, `tests/` and this file are not reachable from the browser.
 

@@ -94,7 +94,8 @@ export function buildRow({ id, value, invite, weeksById, now = new Date() }) {
 async function saveAndNotify({ session, value, weeksById }) {
   // Identity is read fresh from the invite row, never from the body (plan 4.7).
   const invite = await store.findInvite(session.code);
-  if (!invite || invite.status === 'revoked') return { status: 401, body: { ok: false, reason: 'unauthorized' } };
+  // A code paused or revoked after sign-in can no longer submit; the gate explains why on the next visit.
+  if (!invite || invite.status !== 'active') return { status: 401, body: { ok: false, reason: 'unauthorized' } };
 
   const id = requestId();
   const row = buildRow({ id, value, invite, weeksById });
@@ -145,7 +146,8 @@ export async function POST(request) {
 
     const now = Date.now();
     pruneRecent(now);
-    const key = `${session.code}|${value.requestType}|${value.weeks.join(',')}`;
+    // Identical request = same code, type, weeks and brief (the brief carries every builder choice).
+    const key = `${session.code}|${value.requestType}|${value.weeks.join(',')}|${value.brief}`;
     let entry = recent.get(key);
     if (!entry) {
       entry = { at: now, result: saveAndNotify({ session, value, weeksById }) };

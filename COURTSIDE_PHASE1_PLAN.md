@@ -140,7 +140,8 @@ repo/
 - **Rate limit:** best effort, in memory, per IP hash: 10 code attempts per 10 minutes, 5 request posts per 10 minutes. It resets on cold start; that is accepted for Phase 1. The honeypot and the Log tab are the backstop.
 - **IP hash:** first 16 hex chars of SHA-256(ip + COOKIE_SECRET), Web Crypto.
 - **Request IDs:** `CS-` plus 8 random Crockford base32 characters, generated server side.
-- **Double submit:** the client disables the button, and the server returns the first request's ID for an identical invite code + request type + weeks within 60 seconds.
+- **Double submit:** the client disables the button, and the server returns the first request's ID for an identical invite code + request type + weeks + brief within 60 seconds (the brief carries every builder choice, so an edited request is a new row).
+- **Invite status at request time:** `POST /api/request` re-reads the invite and refuses with 401 unless its status is `active`; `paused` and `revoked` both block. The `/site` guard itself only checks the cookie signature and expiry.
 - **Mock store:** reads seed data from `tests/fixtures/seed.json`, writes to `.data/mock.json` (git-ignored), reads the file fresh on every call (no caching inside the store). Seed invites: `COURTSIDE` (active, unlimited, shared test code, no guest email), `GUEST1` (active, unlimited, issued_to "Ana Guest", guest_email `ana.guest@example.com`, guest_mobile `+1 555 0100`), `PAUSED1` (paused), `ONCE1` (max 1 use). `invited_by` is "Katie" for all.
 - **Tests:** `node --test` for store and API tests. Browser tests with Playwright against `npm run dev`. If Playwright cannot be installed, say so in `QA_REPORT.md` and cover the same flows at HTTP level.
 - **Git:** work on branch `phase-1`. Commit after each wave. Do not push.

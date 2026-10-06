@@ -102,3 +102,10 @@ rm -f .data/mock.json && npm run dev     # http://localhost:3000, emails print t
 #   close the trip: set trips[0].status to "closed" in .data/mock.json, restart, reload /site
 #   reset: stop the server, rm -f .data/mock.json
 ```
+
+## Orchestrator follow-up (after this report)
+
+Two observations above were tightened after QA signed off, with unit tests added in `tests/api.request.test.js`:
+
+1. A code set to `paused` after sign-in is now refused at request time with 401, the same as `revoked`. Viewing `/site` on an existing cookie is still allowed until the cookie expires; the guard does not consult the Sheet.
+2. The double-submit guard now keys on code + type + weeks + brief, so a request the guest edited within 60 seconds creates a new row, while a true double submit still collapses to one.

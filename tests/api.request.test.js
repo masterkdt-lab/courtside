@@ -191,6 +191,13 @@ describe('valid requests', () => {
     await editMock((data) => { data.invites = data.invites.filter((i) => i.code !== 'GUEST1'); });
     assert.equal((await post(privateBody(), cookie)).status, 401);
   });
+
+  test('a code paused after sign-in can no longer submit', async () => {
+    const cookie = await loginCookie('GUEST1');
+    await editMock((data) => { data.invites.find((i) => i.code === 'GUEST1').status = 'paused'; });
+    assert.deepEqual(await expectJson(await post(privateBody(), cookie), 401), { ok: false, reason: 'unauthorized' });
+    assert.equal(readMock().requests.length, 0);
+  });
 });
 
 describe('open / closed', () => {
@@ -227,7 +234,7 @@ describe('open / closed', () => {
 });
 
 describe('double submit and rate limit', () => {
-  test('an identical code + type + weeks within 60 s returns the first response and writes once', async () => {
+  test('an identical code + type + weeks + brief within 60 s returns the first response and writes once', async () => {
     const cookie = await loginCookie('GUEST1');
     const first = await expectJson(await post(privateBody(), cookie), 200);
     const second = await expectJson(await post(privateBody({ note: 'changed' }), cookie), 200);
@@ -246,6 +253,10 @@ describe('double submit and rate limit', () => {
     resetRateLimit();
     const again = await expectJson(await post(privateBody(), cookie), 200);
     assert.notEqual(again.requestId, first.requestId);
+    // a changed brief (any edited builder choice) within 60 s is a new request
+    const edited = await expectJson(await post(privateBody({ brief: 'edited brief' }), cookie), 200);
+    assert.notEqual(edited.requestId, again.requestId);
+    assert.equal(readMock().requests.length, 5);
   });
 
   test('a different code with the same type and weeks is a separate request', async () => {
