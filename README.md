@@ -46,7 +46,13 @@ Everything below is needed only for production. Nothing in the repo contains a s
 1. In Katie's Google Workspace, create a blank Google Sheet. The ID is the long string in its URL between `/d/` and `/edit`.
 2. In Google Cloud Console, create a project (or reuse one), enable the **Google Sheets API**, then create a **service account**. Create a JSON key for it and download it.
 3. Share the Sheet with the service account's email address as **Editor**.
-4. Copy `.env.example` to `.env` and fill in `SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` (the `client_email` from the JSON) and `GOOGLE_PRIVATE_KEY` (the `private_key` from the JSON, kept on one line with the literal `\n` sequences). Set `DATA_BACKEND=sheets` and `SHEET_URL` to the Sheet's link.
+4. Copy `.env.example` to `.env` and fill in `SHEET_ID` and `SHEET_URL` from the Sheet's link, and set `DATA_BACKEND=sheets`. Then import the key without pasting it:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && node scripts/set-private-key.js ~/Downloads/<the downloaded key>.json
+```
+
+   That writes `GOOGLE_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PRIVATE_KEY` into `.env` and prints only a length and a markers check. If the project lives in a Google Cloud organization created after May 2024, key creation is blocked by the `iam.managed.disableServiceAccountKeyCreation` policy until an Organization Policy Administrator overrides it to Off on the project.
 5. Run the setup script. It creates the five tabs, writes the header rows, adds the dropdowns, seeds the trip and the seven weeks, and prints an example invite row. It is safe to run again.
 
 ```bash
