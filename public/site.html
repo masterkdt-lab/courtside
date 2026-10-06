@@ -143,13 +143,13 @@
 <section class="step">
 <div class="step-title"><span>01</span><h3>Choose your week.</h3></div>
 <div class="fixed-week-grid" id="privateWeeks">
-<label class="fixed-week"><input name="privateWeek" type="radio" value="Jan 10–16"/><span>W1</span><strong>Jan 10–16</strong></label>
-<label class="fixed-week"><input name="privateWeek" type="radio" value="Jan 17–23"/><span>W2</span><strong>Jan 17–23</strong></label>
-<label class="fixed-week"><input name="privateWeek" type="radio" value="Jan 24–30"/><span>W3</span><strong>Jan 24–30</strong></label>
-<label class="fixed-week"><input name="privateWeek" type="radio" value="Jan 31–Feb 6"/><span>W4</span><strong>Jan 31–Feb 6</strong></label>
-<label class="fixed-week selected"><input checked="" name="privateWeek" type="radio" value="Feb 7–13"/><span>W5</span><strong>Feb 7–13</strong></label>
-<label class="fixed-week"><input name="privateWeek" type="radio" value="Feb 14–20"/><span>W6</span><strong>Feb 14–20</strong></label>
-<label class="fixed-week"><input name="privateWeek" type="radio" value="Feb 21–27"/><span>W7</span><strong>Feb 21–27</strong></label>
+<label class="fixed-week"><input name="privateWeek" type="radio" value="w1" data-label="Jan 10–16"/><span>W1</span><strong>Jan 10–16</strong></label>
+<label class="fixed-week"><input name="privateWeek" type="radio" value="w2" data-label="Jan 17–23"/><span>W2</span><strong>Jan 17–23</strong></label>
+<label class="fixed-week"><input name="privateWeek" type="radio" value="w3" data-label="Jan 24–30"/><span>W3</span><strong>Jan 24–30</strong></label>
+<label class="fixed-week"><input name="privateWeek" type="radio" value="w4" data-label="Jan 31–Feb 6"/><span>W4</span><strong>Jan 31–Feb 6</strong></label>
+<label class="fixed-week selected"><input checked="" name="privateWeek" type="radio" value="w5" data-label="Feb 7–13"/><span>W5</span><strong>Feb 7–13</strong></label>
+<label class="fixed-week"><input name="privateWeek" type="radio" value="w6" data-label="Feb 14–20"/><span>W6</span><strong>Feb 14–20</strong></label>
+<label class="fixed-week"><input name="privateWeek" type="radio" value="w7" data-label="Feb 21–27"/><span>W7</span><strong>Feb 21–27</strong></label>
 </div>
 </section>
 <section class="step">
@@ -218,13 +218,13 @@
 <div class="step-title"><span>01</span><h3>Which weeks work?</h3></div>
 <p class="step-copy">Select every week you could realistically travel. More flexibility makes it easier for Katie to curate the right group.</p>
 <div class="fixed-week-grid vetted-weeks">
-<label class="fixed-week"><input type="checkbox" value="Jan 10–16"/><span>W1</span><strong>Jan 10–16</strong></label>
-<label class="fixed-week"><input type="checkbox" value="Jan 17–23"/><span>W2</span><strong>Jan 17–23</strong></label>
-<label class="fixed-week"><input type="checkbox" value="Jan 24–30"/><span>W3</span><strong>Jan 24–30</strong></label>
-<label class="fixed-week"><input type="checkbox" value="Jan 31–Feb 6"/><span>W4</span><strong>Jan 31–Feb 6</strong></label>
-<label class="fixed-week"><input type="checkbox" value="Feb 7–13"/><span>W5</span><strong>Feb 7–13</strong></label>
-<label class="fixed-week"><input type="checkbox" value="Feb 14–20"/><span>W6</span><strong>Feb 14–20</strong></label>
-<label class="fixed-week"><input type="checkbox" value="Feb 21–27"/><span>W7</span><strong>Feb 21–27</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w1" data-label="Jan 10–16"/><span>W1</span><strong>Jan 10–16</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w2" data-label="Jan 17–23"/><span>W2</span><strong>Jan 17–23</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w3" data-label="Jan 24–30"/><span>W3</span><strong>Jan 24–30</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w4" data-label="Jan 31–Feb 6"/><span>W4</span><strong>Jan 31–Feb 6</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w5" data-label="Feb 7–13"/><span>W5</span><strong>Feb 7–13</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w6" data-label="Feb 14–20"/><span>W6</span><strong>Feb 14–20</strong></label>
+<label class="fixed-week"><input type="checkbox" value="w7" data-label="Feb 21–27"/><span>W7</span><strong>Feb 21–27</strong></label>
 </div>
 </section>
 <section class="step">
@@ -284,7 +284,17 @@
 </main>
 <footer class="footer"><div class="footer-inner"><div><img alt="Courtside Travel Co." class="ct-logo footer-logo" src="/assets/courtside-lockup-footer.png"/><p>Private tennis + travel experiences built around the people you want to spend time with.</p><p class="jeff-footnote">Behind the scenes, Jeff supports trip logistics and coordination so Katie can stay focused on hosting the experience.</p></div><div class="site-powered">powered by tgl.rsvp</div></div></footer>
 </div>
-<div aria-labelledby="modalTitle" aria-modal="true" class="modal" id="requestModal" role="dialog"><div class="modal-card"><div class="eyebrow">Your request</div><h2 id="modalTitle">Your trip brief is ready.</h2><p>Review the brief below. Katie reviews each request personally.</p><pre id="tripBrief"></pre><div class="modal-actions"><button class="primary" id="copyBrief">Copy trip brief</button><button class="primary modal-close" id="closeModal">Close</button></div></div></div>
+<div aria-labelledby="modalTitle" aria-modal="true" class="modal" id="requestModal" role="dialog"><div class="modal-card">
+<div class="eyebrow">Your request</div>
+<h2 id="modalTitle">Your trip brief is ready.</h2>
+<p class="identity-line caps" id="identityLine"></p>
+<p>Review the brief below. Katie reviews each request personally.</p>
+<pre id="tripBrief"></pre>
+<label class="consent"><input type="checkbox" id="consent" required/> I agree to Courtside's <a href="/privacy" target="_blank" rel="noopener">privacy notice</a>.</label>
+<input name="website" id="website" class="hp" autocomplete="off" tabindex="-1" aria-hidden="true"/>
+<p aria-live="polite" class="invite-hint is-error" id="modalError"></p>
+<div class="modal-actions"><button class="primary" id="sendRequest" type="button">Send to Katie</button><button class="secondary" id="copyBrief" type="button">Copy trip brief</button><button class="primary modal-close" id="closeModal" type="button">Close</button></div>
+</div></div>
 <script type="module" src="/js/site.js"></script>
 </body>
 </html>
