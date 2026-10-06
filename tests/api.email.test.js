@@ -1,0 +1,138 @@
+// tests/api.email.test.js
+// lib/email.js: log mode, Resend mode over a mocked fetch, and the two templates.
+
+import { test, describe, beforeEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  RESEND_URL, _resetSentLog, confirmGuest, emailMode, notifyKatie, sendEmail, sentLog, toRecipients,
+} from '../lib/email.js';
+
+const row = {
+  requestId: 'CS-ABCDEFGH',
+  requestType: 'private',
+  weeks: 'Feb 7–13',
+  guestName: 'Ana Guest',
+  guestEmail: 'ana.guest@example.com',
+  guestMobile: '+1 555 0100',
+  inviteCode: 'GUEST1',
+  invitedBy: 'Katie',
+  brief: 'THE SPANISH OFFSEASON — PRIVATE GROUP REQUEST\n\nWeek: Feb 7–13',
+};
+
+beforeEach(() => _resetSentLog());
+
+describe('modes and recipients', () => {
+  test('emailMode defaults to log; resend and its alias send select Resend', () => {
+    assert.equal(emailMode({}), 'log');
+    assert.equal(emailMode({ EMAIL_MODE: 'log' }), 'log');
+    assert.equal(emailMode({ EMAIL_MODE: 'RESEND' }), 'resend');
+    assert.equal(emailMode({ EMAIL_MODE: 'send' }), 'resend');
+    assert.equal(emailMode({ EMAIL_MODE: 'smtp' }), 'log');
+  });
+
+  test('toRecipients accepts arrays and comma-separated strings', () => {
+    assert.deepEqual(toRecipients('a@example.com, b@example.com ,, '), ['a@example.com', 'b@example.com']);
+    assert.deepEqual(toRecipients(['a@example.com', ' b@example.com ']), ['a@example.com', 'b@example.com']);
+    assert.deepEqual(toRecipients(''), []);
+    assert.deepEqual(toRecipients(undefined), []);
+  });
+});
+
+describe('log mode', () => {
+  test('prints a delimited block and records the email on sentLog', async () => {
+    const log = mock.method(console, 'log', () => {});
+    try {
+      const result = await sendEmail({ to: 'a@example.com, b@example.com', subject: 'Hi', text: 'Line 1\nLine 2' }, { EMAIL_MODE: 'log' });
+      assert.deepEqual(result, { ok: true, id: 'log-1' });
+      assert.equal(log.mock.callCount(), 1);
+      assert.equal(log.mock.calls[0].arguments[0], '----- EMAIL -----\nTo: a@example.com, b@example.com\nSubject: Hi\n\nLine 1\nLine 2\n----- END -----');
+      assert.equal(sentLog.length, 1);
+      assert.deepEqual(sentLog[0].to, ['a@example.com', 'b@example.com']);
+      assert.equal(sentLog[0].subject, 'Hi');
+      assert.equal(sentLog[0].text, 'Line 1\nLine 2');
+      assert.match(sentLog[0].at, /^\d{4}-\d{2}-\d{2}T/);
+      _resetSentLog();
+      assert.equal(sentLog.length, 0);
+    } finally {
+      log.mock.restore();
+    }
+  });
+});
+
+describe('resend mode', () => {
+  const env = { EMAIL_MODE: 'resend', EMAIL_API_KEY: 're_test_123', FROM_EMAIL: 'Courtside <katie@example.com>' };
+
+  test('posts to Resend with the bearer key and returns the id', async () => {
+    const fetchMock = mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ id: 'email_1' }), { status: 200 }));
+    try {
+      const result = await sendEmail({ to: ['a@example.com'], subject: 'S', text: 'T' }, env);
+      assert.deepEqual(result, { ok: true, id: 'email_1' });
+      assert.equal(fetchMock.mock.callCount(), 1);
+      const [url, init] = fetchMock.mock.calls[0].arguments;
+      assert.equal(url, RESEND_URL);
+      assert.equal(url, 'https://api.resend.com/emails');
+      assert.equal(init.method, 'POST');
+      assert.equal(init.headers.Authorization, 'Bearer re_test_123');
+      assert.deepEqual(JSON.parse(init.body), { from: 'Courtside <katie@example.com>', to: ['a@example.com'], subject: 'S', text: 'T' });
+      assert.equal(sentLog.length, 0);
+    } finally {
+      fetchMock.mock.restore();
+    }
+  });
+
+  test('returns ok:false (never throws) on API errors, network errors and missing config', async () => {
+    const failing = mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ message: 'invalid from' }), { status: 422 }));
+    try {
+      assert.deepEqual(await sendEmail({ to: 'a@example.com', subject: 'S', text: 'T' }, env), { ok: false, error: 'invalid from' });
+    } finally {
+      failing.mock.restore();
+    }
+    const throwing = mock.method(globalThis, 'fetch', async () => { throw new Error('offline'); });
+    try {
+      assert.deepEqual(await sendEmail({ to: 'a@example.com', subject: 'S', text: 'T' }, env), { ok: false, error: 'offline' });
+    } finally {
+      throwing.mock.restore();
+    }
+    const untouched = mock.method(globalThis, 'fetch', async () => new Response('{}'));
+    try {
+      const noKey = await sendEmail({ to: 'a@example.com', subject: 'S', text: 'T' }, { EMAIL_MODE: 'resend' });
+      assert.equal(noKey.ok, false);
+      assert.match(noKey.error, /EMAIL_API_KEY/);
+      const noTo = await sendEmail({ to: '', subject: 'S', text: 'T' }, env);
+      assert.deepEqual(noTo, { ok: false, error: 'no recipients' });
+      assert.equal(untouched.mock.callCount(), 0);
+    } finally {
+      untouched.mock.restore();
+    }
+  });
+});
+
+describe('templates', () => {
+  test('notifyKatie lists the request, the guest, the invite, the brief and the Sheet link', () => {
+    const { subject, text } = notifyKatie(row, { sheetUrl: 'https://docs.google.com/spreadsheets/d/abc' });
+    assert.equal(subject, 'New request CS-ABCDEFGH · private · Feb 7–13');
+    for (const line of [
+      'Request ID: CS-ABCDEFGH', 'Type: private', 'Weeks: Feb 7–13', 'Guest: Ana Guest', 'Email: ana.guest@example.com',
+      'Mobile: +1 555 0100', 'Invite code: GUEST1 (invited by Katie)', row.brief, 'Sheet: https://docs.google.com/spreadsheets/d/abc',
+    ]) assert.ok(text.includes(line), line);
+    assert.ok(text.indexOf('Invite code') < text.indexOf(row.brief), 'brief comes after the header lines');
+    assert.ok(text.indexOf(row.brief) < text.indexOf('Sheet:'), 'sheet link comes last');
+  });
+
+  test('notifyKatie says when there is no guest email or Sheet URL', () => {
+    const { text } = notifyKatie({ ...row, guestEmail: '', guestMobile: '', guestName: 'Shared test code' });
+    assert.ok(text.includes('Email: no guest email on this invite'));
+    assert.ok(text.includes('Mobile: —'));
+    assert.ok(text.includes('Sheet: (SHEET_URL is not set)'));
+  });
+
+  test("confirmGuest starts with \"You're on our list.\" and carries the request ID and brief", () => {
+    const { subject, text } = confirmGuest(row);
+    assert.equal(subject, "You're on our list — The Spanish Offseason (CS-ABCDEFGH)");
+    assert.ok(text.startsWith("You're on our list."));
+    assert.ok(text.includes('Hi Ana Guest, your request CS-ABCDEFGH'));
+    assert.ok(text.includes('Katie reviews each request personally'));
+    assert.ok(text.includes(row.brief));
+    assert.ok(confirmGuest({ ...row, guestName: '' }).text.includes('Your request CS-ABCDEFGH'));
+  });
+});
