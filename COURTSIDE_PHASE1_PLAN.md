@@ -206,8 +206,10 @@ GET  /api/trips           (cookie required, else 401)
 
 POST /api/request         (cookie required, else 401)
   body (private): { requestType:"private", weeks:[weekId], players, partners, room, singleRooms, tennis,
-                    addons:[{ id, qty }], note, playerEstimate, partnerEstimate, groupEstimate, brief,
+                    addons:[{ id, qty? }], note, playerEstimate, partnerEstimate, groupEstimate, brief,
                     consent:true, website:"" }
+                  qty is sent only for per-player and per-guest add-ons; `driver` and `free` send { id } alone.
+                  partnerEstimate is "" when partners is 0; otherwise the "$x–$y" range with no prefix text.
   body (vetted):  { requestType:"vetted", weeks:[weekId,...], partyType, level, tennisStyle, travelStyle,
                     priorities:[...], note, brief, consent:true, website:"" }
   200 { ok:true, requestId, guestEmailSent:boolean }
@@ -350,3 +352,23 @@ Build and test everything in mock mode. These are only needed to go live:
 5. Finish with: what passed, the exact commands to run it locally, the test invite codes, and the section 7 list of what KC still has to supply.
 
 Do not deploy, push, send email or ask for credentials at any point.
+
+## 10. Wave 0 findings (binding clarifications)
+
+The audit verified the split is byte-exact. These items refine sections 4 and 5; they are part of the plan.
+
+1. **Scripts are ES modules.** `index.html` loads `<script type="module" src="/js/gate.js">`, `site.html` loads `<script type="module" src="/js/site.js">`, and `js/images.js` is an ES module imported by `site.js`. Module scripts run after parse, so keep the existing "handlers attach at load" pattern.
+2. **Gate page layout.** In the standalone `index.html`, `#gate` must not be `position:fixed` (nothing to overlay, and a fixed full-screen grid cannot scroll at 380px). Make it `position:relative; min-height:100vh` in a small gate-only override; keep the two-column grid and the 1050px collapse.
+3. **Site visible by default.** `#site{opacity:0}` was for the one-document fade. In `site.html` the page must be visible without JS adding `.site-live`; add `.site-live` on load or neutralise the rule.
+4. **`recognized-invite` placement.** The CSS at `.recognized-invite …` only matches when the class is on `.invite-card` (the form itself is `.invite-row`). Put it on `.invite-card`.
+5. **Week ids and labels.** Week inputs get `value="<weekId>"` and `data-label="<label>"`. `state.week`, `#summaryDates`, `#vettedWeekSummary`, both briefs and the modal must show labels; the API body sends ids. Default selection stays W5 (`w5`, Feb 7–13); if `w5` is closed, select the first open week and update `#summaryDates`.
+6. **Closed week clicks.** The `#privateWeeks .fixed-week` click handler must ignore chips whose input is disabled. Vetted uses the native checkbox and is safe.
+7. **Add-on quantities.** `driver` (group) and `free` (none) have no qty input; send `{ id }` alone (see 4.4). The server's catalog records each add-on's type: `player`, `guest`, `group`, `none`.
+8. **Modal styling.** Do not reuse `.summary-note` inside the modal (it is light-on-dark text for the dark aside). Add `.primary:disabled{opacity:.55;cursor:not-allowed}`. The success-state heading keeps `id="modalTitle"` because the dialog uses `aria-labelledby`.
+9. **Closed chip style.** No disabled/closed chip style exists. Add one modifier class for `.week-chip` and `.fixed-week` (reduced opacity, `cursor:not-allowed`) and a small "CLOSED" tag reusing the chip's `span` style in `--clay`.
+10. **Images in one place.** Remove the `url(…)` from `.club-photo` in `style.css` (keep a background colour) so all three remote URLs live only in `js/images.js`; `site.js` sets the `<img src>`s and the club background at start.
+11. **Note fields.** Add `maxlength="2000"` to `#notes` and `#vettedNotes` to match the server limit. They stay single-line inputs.
+12. **Dead CSS.** When the `.source-notes` strip is removed, delete `.source-notes*` rules. Rename the `.v05-builder` selector along with the class.
+13. **Prototype wording lines** (as split): `index.html` lines 9, 31, 232, 307, 310; `SPAIN27` at lines 30 and 31. Nothing in `style.css` or `js/site.js`.
+14. **EXIF.** `life-eva-paella.jpg`, `life-friends-court.jpg` and `life-friends-family.jpg` carry GPS coordinates and capture dates. Do not modify them; the README must flag this under "Images to replace" so KC decides before go-live.
+15. **Reduced motion.** `html{scroll-behavior:smooth}` and the gate/site transitions go behind `@media (prefers-reduced-motion: no-preference)` or are disabled under `reduce`.
