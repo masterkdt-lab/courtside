@@ -1,0 +1,19 @@
+{
+  "name": "courtside",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Courtside Travel Co. invitation-only site: gate, builder and Google Sheet store.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:e2e": "node --test \"tests/e2e/*.test.js\"",
+    "setup-sheet": "node scripts/setup-sheet.js"
+  },
+  "dependencies": {
+    "google-auth-library": "^10.9.1"
+  }
+}
