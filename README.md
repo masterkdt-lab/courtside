@@ -106,7 +106,11 @@ Three images load from other sites and must be replaced with licensed files befo
 
 To swap one, put the licensed file in `public/assets/` and change that key's URL to `/assets/<file>`.
 
-The seven files already in `public/assets/` are the Courtside logos and Katie's own photos, exactly as embedded in the prototype. Three of them still carry EXIF metadata with GPS coordinates and capture dates from the phone they were taken on: `life-eva-paella.jpg`, `life-friends-court.jpg`, `life-friends-family.jpg`. Strip the metadata (any image tool's "remove EXIF" or a re-export) before the site is public, or replace the photos.
+The seven files already in `public/assets/` are the Courtside logos and Katie's own photos, exactly as embedded in the prototype except that the camera metadata (GPS coordinates and capture dates) was stripped losslessly on 2026-10-05. Run the same script on any photo before adding it:
+
+```bash
+node scripts/strip-exif.js public/assets/<photo>.jpg
+```
 
 ## The Sheet
 
