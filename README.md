@@ -52,14 +52,14 @@ export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm run test:e
 
 The homepage and the Pros page are static HTML that read their content from two data files, so the copy lives in one place each:
 
-- `public/js/trips.js`: the featured trip and the 2027 Founding Season cards (`id`, `name`, `place`, `dates`, `blurb`, `status`, `price`, `photo`, `link`, `hostIds`). The homepage and the Pros page both read it, so a pro's "trips" never drift from the cards.
-- `public/js/pros.js`: one entry per pro (`id`, `name`, `role`, `base`, `portrait`, `facts`, `bio`, `onCourt`, `links`) with a commented template entry for the next one. `public/js/pros-page.js` renders `/pros` from it; `public/js/home.js` only wires the waitlist notes on `/`.
+- `public/js/trips.js`: the featured trip and the 2027 Founding Season cards (`id`, `name`, `place`, `timing`, `blurb`, `status`, `price`, `photo`, `link`, `hostIds`). The homepage and the Pros page both read it, so a pro's "trips" never drift from the cards.
+- `public/js/pros.js`: one entry per pro (`id`, `name`, `role`, `base`, `portrait`, `facts`, `bio`, `onCourt`, `links`) with a commented template entry for the next one. `public/js/pros-page.js` renders `/pros` from it. The homepage needs no script: the waitlist notes are `<details>` elements.
 
 Both pages use the brand tokens in `style.css` plus `marketing.css`, carry `noindex,nofollow`, and make no third-party requests. Facts that Katie has not supplied are shown as marked placeholders, never invented.
 
 ### Images
 
-`npm run images` runs `scripts/make-images.js`, which writes resized WebP and JPEG variants of the photos in `public/assets/` (widths 480, 960, 1600, metadata stripped) into `public/assets/derived/` with a `manifest.json` describing each variant. The pages reference those files in `srcset`; the originals are untouched. Re-run it after adding or replacing a photo.
+`npm run images` runs `scripts/make-images.js`, which writes resized WebP and JPEG variants of the photos in `public/assets/` (widths 480 and 960 plus the original width, never upscaled, metadata stripped) into `public/assets/derived/` with a `manifest.json` describing each variant. The pages reference those files in `srcset`; the originals are untouched. Re-run it after adding or replacing a photo.
 
 ## Going live: what KC sets up
 
@@ -173,5 +173,5 @@ If shared codes become the norm, the alternative is to collect name, email and m
 
 - Pricing in a `Pricing` tab with the server recalculating the estimate.
 - A "request an invitation" flow for people without a code.
-- Miami Courtside as a second trip; the Trips and Weeks tabs already carry `trip_id`.
+- A second bookable trip; the Trips and Weeks tabs already carry `trip_id`.
 - Contact fields in the modal, if shared codes are wanted (see above).

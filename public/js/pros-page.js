@@ -189,10 +189,19 @@ if (typeof document !== 'undefined') {
   if (root) {
     const next = document.createElement('template');
     next.innerHTML = `${START}\n${renderAll()}\n${END}`;
-    if (next.innerHTML !== root.innerHTML) {
-      root.replaceChildren(next.content);
+    // Compare with whitespace collapsed: the committed region is pretty-printed, the rendered one is
+    // not, and that difference alone must not force a DOM swap (QA finding, Phase 2).
+    const norm = (html) => html.replace(/\s+/g, ' ').trim();
+    if (norm(next.innerHTML) !== norm(root.innerHTML)) root.replaceChildren(next.content);
+    // Land on the fragment again once layout is final. The browser's own jump happens before the eager
+    // portrait and the fonts settle, which can leave the target well below the header on a phone.
+    const landOnHash = () => {
       const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
       if (target) target.scrollIntoView({ behavior: 'instant', block: 'start' });
+    };
+    if (location.hash) {
+      landOnHash();
+      addEventListener('load', landOnHash, { once: true });
     }
   }
 }
