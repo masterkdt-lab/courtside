@@ -119,3 +119,51 @@ a.primary,a.secondary{text-decoration:none;display:inline-block;text-align:cente
   .steps{grid-template-columns:repeat(3,minmax(0,1fr))}
   .steps .path-card{padding:34px}
 }
+
+/* ---- pros ---- */
+/* /pros: the intro band, the jump row and one .profile-section per pro (rendered by js/pros-page.js from
+   js/pros.js). Portrait (or monogram) above the text on phones and tablets, left of it from 1050px, where it
+   stays in view while the facts, panels and trips scroll. Panels and trip cards take the opposite paper/cream
+   of the band they sit on, as on the homepage. */
+.pros-intro h1{font:clamp(3.6rem,6.5vw,6.8rem)/.9 var(--serif);font-weight:400;letter-spacing:-.05em;margin:12px 0 24px;color:var(--espresso)}
+.pros-intro h1 em{font-weight:400;color:var(--clay)}
+.pros-intro .intro{max-width:640px;margin:0;color:var(--muted);font-size:1.05rem}
+.pros-jump{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--paper);padding:16px clamp(24px,6vw,90px)}
+.pros-jump .section-inner{display:flex;flex-wrap:wrap;gap:10px}
+.profile{display:grid;gap:30px}
+.profile-media .media-card{min-height:0}
+.profile-media .placeholder{margin:12px 0 0;font-size:.85rem}
+.profile-body h2{font:clamp(3rem,4.5vw,4.6rem)/.97 var(--serif);font-weight:400;letter-spacing:-.04em;margin:0 0 14px;color:var(--espresso)}
+.profile-base{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;margin:0 0 28px;color:var(--brown);font-size:.95rem}
+.profile-base-label{font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.profile-links{display:flex;flex-wrap:wrap;gap:4px 22px;margin:-16px 0 28px}
+.profile-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--espresso);text-decoration:none;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.profile-links a:hover{text-decoration:underline}
+.profile .quickfacts{background:transparent;margin:0 0 28px}
+.profile .quickfact{padding:22px 14px}
+.profile .quickfact .placeholder{font-style:italic;color:var(--muted)}
+.profile-panels{display:grid;gap:18px;margin:0 0 28px}
+.profile .panel{display:block;background:var(--paper)}
+.band-paper .profile .panel{background:var(--cream)}
+.profile h3.profile-label{font:800 .72rem/1.45 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 16px}
+.on-court{list-style:none;margin:0;padding:0}
+.on-court li{padding:10px 0;border-top:1px solid var(--line);color:var(--brown);font-size:.95rem}
+.on-court li:first-child{border-top:0;padding-top:0}
+.on-court li:last-child{padding-bottom:0}
+.profile-trips .trip-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.profile .trip-card{background:var(--paper)}
+.band-paper .profile .trip-card{background:var(--cream)}
+.profile .trip-body>a{margin-top:auto;align-self:flex-start}
+.trip-art.has-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.trip-art.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(37,23,16,.72))}
+.trip-art.has-photo span{position:relative;z-index:1}
+@media (min-width:700px){
+  .profile-media{max-width:480px}
+  .profile-panels{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:1050px){
+  .profile{grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:48px;align-items:start}
+  .profile-media{position:sticky;top:100px;max-width:none}
+  .profile .quickfact{padding:26px 16px}
+  .profile-panels,.profile .quickfacts,.profile-trips{margin-bottom:32px}
+}
