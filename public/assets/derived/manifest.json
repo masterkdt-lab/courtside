@@ -1,0 +1,317 @@
+{
+  "katie-eva-coast": {
+    "original": {
+      "width": 768,
+      "height": 1024,
+      "file": "/assets/katie-eva-coast.jpg"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/katie-eva-coast-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 640,
+        "bytes": 16304
+      },
+      {
+        "file": "/assets/derived/katie-eva-coast-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 640,
+        "bytes": 25756
+      },
+      {
+        "file": "/assets/derived/katie-eva-coast-768.webp",
+        "format": "webp",
+        "width": 768,
+        "height": 1024,
+        "bytes": 28310
+      },
+      {
+        "file": "/assets/derived/katie-eva-coast-768.jpg",
+        "format": "jpg",
+        "width": 768,
+        "height": 1024,
+        "bytes": 51131
+      }
+    ]
+  },
+  "play-katie-eva-clay": {
+    "original": {
+      "width": 960,
+      "height": 2042,
+      "file": "/assets/play-katie-eva-clay.jpg"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/play-katie-eva-clay-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 1021,
+        "bytes": 98214
+      },
+      {
+        "file": "/assets/derived/play-katie-eva-clay-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 1021,
+        "bytes": 101936
+      },
+      {
+        "file": "/assets/derived/play-katie-eva-clay-960.webp",
+        "format": "webp",
+        "width": 960,
+        "height": 2042,
+        "bytes": 325488
+      },
+      {
+        "file": "/assets/derived/play-katie-eva-clay-960.jpg",
+        "format": "jpg",
+        "width": 960,
+        "height": 2042,
+        "bytes": 337437
+      }
+    ]
+  },
+  "life-eva-paella": {
+    "original": {
+      "width": 768,
+      "height": 1024,
+      "file": "/assets/life-eva-paella.jpg"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/life-eva-paella-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 640,
+        "bytes": 45324
+      },
+      {
+        "file": "/assets/derived/life-eva-paella-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 640,
+        "bytes": 53867
+      },
+      {
+        "file": "/assets/derived/life-eva-paella-768.webp",
+        "format": "webp",
+        "width": 768,
+        "height": 1024,
+        "bytes": 92714
+      },
+      {
+        "file": "/assets/derived/life-eva-paella-768.jpg",
+        "format": "jpg",
+        "width": 768,
+        "height": 1024,
+        "bytes": 115550
+      }
+    ]
+  },
+  "life-friends-court": {
+    "original": {
+      "width": 1024,
+      "height": 768,
+      "file": "/assets/life-friends-court.jpg"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/life-friends-court-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 360,
+        "bytes": 41096
+      },
+      {
+        "file": "/assets/derived/life-friends-court-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 360,
+        "bytes": 43174
+      },
+      {
+        "file": "/assets/derived/life-friends-court-960.webp",
+        "format": "webp",
+        "width": 960,
+        "height": 720,
+        "bytes": 105368
+      },
+      {
+        "file": "/assets/derived/life-friends-court-960.jpg",
+        "format": "jpg",
+        "width": 960,
+        "height": 720,
+        "bytes": 125241
+      },
+      {
+        "file": "/assets/derived/life-friends-court-1024.webp",
+        "format": "webp",
+        "width": 1024,
+        "height": 768,
+        "bytes": 122368
+      },
+      {
+        "file": "/assets/derived/life-friends-court-1024.jpg",
+        "format": "jpg",
+        "width": 1024,
+        "height": 768,
+        "bytes": 140401
+      }
+    ]
+  },
+  "life-friends-family": {
+    "original": {
+      "width": 1120,
+      "height": 700,
+      "file": "/assets/life-friends-family.jpg"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/life-friends-family-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 300,
+        "bytes": 28160
+      },
+      {
+        "file": "/assets/derived/life-friends-family-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 300,
+        "bytes": 32098
+      },
+      {
+        "file": "/assets/derived/life-friends-family-960.webp",
+        "format": "webp",
+        "width": 960,
+        "height": 600,
+        "bytes": 78120
+      },
+      {
+        "file": "/assets/derived/life-friends-family-960.jpg",
+        "format": "jpg",
+        "width": 960,
+        "height": 600,
+        "bytes": 97281
+      },
+      {
+        "file": "/assets/derived/life-friends-family-1120.webp",
+        "format": "webp",
+        "width": 1120,
+        "height": 700,
+        "bytes": 102608
+      },
+      {
+        "file": "/assets/derived/life-friends-family-1120.jpg",
+        "format": "jpg",
+        "width": 1120,
+        "height": 700,
+        "bytes": 126109
+      }
+    ]
+  },
+  "courtside-lockup": {
+    "original": {
+      "width": 880,
+      "height": 355,
+      "file": "/assets/courtside-lockup.png"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/courtside-lockup-320.webp",
+        "format": "webp",
+        "width": 320,
+        "height": 129,
+        "bytes": 20682
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-320.png",
+        "format": "png",
+        "width": 320,
+        "height": 129,
+        "bytes": 28687
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-640.webp",
+        "format": "webp",
+        "width": 640,
+        "height": 258,
+        "bytes": 77426
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-640.png",
+        "format": "png",
+        "width": 640,
+        "height": 258,
+        "bytes": 102026
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-880.webp",
+        "format": "webp",
+        "width": 880,
+        "height": 355,
+        "bytes": 134716
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-880.png",
+        "format": "png",
+        "width": 880,
+        "height": 355,
+        "bytes": 169888
+      }
+    ]
+  },
+  "courtside-lockup-footer": {
+    "original": {
+      "width": 743,
+      "height": 269,
+      "file": "/assets/courtside-lockup-footer.png"
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/courtside-lockup-footer-320.webp",
+        "format": "webp",
+        "width": 320,
+        "height": 116,
+        "bytes": 23866
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-footer-320.png",
+        "format": "png",
+        "width": 320,
+        "height": 116,
+        "bytes": 27023
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-footer-640.webp",
+        "format": "webp",
+        "width": 640,
+        "height": 232,
+        "bytes": 85448
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-footer-640.png",
+        "format": "png",
+        "width": 640,
+        "height": 232,
+        "bytes": 86300
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-footer-743.webp",
+        "format": "webp",
+        "width": 743,
+        "height": 269,
+        "bytes": 50030
+      },
+      {
+        "file": "/assets/derived/courtside-lockup-footer-743.png",
+        "format": "png",
+        "width": 743,
+        "height": 269,
+        "bytes": 78638
+      }
+    ]
+  }
+}
