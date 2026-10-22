@@ -1,0 +1,121 @@
+/* marketing.css — Courtside public pages (/, /pros, /invite). Loaded after /style.css; never on /site.
+   Only the tokens from style.css. Mobile-first: base rules are for phones, then min-width 700px and 1050px
+   to mirror the existing breakpoints. Section rhythm, buttons, cards and type all come from style.css. */
+
+/* ---- accessibility: skip link, focus rings, anchor offsets ---- */
+.skip-link{position:absolute;left:16px;top:-120px;z-index:100;background:var(--espresso);color:var(--cream);padding:14px 20px;border-radius:999px;font-size:.72rem;letter-spacing:.13em;text-transform:uppercase;font-weight:700;text-decoration:none}
+.skip-link:focus{top:16px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--espresso);outline-offset:3px}
+.dark a:focus-visible,.dark button:focus-visible,.dark summary:focus-visible,.footer a:focus-visible,.media-card a:focus-visible{outline-color:var(--cream)}
+main:focus{outline:none}
+main section[id]{scroll-margin-top:72px}
+picture{display:contents}
+a.primary,a.secondary{text-decoration:none;display:inline-block;text-align:center}
+
+/* ---- public header: the pill stays on phones, 44px hit areas without changing the look ---- */
+.site-nav a{position:relative}
+.site-nav a::before{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+.site-nav .invite-pill{display:inline-flex;align-items:center}
+
+/* ---- gate (/invite): the small way back to the homepage. Its own row under the logo at every width: the
+   gate panel is only ~430px of content between 700px and 1300px, so a third item in the logo row overflows. ---- */
+.gate-top{flex-wrap:wrap}
+.gate-back{order:3;flex-basis:100%;margin-top:2px;display:inline-flex;align-items:center;min-height:44px;color:var(--muted);text-decoration:none;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;white-space:nowrap}
+.gate-back:hover{color:var(--espresso)}
+
+/* ---- "what Courtside is": three short columns ---- */
+.pillars{display:grid;gap:30px}
+.pillar h3{font:1.9rem/1.05 var(--serif);font-weight:400;margin:10px 0 10px;color:var(--espresso)}
+.pillar p{margin:0;color:var(--muted);font-size:.95rem;max-width:420px}
+
+/* ---- trust row: .quickfacts with text-sized facts ---- */
+.trust .quickfact strong{font-size:1.5rem;line-height:1.1}
+.trust .quickfact span{display:block;margin-top:6px}
+
+/* ---- featured trip: photo card + cream panel ---- */
+.band-paper{background:var(--paper)}
+.trip-feature{display:grid;gap:18px}
+.trip-feature .media-card{min-height:520px}
+.trip-feature .media-card img{object-position:50% 30%}
+.panel{border-radius:26px;background:var(--cream);border:1px solid var(--line);padding:28px;display:flex;flex-direction:column;justify-content:space-between;gap:26px;align-items:flex-start}
+.panel h3{font:2.1rem/1.05 var(--serif);font-weight:400;margin:0 0 14px;color:var(--espresso)}
+.panel p{color:var(--brown);margin:0 0 12px;max-width:520px}
+.panel p:last-child{margin-bottom:0}
+
+/* ---- upcoming trips: photo-led cards, gradient panel when there is no photo ---- */
+.trip-grid{display:grid;gap:18px}
+.trip-card{background:var(--paper);border:1px solid var(--line);border-radius:26px;overflow:hidden;display:flex;flex-direction:column}
+.trip-art{position:relative;aspect-ratio:4/3;background:linear-gradient(160deg,var(--sage) 0%,var(--espresso) 100%);display:flex;align-items:flex-end;padding:22px;color:var(--cream)}
+.trip-art span{font:italic 2.1rem/1 var(--serif)}
+.trip-body{padding:22px;display:flex;flex-direction:column;gap:10px;flex:1}
+.trip-tag{color:var(--clay)}
+.trip-body h3{font:1.85rem/1.05 var(--serif);font-weight:400;margin:0;color:var(--espresso)}
+.trip-meta{margin:0;color:var(--muted);font-size:.9rem}
+.trip-body p{margin:0;color:var(--brown);font-size:.92rem}
+.waitlist{margin-top:auto;padding-top:10px}
+.waitlist summary{list-style:none;display:inline-flex;align-items:center;cursor:pointer;min-height:44px}
+.waitlist summary::-webkit-details-marker{display:none}
+.waitlist[open] summary{background:rgba(57,38,29,.05)}
+.waitlist-note{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:.88rem;color:var(--brown)}
+
+/* ---- how it works: three .path-card steps on the dark band ---- */
+.steps{display:grid;gap:18px}
+.steps .path-card{padding:28px}
+.steps .path-card h3{font-size:1.9rem}
+.steps .path-card p{font-size:.95rem;margin:0}
+.dark .steps .path-card{background:rgba(244,239,229,.06);border-color:rgba(244,239,229,.18);color:var(--cream)}
+.dark .steps .path-card h3{color:var(--cream)}
+.dark .steps .path-card p{color:rgba(244,239,229,.72)}
+.dark .steps .path-card a{color:var(--cream)}
+
+/* ---- meet the pros teaser: portrait (or monogram) + name + role ---- */
+.pro-grid{display:grid;gap:18px}
+.pro-card{position:relative;background:var(--cream);border:1px solid var(--line);border-radius:26px;overflow:hidden;display:flex;flex-direction:column}
+.pro-portrait{position:relative;aspect-ratio:4/5;overflow:hidden;background:#d7c9b9}
+.pro-portrait img{position:absolute;top:0;left:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 25%}
+.pro-portrait.crop-right img{width:200%;left:-100%}
+.monogram{display:grid;place-items:center;background:linear-gradient(160deg,var(--sage) 0%,var(--espresso) 100%);color:var(--cream)}
+.monogram span{font:italic 5rem/1 var(--serif);letter-spacing:-.04em}
+.pro-body{padding:22px;display:flex;flex-direction:column;gap:8px}
+.pro-role{color:var(--gold)}
+.pro-body h3{font:1.85rem/1.05 var(--serif);font-weight:400;margin:0}
+.pro-link{color:var(--espresso);text-decoration:none}
+.pro-link::after{content:"";position:absolute;inset:0}
+.pro-body p{margin:0;color:var(--muted);font-size:.92rem}
+.pro-card:has(.pro-link:focus-visible){outline:2px solid var(--espresso);outline-offset:3px}
+@supports selector(:has(a)){.pro-link:focus-visible{outline:none}}
+.section-cta{margin-top:28px}
+
+/* ---- placeholder for anything KC has not given yet (decision 7) ---- */
+.placeholder{font-style:italic;color:var(--muted)}
+
+/* ---- footer links row ---- */
+.footer-side{display:flex;flex-direction:column;align-items:flex-start;gap:18px}
+.footer-links{display:flex;flex-wrap:wrap;gap:4px 22px}
+.footer-links a{display:inline-flex;align-items:center;min-height:44px;color:rgba(244,239,229,.78);text-decoration:none;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.footer-links a:hover{color:var(--cream)}
+
+/* ---- motion ---- */
+@media (prefers-reduced-motion:no-preference){.trip-card,.pro-card{transition:transform .2s ease,box-shadow .2s ease}.trip-card:hover,.pro-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}}
+
+/* ---- 700px and up ---- */
+@media (min-width:700px){
+  main section[id]{scroll-margin-top:84px}
+  .pillars{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+  .trust .quickfact strong{font-size:1.7rem}
+  .trip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pro-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .footer-side{align-items:flex-end}
+  .footer-links{justify-content:flex-end}
+}
+
+/* ---- 1050px and up ---- */
+@media (min-width:1050px){
+  .trust .quickfact strong{font-size:1.9rem}
+  .trip-feature{grid-template-columns:1.2fr .8fr}
+  .trip-feature .media-card{min-height:640px}
+  .panel{padding:40px}
+  .trip-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .steps{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .steps .path-card{padding:34px}
+}

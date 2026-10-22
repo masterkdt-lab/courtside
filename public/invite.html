@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#f4efe5" name="theme-color"/>
+<title>Enter your invitation — Courtside Travel Co.</title>
+<meta content="The Spanish Offseason by Courtside Travel Co. An invitation-only tennis residency on the Costa Blanca, winter 2027." name="description"/>
+<meta content="noindex,nofollow" name="robots"/>
+<link href="/style.css" rel="stylesheet"/>
+<link href="/marketing.css" rel="stylesheet"/>
+
+</head>
+<body>
+<!-- Invitation gate (moved from / to /invite in Phase 2; every id, class and data hook is unchanged for gate.js and the e2e tests) -->
+<section aria-label="Invitation only access" id="gate">
+<div class="gate-visual">
+<div class="gate-caption"><div class="caps">Costa Blanca · Winter 2027</div><h2>good places. better people.</h2><p>A private invitation from Katie + Courtside.</p></div>
+</div>
+<div class="gate-panel">
+<div class="gate-top">
+<img alt="Courtside Travel Co." class="ct-logo" src="/assets/courtside-lockup.png"/>
+<a class="gate-back" href="/">← Courtside</a>
+<div class="powered">powered by tgl.rsvp</div>
+</div>
+<div class="gate-main">
+<div class="eyebrow">Invitation only</div>
+<h1>tennis takes<br/>you <em>further.</em></h1>
+<p class="intro" id="inviteIntro">Katie invited you to preview The Spanish Offseason — a private Costa Blanca residency for her tennis community.</p>
+<div class="invite-card">
+<div class="caps" style="margin-bottom:10px">Enter invitation code</div>
+<form class="invite-row" id="inviteForm"><input aria-label="Invitation code" autocapitalize="characters" autocomplete="off" id="inviteCode" spellcheck="false"/><button class="primary" id="enterButton" type="submit">Enter Courtside</button></form>
+<p aria-live="polite" class="invite-hint" id="inviteMessage">Your code is in your invitation from Katie.</p>
+</div>
+</div>
+<div class="gate-footer">Courtside Travel Co. · Founding Season 2027</div>
+</div>
+</section>
+<script type="module" src="/js/gate.js"></script>
+</body>
+</html>

@@ -1,10 +1,20 @@
-# Courtside Travel Co. — The Spanish Offseason (Phase 1)
+# Courtside Travel Co. — public pages and The Spanish Offseason
 
-Invitation-only site for The Spanish Offseason. A guest enters the code Katie gave them, sees the trip, builds a private week or applies to a vetted group, and sends the request to Katie. Invite codes, week availability and every request live in one Google Sheet. The site is plain HTML, CSS and JavaScript with a handful of Vercel functions; there is no database, no accounts and no payments.
+A public homepage and a Meet the Pros page in front of an invitation-only site for The Spanish Offseason. A guest enters the code Katie gave them at the gate, sees the trip, builds a private week or applies to a vetted group, and sends the request to Katie. Invite codes, week availability and every request live in one Google Sheet. The site is plain HTML, CSS and JavaScript with a handful of Vercel functions; there is no database, no accounts and no payments.
 
-- `public/` is everything the browser can load: the gate (`index.html`), the site (`site.html`), the privacy notice, styles, scripts, images.
-- `api/` holds the four server routes. `lib/` holds the shared code. `middleware.js` keeps `/site` behind the invite cookie.
-- `scripts/dev-server.js` runs the whole thing locally with no accounts. `scripts/setup-sheet.js` prepares the Google Sheet.
+Pages:
+
+| URL | File | What it is |
+| --- | --- | --- |
+| `/` | `public/index.html` | Public homepage: the featured trip, the 2027 Founding Season cards, how it works, the pros teaser. |
+| `/pros` | `public/pros.html` | Meet the Pros: one profile per pro from `public/js/pros.js`. |
+| `/invite` | `public/invite.html` | The invitation gate. Enters `/site` on a valid code. |
+| `/site` | `public/site.html` | The Spanish Offseason: the trip, the builder and the request modal. Needs the invite cookie. |
+| `/privacy` | `public/privacy.html` | The privacy notice. |
+
+- `public/` is everything the browser can load: the pages above, `style.css` (the brand), `marketing.css` (the public-page components), scripts, images.
+- `api/` holds the four server routes. `lib/` holds the shared code. `middleware.js` keeps `/site` behind the invite cookie and forwards old personal links from `/` to `/invite`.
+- `scripts/dev-server.js` runs the whole thing locally with no accounts. `scripts/setup-sheet.js` prepares the Google Sheet. `scripts/make-images.js` (`npm run images`) writes the resized image variants.
 
 ## Run it locally
 
@@ -25,7 +35,7 @@ Test invite codes in mock mode:
 | `PAUSED1` | Shows the "paused" message. |
 | `ONCE1` | Works once, then shows "already been used". |
 
-A personal link looks like `http://localhost:3000/?invite=GUEST1` and enters without typing.
+A personal link looks like `http://localhost:3000/invite?invite=GUEST1` and enters without typing. The pre-Phase-2 form, `http://localhost:3000/?invite=GUEST1`, still works: the server redirects it to `/invite` with the same query.
 
 Mock data lives in `.data/mock.json` (created on first use from `tests/fixtures/seed.json`, ignored by git). To close a week or the trip while testing, set its `status` to `closed` in that file and restart the server. Delete the file to reset everything. Rate limits and the double-submit guard are in memory; restarting clears them.
 
@@ -33,9 +43,23 @@ Mock data lives in `.data/mock.json` (created on first use from `tests/fixtures/
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm test
+export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm run test:e2e
 ```
 
-Runs the store, validation, API and dev-server suites in mock mode with no network. Browser-level results are in `QA_REPORT.md`.
+`npm test` runs the store, validation, API, middleware and dev-server suites in mock mode with no network. `npm run test:e2e` starts a dev server per file on a free port with a temp mock file and drives it over HTTP and in headless Chromium (Playwright; `npx playwright install chromium` once). It expects no `.env` in the repo. Browser-level results are in `QA_REPORT.md`.
+
+## Public pages
+
+The homepage and the Pros page are static HTML that read their content from two data files, so the copy lives in one place each:
+
+- `public/js/trips.js`: the featured trip and the 2027 Founding Season cards (`id`, `name`, `place`, `dates`, `blurb`, `status`, `price`, `photo`, `link`, `hostIds`). The homepage and the Pros page both read it, so a pro's "trips" never drift from the cards.
+- `public/js/pros.js`: one entry per pro (`id`, `name`, `role`, `base`, `portrait`, `facts`, `bio`, `onCourt`, `links`) with a commented template entry for the next one. `public/js/pros-page.js` renders `/pros` from it; `public/js/home.js` only wires the waitlist notes on `/`.
+
+Both pages use the brand tokens in `style.css` plus `marketing.css`, carry `noindex,nofollow`, and make no third-party requests. Facts that Katie has not supplied are shown as marked placeholders, never invented.
+
+### Images
+
+`npm run images` runs `scripts/make-images.js`, which writes resized WebP and JPEG variants of the photos in `public/assets/` (widths 480, 960, 1600, metadata stripped) into `public/assets/derived/` with a `manifest.json` describing each variant. The pages reference those files in `srcset`; the originals are untouched. Re-run it after adding or replacing a photo.
 
 ## Going live: what KC sets up
 
@@ -70,7 +94,7 @@ export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm run setup-
 2. Add every variable from `.env.example` in the project's Environment Variables. `COOKIE_SECRET` must be a long random string. Without it the server falls back to a development default that is public in this repo, which would let anyone forge the cookie.
 3. Deploy, then attach the domain.
 
-Routing is `vercel.json` (`cleanUrls`) plus `middleware.js`, which redirects `/site` to `/` when the invite cookie is missing or invalid. The middleware shape was checked against the Vercel docs on 2026-10-05 but has not been exercised by a deploy yet; the first preview deploy should confirm that `/site` without a cookie redirects.
+Routing is `vercel.json` (`cleanUrls`, so `public/invite.html` is `/invite` and `public/pros.html` is `/pros`) plus `middleware.js`, which runs on `/`, `/site` and `/site.html` only: it redirects `/site` to `/invite` when the invite cookie is missing or invalid, and redirects `/?invite=CODE` (or `/?code=CODE`) to `/invite` with the same query so links sent before the homepage existed keep working. The middleware shape and the matcher were checked against the Vercel docs (2026-10-05 and 2026-10-22) but have not been exercised by a deploy yet; the first preview deploy should confirm both redirects.
 
 ### 4. Invite codes and personal links
 
@@ -88,7 +112,7 @@ Katie adds one row per guest to the **Invites** tab:
 | `status` | `active`, `paused` or `revoked`. |
 | `created_at` | Any date, for Katie's reference. |
 
-The personal link for a code is `https://<domain>/?invite=CODE`. It fills the code in and enters automatically.
+The personal link for a code is `https://<domain>/invite?invite=CODE`. It fills the code in and enters automatically. Links in the older form, `https://<domain>/?invite=CODE`, still work: `/` redirects them to `/invite` with the same query.
 
 ### 5. Privacy notice
 
@@ -106,10 +130,11 @@ Three images load from other sites and must be replaced with licensed files befo
 
 To swap one, put the licensed file in `public/assets/` and change that key's URL to `/assets/<file>`.
 
-The seven files already in `public/assets/` are the Courtside logos and Katie's own photos, exactly as embedded in the prototype except that the camera metadata (GPS coordinates and capture dates) was stripped losslessly on 2026-10-05. Run the same script on any photo before adding it:
+The seven files already in `public/assets/` are the Courtside logos and Katie's own photos, exactly as embedded in the prototype except that the camera metadata (GPS coordinates and capture dates) was stripped losslessly on 2026-10-05. Run the same script on any photo before adding it, then `npm run images` to regenerate `public/assets/derived/`:
 
 ```bash
 node scripts/strip-exif.js public/assets/<photo>.jpg
+npm run images
 ```
 
 ## The Sheet
@@ -141,7 +166,8 @@ If shared codes become the norm, the alternative is to collect name, email and m
 - `POST /api/request` validates the builder state, re-checks that the invite is still `active` and that the trip and the chosen weeks are open, appends the Requests row, and sends the emails. An identical request within 60 seconds returns the first request's ID instead of a second row; an edited one is a new row.
 - Pausing or revoking a code in the Sheet blocks new sign-ins and new requests right away. Someone already inside can still look at the page until their 30-day cookie expires.
 - Rate limits: 10 code attempts and 5 request posts per 10 minutes per IP, kept in memory per server instance. A hidden honeypot field drops bots silently. Every code attempt is logged to the Log tab with a hashed IP.
-- Only `public/` is served statically. `lib/`, `tests/` and this file are not reachable from the browser.
+- The public pages (`/`, `/pros`, `/invite`, `/privacy`) need no cookie and call no API. `/site` needs the cookie; without it the middleware (and the dev server) send the browser to `/invite`, and `site.js` does the same on a 401 from the API.
+- Only `public/` is served statically. `lib/`, `tests/` and this file are not reachable from the browser. The dev server serves clean URLs only (`/invite`, not `/invite.html`).
 
 ## Phase 2 candidates
 

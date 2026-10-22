@@ -14,6 +14,10 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SEED_CODES = ['GUEST1', 'COURTSIDE', 'PAUSED1', 'ONCE1'];
+// The gate's path since Phase 2 (public/invite.html). The homepage is /.
+export const GATE = '/invite';
+// <meta name="robots" content="noindex,nofollow"> in either attribute order, with or without "/>".
+export const NOINDEX = /<meta\b(?=[^>]*\bname="robots")(?=[^>]*\bcontent="noindex,nofollow")[^>]*>/;
 export const WEEK_LABELS = {
   w1: 'Jan 10–16', w2: 'Jan 17–23', w3: 'Jan 24–30', w4: 'Jan 31–Feb 6', w5: 'Feb 7–13', w6: 'Feb 14–20', w7: 'Feb 21–27',
 };

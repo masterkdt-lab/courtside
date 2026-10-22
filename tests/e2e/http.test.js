@@ -1,14 +1,15 @@
 // tests/e2e/http.test.js
 // Section 8 of COURTSIDE_PHASE1_PLAN.md at the HTTP level, against a real dev server started in
-// this process on a free port (mock store in a temp file, log-mode email). The browser-level
-// checks are in browser.test.js. Nothing here touches .data/mock.json.
+// this process on a free port (mock store in a temp file, log-mode email). Since Phase 2 the gate
+// is at /invite and / is the public homepage; legacy /?invite=CODE links redirect. The
+// browser-level checks are in browser.test.js. Nothing here touches .data/mock.json.
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import {
-  COLUMNS, ROOT, SEED_CODES, WEEK_LABELS, freshIp, http, login, privateBody, readMock, resetMock, resetServerState,
+  COLUMNS, GATE, NOINDEX, ROOT, SEED_CODES, WEEK_LABELS, freshIp, http, login, privateBody, readMock, resetMock, resetServerState,
   sentEmails, setAllWeeks, setTripStatus, setWeekStatus, startServer, tamper, useTempMock, vettedBody,
 } from './helpers.js';
 
@@ -27,11 +28,17 @@ after(async () => {
 beforeEach(resetMock);
 
 describe('8.2 npm run dev serves the whole site with no accounts or keys', () => {
-  test('/ , /privacy, /robots.txt, style, scripts and assets are served; no .env exists', async () => {
-    assert.equal(fs.existsSync(path.join(ROOT, '.env')), false, 'the suite must run with no .env');
-    for (const [p, type] of [['/', 'text/html'], ['/privacy', 'text/html'], ['/robots.txt', 'text/plain'], ['/style.css', 'text/css'],
+  test('/ , /invite, /privacy, /robots.txt, styles, scripts and assets are served in mock mode', async () => {
+    // The suite runs in mock/log mode regardless of any local .env: helpers.js sets the env and the
+    // in-process dev server never loads the file. Assert the mode, not the file.
+    assert.notEqual(process.env.DATA_BACKEND, 'sheets', 'the suite must run against the mock store');
+    assert.equal(process.env.EMAIL_MODE, 'log', 'the suite must never send email');
+    assert.ok(process.env.MOCK_DATA_PATH && !process.env.MOCK_DATA_PATH.startsWith(ROOT), 'mock data must live outside the repo');
+    for (const [p, type] of [['/', 'text/html'], [GATE, 'text/html'], ['/privacy', 'text/html'], ['/robots.txt', 'text/plain'],
+      ['/style.css', 'text/css'], ['/marketing.css', 'text/css'],
       ['/js/gate.js', 'text/javascript'], ['/js/site.js', 'text/javascript'], ['/js/images.js', 'text/javascript'],
-      ['/assets/courtside-lockup.png', 'image/png'], ['/assets/katie-eva-coast.jpg', 'image/jpeg']]) {
+      ['/assets/courtside-lockup.png', 'image/png'], ['/assets/katie-eva-coast.jpg', 'image/jpeg'],
+      ['/assets/derived/manifest.json', 'application/json'], ['/assets/derived/katie-eva-coast-480.webp', 'image/webp']]) {
       const r = await http(srv.base, p);
       assert.equal(r.status, 200, `${p} -> ${r.status}`);
       assert.match(r.headers.get('content-type') || '', new RegExp(`^${type}`), `${p} content-type`);
@@ -48,9 +55,10 @@ describe('8.2 npm run dev serves the whole site with no accounts or keys', () =>
 
   test('nothing outside public/ is reachable (lib, tests, config, docs, api source, traversal)', async () => {
     for (const p of ['/lib/store.js', '/lib/cookie.js', '/tests/fixtures/seed.json', '/package.json', '/package-lock.json', '/.env.example',
-      '/COURTSIDE_PHASE1_PLAN.md', '/README.md', '/QA_REPORT.md', '/middleware.js', '/vercel.json', '/scripts/dev-server.js',
-      '/api/code.js', '/api/nope', '/.data/mock.json', '/.git/HEAD', '/js/../lib/store.js', '/js/%2e%2e/lib/store.js',
-      '/assets/../../package.json', '/js/.hidden', '/index.html', '/privacy.html', '/node_modules/playwright/package.json']) {
+      '/COURTSIDE_PHASE1_PLAN.md', '/COURTSIDE_PHASE2_PLAN.md', '/README.md', '/QA_REPORT.md', '/middleware.js', '/vercel.json', '/scripts/dev-server.js',
+      '/scripts/make-images.js', '/api/code.js', '/api/nope', '/.data/mock.json', '/.git/HEAD', '/js/../lib/store.js', '/js/%2e%2e/lib/store.js',
+      '/assets/../../package.json', '/assets/derived/%2e%2e/%2e%2e/package.json', '/assets/derived/.hidden', '/js/.hidden',
+      '/index.html', '/invite.html', '/pros.html', '/privacy.html', '/node_modules/playwright/package.json']) {
       const r = await http(srv.base, p);
       assert.equal(r.status, 404, `${p} -> ${r.status}`);
     }
@@ -129,7 +137,7 @@ describe('8.3 codes: valid opens /site; invalid, paused, used-up are distinct', 
   });
 });
 
-describe('8.4 /site without a cookie redirects to /', () => {
+describe('8.4 /site without a cookie redirects to /invite', () => {
   test('no cookie, garbage cookie, tampered signature and expired payload all redirect; APIs return 401', async () => {
     const { pair } = await login(srv.base);
     const { sign } = await import('../../lib/cookie.js');
@@ -140,7 +148,7 @@ describe('8.4 /site without a cookie redirects to /', () => {
       for (const p of ['/site', '/site.html']) {
         const r = await http(srv.base, p, { cookie });
         assert.equal(r.status, 302, `${label} ${p}`);
-        assert.equal(r.headers.get('location'), '/', `${label} ${p}`);
+        assert.equal(r.headers.get('location'), GATE, `${label} ${p}`);
         assert.equal(r.headers.get('cache-control'), 'no-store');
       }
       const session = await http(srv.base, '/api/session', { cookie });
@@ -163,7 +171,7 @@ describe('8.4 /site without a cookie redirects to /', () => {
 
 describe('8.5 no invite code appears in shipped JS or HTML', () => {
   test('served files contain none of the seed codes, SPAIN27, localStorage, or the word prototype', async () => {
-    const files = ['/', '/privacy', '/style.css', '/js/gate.js', '/js/site.js', '/js/images.js', '/robots.txt'];
+    const files = ['/', GATE, '/privacy', '/style.css', '/marketing.css', '/js/gate.js', '/js/site.js', '/js/images.js', '/robots.txt'];
     const { pair } = await login(srv.base);
     const bodies = {};
     for (const p of files) bodies[p] = (await http(srv.base, p)).text;
@@ -418,20 +426,38 @@ describe('8.10–8.11 closed week and closed trip (server is the authority)', ()
 });
 
 describe('8.13–8.14 served pages', () => {
-  test('every page has noindex,nofollow; /?invite=PAUSED1 serves the gate', async () => {
+  test('every page has noindex,nofollow; / is the homepage, not the gate; /invite?invite=PAUSED1 serves the gate', async () => {
     const { pair } = await login(srv.base);
-    for (const [p, cookie] of [['/', undefined], ['/?invite=PAUSED1', undefined], ['/privacy', undefined], ['/site', pair]]) {
+    for (const [p, cookie] of [['/', undefined], [GATE, undefined], [`${GATE}?invite=PAUSED1`, undefined], ['/privacy', undefined], ['/site', pair]]) {
       const r = await http(srv.base, p, { cookie });
       assert.equal(r.status, 200, p);
-      assert.match(r.text, /<meta content="noindex,nofollow" name="robots"\/>/, `${p} noindex`);
+      assert.match(r.text, NOINDEX, `${p} noindex`);
     }
-    const gate = await http(srv.base, '/?invite=PAUSED1');
+    const home = await http(srv.base, '/');
+    assert.equal(home.status, 200);
+    assert.match(home.text, /noindex,nofollow/);
+    assert.doesNotMatch(home.text, /id="inviteForm"/, 'the homepage carries no gate form');
+    const gate = await http(srv.base, `${GATE}?invite=PAUSED1`);
     assert.match(gate.text, /id="inviteForm"/);
   });
 
-  test('beyond: the three pages reference only same-origin scripts and stylesheets', async () => {
+  test('personal links: /invite?invite=CODE is the gate; the legacy /?invite=CODE and /?code=CODE redirect with the query intact', async () => {
+    for (const q of ['?invite=GUEST1', '?code=guest1', '?invite=GUEST1&guest=Mallory', '?guest=x&code=GUEST1', '?invite=PAUSED1']) {
+      const r = await http(srv.base, `/${q}`);
+      assert.equal(r.status, 302, q);
+      assert.equal(r.headers.get('location'), `${GATE}${q}`, q);
+      assert.equal(r.headers.get('cache-control'), 'no-store');
+      const gate = await http(srv.base, `${GATE}${q}`);
+      assert.equal(gate.status, 200, q);
+      assert.match(gate.text, /id="inviteForm"/);
+    }
+    // Other queries on / are the homepage.
+    for (const q of ['', '?guest=Mallory', '?utm_source=x']) assert.equal((await http(srv.base, `/${q}`)).status, 200, q);
+  });
+
+  test('beyond: the public pages and /site reference only same-origin scripts and stylesheets', async () => {
     const { pair } = await login(srv.base);
-    for (const [p, cookie] of [['/', undefined], ['/privacy', undefined], ['/site', pair]]) {
+    for (const [p, cookie] of [['/', undefined], [GATE, undefined], ['/privacy', undefined], ['/site', pair]]) {
       const text = (await http(srv.base, p, { cookie })).text;
       for (const m of text.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)) assert.match(m[1], /^\//, `${p} loads ${m[1]}`);
     }

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // scripts/dev-server.js
-// Local server (plan 4.0): plain node:http on PORT or 3000. Serves only the pages, style.css,
-// js/, assets/ and robots.txt with clean URLs, applies the same cookie guard as middleware.js to
-// /site, and routes /api/<name> to the Web-standard GET/POST exports in api/<name>.js. Nothing
-// else is served (lib/, api/, scripts/, tests/, .env*, package*.json, .data/, .git/, the plan,
-// the README). Not `vercel dev`: no accounts, no keys.
+// Local server (Phase 1 plan 4.0, Phase 2 plan section 6): plain node:http on PORT or 3000.
+// Serves only the pages (/ homepage, /invite gate, /pros, /privacy), style.css, marketing.css,
+// js/, assets/ (recursively, so assets/derived/ works) and robots.txt with clean URLs, mirrors
+// middleware.js (the legacy /?invite=CODE redirect to /invite and the cookie guard on /site), and
+// routes /api/<name> to the Web-standard GET/POST exports in api/<name>.js. Nothing else is served
+// (lib/, api/, scripts/, tests/, .env*, package*.json, .data/, .git/, the plans, the README, and
+// no *.html by file name). Not `vercel dev`: no accounts, no keys.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -12,20 +14,24 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, getSecret, loadEnv } from '../lib/env.js';
 import { isAllowed } from '../lib/guard.js';
+import { GATE_PATH, legacyInviteRedirect } from '../middleware.js';
 
 // Static files live at the repo root today. If they are moved into public/ (what Vercel's "Other"
 // preset serves when that folder exists, instead of the whole root), the server follows.
 const STATIC_ROOT = fs.existsSync(path.join(ROOT, 'public')) ? path.join(ROOT, 'public') : ROOT;
 const API_ROUTES = new Set(['code', 'session', 'trips', 'request']);
-const PAGES = Object.freeze({ '/': 'index.html', '/privacy': 'privacy.html' });
+// Clean URLs only: /invite serves invite.html, /invite.html is a 404. A page whose file does not
+// exist yet (Wave 2 adds pros.html) is a plain 404 from sendFile.
+const PAGES = Object.freeze({ '/': 'index.html', '/invite': 'invite.html', '/pros': 'pros.html', '/privacy': 'privacy.html' });
 const GUARDED = new Set(['/site', '/site.html']);
-const FILES = new Set(['/robots.txt', '/style.css']);
+const FILES = new Set(['/robots.txt', '/style.css', '/marketing.css']);
 const DIRS = Object.freeze({ '/js/': 'js', '/assets/': 'assets' });
-const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/; // one path segment, no slashes, no leading dot
+const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/; // one path segment: no slashes, no leading dot, so never ".."
 const MIME = Object.freeze({
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -49,16 +55,18 @@ function sendJson(res, status, body, headers = {}) {
 }
 
 // Resolve a request path to a file under ROOT, or null. Only the allow-listed pages, files and
-// directories; names are single safe segments, and the resolved path must stay inside its folder.
-function resolveStatic(pathname) {
+// directories. Inside a directory the path may nest (assets/derived/<file>), but every segment
+// must be a safe name (no "..", no dotfiles, no empty segment) and the resolved path must stay
+// inside its folder.
+export function resolveStatic(pathname) {
   if (PAGES[pathname]) return path.join(STATIC_ROOT, PAGES[pathname]);
   if (FILES.has(pathname)) return path.join(STATIC_ROOT, pathname.slice(1));
   for (const [prefix, dir] of Object.entries(DIRS)) {
     if (!pathname.startsWith(prefix)) continue;
-    const name = pathname.slice(prefix.length);
-    if (!SAFE_NAME.test(name)) return null;
+    const segments = pathname.slice(prefix.length).split('/');
+    if (!segments.every((s) => SAFE_NAME.test(s))) return null;
     const base = path.join(STATIC_ROOT, dir);
-    const file = path.resolve(base, name);
+    const file = path.resolve(base, ...segments);
     return file.startsWith(base + path.sep) ? file : null;
   }
   return null;
@@ -136,9 +144,16 @@ async function handle(req, res) {
   if (pathname.startsWith('/api/')) return handleApi(req, res, pathname.slice('/api/'.length));
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed', { Allow: 'GET, HEAD' });
 
+  // Same as middleware.js: a pre-Phase-2 personal link (/?invite=CODE or /?code=CODE) goes to the
+  // gate with its query string intact; a plain / is the homepage.
+  if (pathname === '/') {
+    const target = legacyInviteRedirect(url);
+    if (target) return send(res, 302, '', { Location: target, 'Cache-Control': 'no-store' });
+  }
+
   if (GUARDED.has(pathname)) {
     const allowed = await isAllowed(await toWebRequest(req), getSecret());
-    if (!allowed) return send(res, 302, '', { Location: '/', 'Cache-Control': 'no-store' });
+    if (!allowed) return send(res, 302, '', { Location: GATE_PATH, 'Cache-Control': 'no-store' });
     return sendFile(req, res, path.join(STATIC_ROOT, 'site.html'));
   }
 

@@ -117,7 +117,7 @@ async function loadTrips(){
   let data;
   try{
     const r=await fetch('/api/trips',{credentials:'same-origin'});
-    if(r.status===401){location.replace('/');return false}
+    if(r.status===401){location.replace('/invite');return false}
     if(!r.ok)return false;
     data=await r.json();
   }catch(e){return false}
@@ -131,7 +131,7 @@ async function loadTrips(){
 async function start(){
   try{
     const r=await fetch('/api/session',{credentials:'same-origin'});
-    if(r.status===401){location.replace('/');return}
+    if(r.status===401){location.replace('/invite');return}
     if(r.ok){const s=await r.json();if(s&&s.ok){session.code=typeof s.code==='string'?s.code:'';session.invitedBy=typeof s.invitedBy==='string'?s.invitedBy:'';session.issuedTo=typeof s.issuedTo==='string'?s.issuedTo:''}}
   }catch(e){/* the server guard already let us in; the modal falls back to the code line */}
   await loadTrips();
@@ -201,7 +201,7 @@ async function sendRequest(){
     res=await fetch('/api/request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
     data=await res.json().catch(()=>({}));
   }catch(e){sendFailed(NETWORK_MESSAGE);return}
-  if(res.status===401){location.replace('/');return}
+  if(res.status===401){location.replace('/invite');return}
   if(res.ok&&data.ok){sending=false;renderSuccess(data);return}
   if(res.status===400&&data.errors&&typeof data.errors==='object'){sendFailed(Object.values(data.errors).join(' ')||'Please check the request and try again.');return}
   if(res.status===409&&data.reason==='week_closed'){

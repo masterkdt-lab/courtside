@@ -1,8 +1,10 @@
 // tests/e2e/browser.test.js
 // Section 8 of COURTSIDE_PHASE1_PLAN.md in a real browser: Playwright (library) driving headless
 // Chromium against a dev server started in this process on a free port, mock store in a temp
-// file, log-mode email. Remote images (the three https URLs in js/images.js) are answered with a
-// 1x1 PNG so the suite never touches the network and no resource errors reach the console.
+// file, log-mode email. Since Phase 2 the gate is at /invite and / is the public homepage; the
+// legacy /?invite=CODE links redirect there. Remote images (the three https URLs in js/images.js)
+// are answered with a 1x1 PNG so the suite never touches the network and no resource errors reach
+// the console.
 //
 // Run: npm run test:e2e   (needs `npm i -D playwright && npx playwright install chromium`)
 // Set E2E_SCREENSHOT_DIR=/some/dir to also save the 380 px screenshots.
@@ -108,7 +110,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
   describe('8.3 the gate', () => {
     test('a valid code shows "Welcome, Ana Guest." and opens /site; the cookie is HttpOnly', async () => {
       const page = await open();
-      await page.goto('/');
+      await page.goto('/invite');
       assert.equal(await text(page, '#inviteMessage'), 'Your code is in your invitation from Katie.');
       await page.fill('#inviteCode', 'guest1');
       await page.click('#enterButton');
@@ -126,14 +128,14 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       await page.close2();
     });
 
-    test('invalid, paused, used-up and empty show distinct messages and stay on /', async () => {
+    test('invalid, paused, used-up and empty show distinct messages and stay on /invite', async () => {
       const page = await open();
-      await page.goto('/');
+      await page.goto('/invite');
       const messages = {};
       for (const [label, code] of [['empty', ''], ['invalid', 'NOPE'], ['paused', 'PAUSED1'], ['used_up', 'ONCE1']]) {
         if (label === 'used_up') {
           const other = await open();
-          await other.goto('/');
+          await other.goto('/invite');
           await other.fill('#inviteCode', 'ONCE1');
           await other.click('#enterButton');
           await other.waitForURL(/\/site$/);
@@ -149,7 +151,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
         assert.ok(await page.locator('#inviteMessage').evaluate((el) => el.classList.contains('is-error')), `${label} is styled as an error`);
         assert.equal(await page.isEnabled('#enterButton'), true, `${label}: Enter re-enabled`);
         assert.equal(await active(page), 'inviteCode', `${label}: focus back on the input`);
-        assert.match(page.url(), /\/$/, `${label}: still on the gate`);
+        assert.match(page.url(), /\/invite$/, `${label}: still on the gate`);
       }
       assert.equal(messages.empty, 'Enter your invitation code.');
       assert.equal(messages.invalid, "We couldn't find that invitation. Check the code and try again.");
@@ -161,26 +163,46 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       await page.close2();
     });
 
-    test('/?invite=GUEST1 enters without typing; /?code= is an alias; ?guest= is ignored', async () => {
+    test('/invite?invite=GUEST1 enters without typing; ?code= is an alias; ?guest= is ignored', async () => {
       const page = await open();
-      await page.goto('/?invite=GUEST1&guest=Mallory');
+      await page.goto('/invite?invite=GUEST1&guest=Mallory');
       await page.waitForURL(/\/site$/);
       const session = await page.evaluate(() => fetch('/api/session').then((r) => r.json()));
       assert.deepEqual(session, { ok: true, code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana Guest' });
       await page.close2();
 
       const alias = await open();
-      await alias.goto('/?code=guest1');
+      await alias.goto('/invite?code=guest1');
       await alias.waitForURL(/\/site$/);
       assert.deepEqual(alias.errors(), []);
       await alias.close2();
     });
 
-    test('/?invite=PAUSED1 falls back to the visible input with the paused message', async () => {
+    test('legacy /?invite=GUEST1 and /?code= links (sent before Phase 2) redirect to /invite and still enter', async () => {
       const page = await open();
-      await page.goto('/?invite=PAUSED1');
+      const landed = await page.goto('/?invite=GUEST1&guest=Mallory');
+      assert.equal(landed.request().redirectedFrom()?.url(), `${srv.base}/?invite=GUEST1&guest=Mallory`, 'one redirect hop');
+      assert.equal(landed.url(), `${srv.base}/invite?invite=GUEST1&guest=Mallory`, 'the gate, query intact');
+      assert.equal(landed.status(), 200);
+      await page.waitForURL(/\/site$/);
+      const session = await page.evaluate(() => fetch('/api/session').then((r) => r.json()));
+      assert.deepEqual(session, { ok: true, code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana Guest' });
+      assert.deepEqual(page.errors(), []);
+      await page.close2();
+
+      const alias = await open();
+      const aliasLanded = await alias.goto('/?code=guest1');
+      assert.equal(aliasLanded.url(), `${srv.base}/invite?code=guest1`);
+      await alias.waitForURL(/\/site$/);
+      assert.deepEqual(alias.errors(), []);
+      await alias.close2();
+    });
+
+    test('/invite?invite=PAUSED1 falls back to the visible input with the paused message; the legacy link lands there too', async () => {
+      const page = await open();
+      await page.goto('/invite?invite=PAUSED1');
       await page.waitForFunction(() => document.querySelector('#inviteMessage').textContent === 'This invitation is paused. Reach out to Katie.');
-      assert.match(page.url(), /\/\?invite=PAUSED1$/);
+      assert.match(page.url(), /\/invite\?invite=PAUSED1$/);
       assert.equal(await page.locator('.invite-card').evaluate((el) => el.classList.contains('recognized-invite')), false);
       assert.ok(await page.isVisible('#inviteCode'), 'input visible again');
       assert.equal(await page.inputValue('#inviteCode'), 'PAUSED1');
@@ -188,12 +210,19 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       assert.equal(await page.isEnabled('#enterButton'), true);
       assert.match(await text(page, '#inviteIntro'), /^Katie invited you to preview/);
       await page.close2();
+
+      const legacy = await open();
+      await legacy.goto('/?invite=PAUSED1');
+      await legacy.waitForURL(/\/invite\?invite=PAUSED1$/);
+      await legacy.waitForFunction(() => document.querySelector('#inviteMessage').textContent === 'This invitation is paused. Reach out to Katie.');
+      assert.equal(await legacy.inputValue('#inviteCode'), 'PAUSED1');
+      await legacy.close2();
     });
 
-    test('a visitor on /site with no cookie is sent to /', async () => {
+    test('a visitor on /site with no cookie is sent to /invite', async () => {
       const page = await open();
       await page.goto('/site');
-      await page.waitForURL(/\/$/);
+      await page.waitForURL(/\/invite$/);
       assert.ok(await page.isVisible('#inviteForm'));
       await page.close2();
     });
@@ -504,7 +533,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
   describe('8.12 back, refresh and a pasted /site#build link', () => {
     test('enter, go to #build, refresh, back, forward; then /site#build pasted into a tab that has the cookie', async () => {
       const page = await open();
-      await page.goto('/');
+      await page.goto('/invite');
       await page.fill('#inviteCode', 'GUEST1');
       const trips = page.waitForResponse((r) => r.url().endsWith('/api/trips'));
       await page.click('#enterButton');
@@ -524,7 +553,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       assert.match(page.url(), /\/site$/);
       assert.ok(await page.isVisible('#site'), 'back keeps the site (no redirect to the gate)');
       await page.goBack();
-      await page.waitForURL(/\/$/);
+      await page.waitForURL(/\/invite$/);
       assert.ok(await page.isVisible('#inviteForm'), 'back again reaches the gate');
       await page.goForward();
       await page.waitForURL(/\/site$/);
@@ -542,12 +571,13 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
   });
 
   describe('8.13–8.14 served pages in the browser', () => {
-    test('no "prototype" in the DOM, noindex on every page, no console errors', async () => {
+    test('no "prototype" in the DOM, noindex on every page (/ and /invite included), no console errors', async () => {
       const token = await loginToken('GUEST1');
-      for (const [p, cookie] of [['/', null], ['/privacy', null], ['/site', token]]) {
+      for (const [p, cookie] of [['/', null], ['/invite', null], ['/privacy', null], ['/site', token]]) {
         const page = await open({ cookie });
         if (p === '/site') await gotoSite(page, p); else await page.goto(p);
         assert.equal(await page.getAttribute('meta[name="robots"]', 'content'), 'noindex,nofollow', `${p} noindex`);
+        assert.equal(await page.locator('#inviteForm').count(), p === '/invite' ? 1 : 0, `${p}: the gate form is on /invite only`);
         assert.doesNotMatch(await page.content(), /prototype/i, `${p} DOM`);
         assert.deepEqual(page.errors(), [], `${p} console`);
         assert.deepEqual(page.resourceErrors(), [], `${p} resources`);
@@ -582,7 +612,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       };
 
       const normal = await open();
-      await normal.goto('/');
+      await normal.goto('/invite');
       assert.equal(await normal.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'smooth');
       assert.notEqual(await normal.evaluate(() => getComputedStyle(document.getElementById('gate')).transitionProperty), 'none');
       const normalGap = await fadeGap(normal);
@@ -592,7 +622,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       const context = await browser.newContext({ baseURL: srv.base, reducedMotion: 'reduce', extraHTTPHeaders: { 'x-forwarded-for': freshIp() } });
       contexts.add(context);
       const page = await context.newPage();
-      await page.goto('/');
+      await page.goto('/invite');
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'auto');
       assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('gate')).transitionProperty), 'none');
       const reducedGap = await fadeGap(page);
@@ -607,7 +637,7 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
     const mobile = { width: 380, height: 760 };
     test('gate: no horizontal scroll, the form is reachable, the flow works', async () => {
       const page = await open({ viewport: mobile });
-      await page.goto('/');
+      await page.goto('/invite');
       assert.ok((await scrollWidth(page)) <= 380, `gate scrollWidth ${await scrollWidth(page)}`);
       await page.locator('#enterButton').scrollIntoViewIfNeeded();
       assert.ok(await inViewport(page, '#inviteCode'));
