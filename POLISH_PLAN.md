@@ -6,8 +6,8 @@ Scope: the public pages `/` and `/pros`, polish only. Brand locked. Everything b
 
 Kept above them: the H1 "tennis takes you *further.*" and the italic line "good places. better people." The hero eyebrow is dropped; the sentences say it.
 
-1. **What**: "Small tennis trips hosted by Katie: her club, her coast, and the long lunch after."
-2. **For whom**: "For the players she coaches and the friends they bring."
+1. **What**: "Small tennis trips hosted by pros: great clubs, beautiful places, and the long lunch after." (KC, 2026-10-22: not Katie-only; Eva co-hosts Spain and other pros host other trips.)
+2. **For whom**: "For the players they coach and the friends they bring." (adjusted from "she coaches" to agree with sentence 1)
 3. **What to do**: the button "Enter invite code", and under it the link "Don't have an invite code?"
 
 Alternates if the first reads too long at 390px: (1) "Tennis trips hosted by Katie, at the club where she plays." (2) "For her players, their partners and their friends."
@@ -111,7 +111,9 @@ Rows with `placeholder: true` are not rendered in production: Katie's base and t
 
 Three subagents on `polish`: `frontend` (pages, CSS, crops, capture UI), `platform` (waitlist and event routes, store, setup-sheet, tests), `qa` (cold pass, screenshots, Lighthouse, axe). Then `/jury` again with a fresh critic, `POLISH_REPORT.md`, push, preview URL.
 
-## Decisions KC confirms (each with the recommended default)
+## Decisions: KC approved all defaults on 2026-10-22 with two changes (hero sentence 1 above; photo identities in `public/assets/PHOTOS.md`)
+
+## Decisions as proposed (each with the recommended default)
 
 1. The hero sentences in section 1, or the alternates. Default: section 1.
 2. `--gold-ink` `#8a6d3c` for gold text on cream and paper. Default: yes.
