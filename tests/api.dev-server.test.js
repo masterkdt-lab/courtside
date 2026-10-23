@@ -1,7 +1,7 @@
 // tests/api.dev-server.test.js
 // scripts/dev-server.js on port 0: pages (/ homepage, /invite gate, /pros, /privacy), the legacy
 // /?invite=CODE redirect, the /site guard, the static allow-list (assets/derived/ included), API
-// routing, cookies.
+// routing (including /api/waitlist and /api/event), cookies, and the 404 page.
 
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -88,7 +88,7 @@ test('a legacy personal link on / redirects (302) to /invite with the query stri
   assert.equal((await get('/privacy?invite=GUEST1')).status, 200);
 });
 
-test('/pros is a page once public/pros.html exists (Wave 2 adds it) and a plain 404 before', async () => {
+test('/pros is a page once public/pros.html exists (Wave 2 adds it) and a 404 before', async () => {
   // The route is mapped now so Wave 2 only has to add the file; until then the server must answer
   // 404, not crash. Flip the expectation by the file's presence rather than hard-coding either.
   const res = await get('/pros');
@@ -97,9 +97,77 @@ test('/pros is a page once public/pros.html exists (Wave 2 adds it) and a plain 
     assert.equal(res.headers.get('content-type'), 'text/html; charset=utf-8');
   } else {
     assert.equal(res.status, 404);
-    assert.equal(await res.text(), 'Not found');
   }
   assert.equal((await get('/pros.html')).status, 404, 'clean URLs only, whether or not the file exists');
+});
+
+test('an unknown path is a 404: public/404.html as text/html when it exists, the plain text otherwise', async () => {
+  // The frontend agent adds public/404.html on this branch; the expectation follows the file's presence
+  // so the suite is green before and after it lands.
+  for (const p of ['/nope', '/trips/mallorca', '/invite.html', '/assets/missing.jpg', '/404', '/404.html']) {
+    const res = await get(p);
+    assert.equal(res.status, 404, p);
+    const body = await res.text();
+    if (exists('404.html')) {
+      assert.equal(res.headers.get('content-type'), 'text/html; charset=utf-8', p);
+      assert.equal(body, fs.readFileSync(path.join(PUBLIC, '404.html'), 'utf8'), `${p} serves public/404.html verbatim`);
+      assert.equal(Number(res.headers.get('content-length')), Buffer.byteLength(body), p);
+    } else {
+      assert.equal(res.headers.get('content-type'), 'text/plain; charset=utf-8', p);
+      assert.equal(body, 'Not found', p);
+    }
+  }
+  const head = await fetch(`${base}/nope`, { method: 'HEAD', redirect: 'manual' });
+  assert.equal(head.status, 404);
+  assert.equal(await head.text(), '', 'HEAD carries no body');
+  // API misses stay JSON so a script never receives an HTML page.
+  const api = await get('/api/nope');
+  assert.equal(api.status, 404);
+  assert.equal(api.headers.get('content-type'), 'application/json');
+  assert.deepEqual(await api.json(), { ok: false, reason: 'not_found' });
+  assert.equal((await fetch(`${base}/api/nope`, { method: 'POST' })).status, 404);
+});
+
+test('POST /api/waitlist end to end: no cookie, JSON in, JSON out, one Waitlist row and one Log row', async () => {
+  const body = { email: 'Ana.Guest@Example.com', name: 'Ana Guest', tripId: 'mallorca', source: 'card', consent: true, website: '' };
+  const res = await postJson('/api/waitlist', body, { 'x-forwarded-for': '198.51.100.40' });
+  assert.equal(res.status, 200, await res.clone().text());
+  assert.equal(res.headers.get('content-type'), 'application/json');
+  assert.equal(res.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await res.json(), { ok: true });
+  const mock = readMock();
+  const row = mock.waitlist.at(-1);
+  assert.deepEqual({ ...row, timestamp: 'ISO' }, { timestamp: 'ISO', email: 'ana.guest@example.com', name: 'Ana Guest', trip: 'Mallorca', source: 'card' });
+  assert.match(row.timestamp, /^\d{4}-\d{2}-\d{2}T/);
+  const log = mock.log.at(-1);
+  assert.equal(log.code, 'waitlist_submit');
+  assert.equal(log.result, 'mallorca');
+  assert.match(log.ip_hash, /^[0-9a-f]{16}$/);
+
+  const bad = await postJson('/api/waitlist', { ...body, email: 'nope', consent: false }, { 'x-forwarded-for': '198.51.100.40' });
+  assert.equal(bad.status, 400);
+  assert.deepEqual(await bad.json(), { ok: false, errors: { email: 'Enter a valid email address.', consent: 'Please tick the box so we can keep your email.' } });
+  const wrong = await get('/api/waitlist');
+  assert.equal(wrong.status, 405);
+  assert.equal(wrong.headers.get('allow'), 'POST');
+});
+
+test('POST /api/event end to end: a text/plain beacon body, 204 with no body, one Log row', async () => {
+  const before = readMock().log.length;
+  const res = await fetch(`${base}/api/event`, {
+    method: 'POST', redirect: 'manual', headers: { 'content-type': 'text/plain;charset=UTF-8', 'x-forwarded-for': '198.51.100.41' },
+    body: JSON.stringify({ name: 'trip_card_open', detail: 'geneva' }),
+  });
+  assert.equal(res.status, 204);
+  assert.equal(res.headers.get('content-length') ?? '0', '0');
+  assert.equal(await res.text(), '');
+  const log = readMock().log;
+  assert.equal(log.length, before + 1);
+  assert.deepEqual({ code: log.at(-1).code, result: log.at(-1).result }, { code: 'trip_card_open', result: 'geneva' });
+  const unknown = await postJson('/api/event', { name: 'page_view', detail: '' }, { 'x-forwarded-for': '198.51.100.41' });
+  assert.equal(unknown.status, 400);
+  assert.equal((await unknown.json()).ok, false);
+  assert.equal((await get('/api/event')).status, 405);
 });
 
 test('/site redirects to /invite without a cookie and serves site.html with one', async () => {

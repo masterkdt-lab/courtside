@@ -15,7 +15,12 @@ describe('ratelimit', () => {
   beforeEach(() => _reset());
 
   test('buckets carry the plan limits', () => {
-    assert.deepEqual(LIMITS, { code: { limit: 10, windowMs: 600_000 }, request: { limit: 5, windowMs: 600_000 } });
+    assert.deepEqual(LIMITS, {
+      code: { limit: 10, windowMs: 600_000 },
+      request: { limit: 5, windowMs: 600_000 },
+      waitlist: { limit: 5, windowMs: 600_000 },
+      event: { limit: 60, windowMs: 600_000 },
+    });
   });
 
   test('allows up to the limit, then refuses, per bucket and per ip', () => {
@@ -30,6 +35,11 @@ describe('ratelimit', () => {
     assert.equal(check('request', 'ip-a').allowed, true);
     for (let i = 0; i < 4; i += 1) check('request', 'ip-a');
     assert.equal(check('request', 'ip-a').allowed, false);
+    for (let i = 0; i < 5; i += 1) assert.equal(check('waitlist', 'ip-a').allowed, true, `waitlist ${i + 1}`);
+    assert.equal(check('waitlist', 'ip-a').allowed, false);
+    for (let i = 0; i < 60; i += 1) assert.equal(check('event', 'ip-a').allowed, true, `event ${i + 1}`);
+    assert.equal(check('event', 'ip-a').allowed, false);
+    assert.equal(check('event', 'ip-b').allowed, true);
   });
 
   test('the window resets', () => {

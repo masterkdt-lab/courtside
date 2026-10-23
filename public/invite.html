@@ -6,37 +6,51 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="#f4efe5" name="theme-color"/>
 <title>Enter your invitation — Courtside Travel Co.</title>
-<meta content="The Spanish Offseason by Courtside Travel Co. An invitation-only tennis residency on the Costa Blanca, winter 2027." name="description"/>
+<meta content="The Spanish Offseason by Courtside Travel Co. An invitation-only tennis residency on the Costa Blanca, winter 2027. Enter the code from Katie’s invitation." name="description"/>
+<meta content="Enter your invitation — Courtside Travel Co." property="og:title"/>
+<meta content="The Spanish Offseason by Courtside Travel Co. An invitation-only tennis residency on the Costa Blanca, winter 2027." property="og:description"/>
 <meta content="noindex,nofollow" name="robots"/>
+<link href="https://courtside-ivory.vercel.app/invite" rel="canonical"/>
+<meta content="website" property="og:type"/>
+<meta content="https://courtside-ivory.vercel.app/invite" property="og:url"/>
+<meta content="https://courtside-ivory.vercel.app/assets/og/invite.jpg" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="/assets/icons/apple-touch-icon.png" rel="apple-touch-icon"/>
 <link href="/style.css" rel="stylesheet"/>
 <link href="/marketing.css" rel="stylesheet"/>
-
 </head>
 <body>
-<!-- Invitation gate (moved from / to /invite in Phase 2; every id, class and data hook is unchanged for gate.js and the e2e tests) -->
+<!-- Invitation gate (moved from / to /invite in Phase 2; every id, class and data hook is unchanged for gate.js and the
+     e2e tests). Polish: wrapped in <main>, its own h1 with the brand line as the italic sub, the lockup with dimensions. -->
+<main id="main">
 <section aria-label="Invitation only access" id="gate">
 <div class="gate-visual">
 <div class="gate-caption"><div class="caps">Costa Blanca · Winter 2027</div><h2>good places. better people.</h2><p>A private invitation from Katie + Courtside.</p></div>
 </div>
 <div class="gate-panel">
 <div class="gate-top">
-<img alt="Courtside Travel Co." class="ct-logo" src="/assets/courtside-lockup.png"/>
+<picture><source sizes="(max-width:700px) 42vw, 225px" srcset="/assets/derived/courtside-lockup-320.webp 320w, /assets/derived/courtside-lockup-640.webp 640w" type="image/webp"/><img alt="Courtside Travel Co." class="ct-logo" height="258" sizes="(max-width:700px) 42vw, 225px" src="/assets/derived/courtside-lockup-640.png" srcset="/assets/derived/courtside-lockup-320.png 320w, /assets/derived/courtside-lockup-640.png 640w" width="640"/></picture>
 <a class="gate-back" href="/">← Courtside</a>
 <div class="powered">powered by tgl.rsvp</div>
 </div>
 <div class="gate-main">
 <div class="eyebrow">Invitation only</div>
-<h1>tennis takes<br/>you <em>further.</em></h1>
-<p class="intro" id="inviteIntro">Katie invited you to preview The Spanish Offseason — a private Costa Blanca residency for her tennis community.</p>
+<h1>Enter your&nbsp;<em>invitation.</em></h1>
+<p class="gate-sub">tennis takes you further.</p>
+<p class="intro" id="inviteIntro">Katie invited you to preview The Spanish Offseason, a private Costa Blanca residency for her tennis community.</p>
 <div class="invite-card">
 <div class="caps" style="margin-bottom:10px">Enter invitation code</div>
 <form class="invite-row" id="inviteForm"><input aria-label="Invitation code" autocapitalize="characters" autocomplete="off" id="inviteCode" spellcheck="false"/><button class="primary" id="enterButton" type="submit">Enter Courtside</button></form>
 <p aria-live="polite" class="invite-hint" id="inviteMessage">Your code is in your invitation from Katie.</p>
 </div>
 </div>
-<div class="gate-footer">Courtside Travel Co. · Founding Season 2027</div>
+<div class="gate-footer">Courtside Travel Co. · Founding&nbsp;Season&nbsp;2027</div>
 </div>
 </section>
+</main>
 <script type="module" src="/js/gate.js"></script>
 </body>
 </html>

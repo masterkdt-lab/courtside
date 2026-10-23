@@ -8,7 +8,7 @@ import {
   createSheetsClient, normalizePrivateKey, columnLetter, cellRange, tabRange, valuesUrl,
   readConfig, missingEnv, SHEETS_API,
 } from '../lib/store.sheets.client.js';
-import { parseSheetValues, requestRowToValues, recordToValues, toInvite, TAB_HEADERS } from '../lib/store.columns.js';
+import { parseSheetValues, requestRowToValues, waitlistRowToValues, recordToValues, toInvite, TAB_HEADERS } from '../lib/store.columns.js';
 
 const BASE = `${SHEETS_API}/SHEET123`;
 const NOW = '2026-10-05T12:00:00.000Z';
@@ -60,7 +60,9 @@ function tabOf(call) {
 }
 
 function valuesFor(tab) {
-  return { Invites: INVITES, Trips: TRIPS, Weeks: WEEKS, Requests: [[...TAB_HEADERS.Requests]], Log: [[...TAB_HEADERS.Log]] }[tab];
+  return {
+    Invites: INVITES, Trips: TRIPS, Weeks: WEEKS, Requests: [[...TAB_HEADERS.Requests]], Log: [[...TAB_HEADERS.Log]], Waitlist: [[...TAB_HEADERS.Waitlist]],
+  }[tab];
 }
 
 function defaultResponder(call) {
@@ -142,6 +144,16 @@ describe('pure helpers', () => {
     assert.equal(values[28], 'x');
     assert.deepEqual(requestRowToValues({}), new Array(29).fill(''));
     assert.deepEqual(recordToValues(TAB_HEADERS.Log, { time: NOW, code: 'X', result: 'ok', ipHash: 'h' }), [NOW, 'X', 'ok', 'h']);
+  });
+
+  test('waitlistRowToValues follows the Waitlist header order: timestamp, email, name, trip, source', () => {
+    assert.deepEqual(TAB_HEADERS.Waitlist, ['timestamp', 'email', 'name', 'trip', 'source']);
+    assert.deepEqual(
+      waitlistRowToValues({ timestamp: NOW, email: 'ana.guest@example.com', name: 'Ana Guest', trip: 'Charleston', source: 'card' }),
+      [NOW, 'ana.guest@example.com', 'Ana Guest', 'Charleston', 'card'],
+    );
+    assert.deepEqual(waitlistRowToValues({ email: 'x@example.com', trip: 'General', bogus: 1 }), ['', 'x@example.com', '', 'General', '']);
+    assert.deepEqual(waitlistRowToValues({}), ['', '', '', '', '']);
   });
 
   test('toInvite: blank max_uses is null, numbers come through as numbers', () => {
@@ -247,6 +259,23 @@ describe('createSheetsStore with a stubbed fetch', () => {
     ]] });
     await assert.rejects(store.appendRequest({ submittedAt: NOW }), /requestId/);
     assert.equal(calls.length, 1);
+  });
+
+  test('appendWaitlist appends one row in Waitlist header order with RAW + INSERT_ROWS and returns email + trip', async () => {
+    const { store, calls } = makeStore();
+    const row = { timestamp: NOW, email: 'ana.guest@example.com', name: 'Ana Guest', trip: 'Charleston', source: 'card' };
+    assert.deepEqual(await store.appendWaitlist(row), { email: 'ana.guest@example.com', trip: 'Charleston' });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, 'POST');
+    assert.equal(calls[0].url, `${BASE}/values/'Waitlist'!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`);
+    assert.equal(calls[0].headers['Content-Type'], 'application/json');
+    assert.deepEqual(calls[0].body, { values: [[NOW, 'ana.guest@example.com', 'Ana Guest', 'Charleston', 'card']] });
+
+    assert.deepEqual(await store.appendWaitlist({ timestamp: NOW, email: 'x@example.com', trip: 'General', source: 'footer' }), { email: 'x@example.com', trip: 'General' });
+    assert.deepEqual(calls[1].body, { values: [[NOW, 'x@example.com', '', 'General', 'footer']] }, 'a missing name is written as ""');
+
+    await assert.rejects(store.appendWaitlist({ timestamp: NOW, trip: 'General' }), /email/);
+    assert.equal(calls.length, 2, 'nothing is written without an email');
   });
 
   test('logAttempt appends time, code, result, ip_hash to Log', async () => {

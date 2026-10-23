@@ -77,7 +77,7 @@ function run(sheet) {
 }
 
 describe('runSetup on a fresh spreadsheet', () => {
-  test('adds the five tabs, writes exact headers, sets dropdowns, seeds Trips and Weeks only', async () => {
+  test('adds the six tabs, writes exact headers, sets dropdowns, seeds Trips and Weeks only', async () => {
     const sheet = fakeSpreadsheet();
     const lines = await run(sheet);
 
@@ -92,8 +92,11 @@ describe('runSetup on a fresh spreadsheet', () => {
     assert.equal(sheet.tabs.get('Invites').values.length, 1, 'Invites is never seeded');
     assert.equal(sheet.tabs.get('Requests').values.length, 1);
     assert.equal(sheet.tabs.get('Log').values.length, 1);
+    assert.deepEqual(sheet.tabs.get('Waitlist').values, [['timestamp', 'email', 'name', 'trip', 'source']], 'Waitlist is headers only');
 
     assert.equal(sheet.validations.length, DROPDOWNS.length);
+    assert.ok(DROPDOWNS.every((d) => d.tab !== 'Waitlist'), 'no dropdowns on Waitlist');
+    assert.ok(sheet.validations.every((v) => v.range.sheetId !== sheet.tabs.get('Waitlist').sheetId), 'no validation touches Waitlist');
     DROPDOWNS.forEach(({ tab, column, values }, i) => {
       const v = sheet.validations[i];
       const col = TAB_HEADERS[tab].indexOf(column);
@@ -106,7 +109,9 @@ describe('runSetup on a fresh spreadsheet', () => {
     assert.deepEqual(requestsStatus.rule.condition.values.map((x) => x.userEnteredValue), ['New', 'In conversation', 'Confirmed', 'Waitlist', 'Declined']);
 
     const text = lines.join('\n');
-    assert.match(text, /Added tabs: Trips, Weeks, Requests, Invites, Log/);
+    assert.match(text, /Added tabs: Trips, Weeks, Requests, Invites, Log, Waitlist\n/);
+    assert.match(text, /Waitlist: wrote headers/);
+    assert.match(text, /Waitlist \(timestamp, email, name, trip, source\) is filled by the homepage/);
     assert.match(text, /Trips: seeded 1 row\n/);
     assert.match(text, /Weeks: seeded 7 rows/);
     assert.ok(text.includes(TAB_HEADERS.Invites.join('\t')), 'prints the Invites headers');
@@ -142,7 +147,7 @@ describe('runSetup is idempotent', () => {
     assert.equal(sheet.validations.length, DROPDOWNS.length * 2);
 
     const text = lines.join('\n');
-    assert.match(text, /Tabs present: Trips, Weeks, Requests, Invites, Log/);
+    assert.match(text, /Tabs present: Trips, Weeks, Requests, Invites, Log, Waitlist\n/);
     assert.match(text, /Trips: already has data, not seeded/);
     assert.match(text, /Weeks: already has data, not seeded/);
     for (const tab of TAB_NAMES) assert.match(text, new RegExp(`${tab}: headers ok`));
@@ -165,7 +170,31 @@ describe('runSetup is idempotent', () => {
     assert.match(text, /Trips: wrote headers/);
     assert.match(text, /Trips: already has data, not seeded/);
     assert.match(text, /Invites: wrote headers/);
-    assert.match(text, /Added tabs: Weeks, Requests, Log/);
+    assert.match(text, /Added tabs: Weeks, Requests, Log, Waitlist\n/);
+  });
+
+  test('a Sheet set up before the Waitlist tab existed gains Waitlist with headers only; nothing else changes', async () => {
+    const phase1 = {
+      Trips: [[...TAB_HEADERS.Trips], ['spain', 'The Spanish Offseason', 'open', 'x']],
+      Weeks: [[...TAB_HEADERS.Weeks], ['w1', 'spain', 'Jan 10–16', '2027-01-10', '2027-01-16', 'closed', 'y']],
+      Requests: [[...TAB_HEADERS.Requests]],
+      Invites: [[...TAB_HEADERS.Invites], ['GUEST1', 'Ana Guest', 'ana.guest@example.com', '+1 555 0100', 'Katie', '', 0, 'active', '2026-10-05T00:00:00Z', '']],
+      Log: [[...TAB_HEADERS.Log], ['2026-10-05T00:00:00Z', 'GUEST1', 'ok', 'deadbeefdeadbeef']],
+    };
+    const sheet = fakeSpreadsheet(phase1);
+    const before = JSON.stringify([...sheet.tabs]);
+    const lines = await run(sheet);
+    assert.deepEqual([...sheet.tabs.keys()], [...Object.keys(phase1), 'Waitlist']);
+    assert.deepEqual(sheet.tabs.get('Waitlist').values, [[...TAB_HEADERS.Waitlist]]);
+    const after = new Map(sheet.tabs);
+    after.delete('Waitlist');
+    assert.equal(JSON.stringify([...after]), before, 'the five Phase 1 tabs are untouched');
+    assert.equal(sheet.calls.filter((c) => c.url.includes(':append')).length, 0, 'no seeding');
+    assert.equal(sheet.calls.filter((c) => c.method === 'PUT').length, 1, 'one header write, for Waitlist');
+    const text = lines.join('\n');
+    assert.match(text, /Added tabs: Waitlist\n/);
+    assert.match(text, /Waitlist: wrote headers/);
+    for (const tab of Object.keys(phase1)) assert.match(text, new RegExp(`${tab}: headers ok`));
   });
 
   test('a tab with headers only is seeded', async () => {

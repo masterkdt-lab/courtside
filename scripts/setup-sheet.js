@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // scripts/setup-sheet.js
-// Prepares Katie's Google Sheet for Phase 1 (plan 4.2). Idempotent: run it as often as needed.
+// Prepares Katie's Google Sheet (plan 4.2; polish brief section 3 adds the Waitlist tab).
+// Idempotent: run it as often as needed, including on a Sheet set up before the Waitlist tab existed.
 //
-//   1. adds any missing tabs: Trips, Weeks, Requests, Invites, Log
+//   1. adds any missing tabs: Trips, Weeks, Requests, Invites, Log, Waitlist
 //   2. writes the exact header row (row 1) on each tab
 //   3. sets dropdown validation (strict, one of list) on Trips.status, Weeks.status,
-//      Requests.status, Requests.request_type and Invites.status
+//      Requests.status, Requests.request_type and Invites.status (none on Waitlist)
 //   4. seeds Trips and Weeks from tests/fixtures/seed.json, only when those tabs have no data rows
 //   5. never seeds Invites; prints an example Invites row for Katie instead
+//   6. never seeds Waitlist; the public homepage fills it through POST /api/waitlist
 //
 // Needs SHEET_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY, from .env or the shell,
 // and the Sheet shared with the service account as Editor.
@@ -133,6 +135,11 @@ export async function runSetup({ client, seed, log = console.log }) {
   log(TAB_HEADERS.Invites.join('\t'));
   log(EXAMPLE_INVITE.map(str).join('\t'));
   log('max_uses blank = unlimited. status: active, paused or revoked. uses and last_used_at are kept by the site.');
+
+  // 6. the Waitlist tab
+  log('');
+  log(`Waitlist (${TAB_HEADERS.Waitlist.join(', ')}) is filled by the homepage's waitlist forms; headers only, nothing to seed, no dropdowns.`);
+  log('trip is the trip name from public/js/trips.js or "General"; source is card or footer.');
 }
 
 async function main() {

@@ -55,14 +55,17 @@ export async function startServer() {
   };
 }
 
-// Clears everything the server keeps in memory: rate-limit buckets, the double-submit map, the
-// trips cache and the email log. Equivalent to a server restart for the API modules.
+// Clears everything the server keeps in memory: rate-limit buckets, both double-submit maps
+// (/api/request and /api/waitlist), the trips cache and the email log. Equivalent to a server
+// restart for the API modules.
 export async function resetServerState() {
-  const [ratelimit, request, trips, email] = await Promise.all([
-    import('../../lib/ratelimit.js'), import('../../api/request.js'), import('../../api/trips.js'), import('../../lib/email.js'),
+  const [ratelimit, request, waitlist, trips, email] = await Promise.all([
+    import('../../lib/ratelimit.js'), import('../../api/request.js'), import('../../api/waitlist.js'), import('../../api/trips.js'),
+    import('../../lib/email.js'),
   ]);
   ratelimit._reset();
   request._resetDoubleSubmit();
+  waitlist._resetDoubleSubmit();
   trips._resetTripsCache();
   email._resetSentLog();
 }

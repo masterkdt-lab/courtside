@@ -29,7 +29,8 @@ test('seeds the data file from tests/fixtures/seed.json on first use', async () 
   assert.equal(trips.length, 1);
   assert.equal(fs.existsSync(process.env.MOCK_DATA_PATH), true);
   const data = readFile();
-  assert.deepEqual(Object.keys(data), ['trips', 'weeks', 'invites', 'requests', 'log']);
+  assert.deepEqual(Object.keys(data), ['trips', 'weeks', 'invites', 'requests', 'log', 'waitlist']);
+  assert.deepEqual(data.waitlist, []);
   assert.deepEqual(data, SEED);
   assert.equal(data.invites.length, 4);
   assert.deepEqual(data.invites.map((r) => r.code), ['COURTSIDE', 'GUEST1', 'PAUSED1', 'ONCE1']);
@@ -260,6 +261,39 @@ describe('appendRequest', () => {
     await assert.rejects(mock.appendRequest({ submittedAt: '2026-10-05T12:00:00.000Z' }), /requestId/);
     await assert.rejects(mock.appendRequest({ requestId: '   ' }), /requestId/);
     assert.equal(readFile().requests.length, 0);
+  });
+});
+
+describe('appendWaitlist', () => {
+  const row = { timestamp: '2026-10-22T12:00:00.000Z', email: 'ana.guest@example.com', name: 'Ana Guest', trip: 'Charleston', source: 'card' };
+
+  test('writes the five Waitlist columns in order, "" for missing keys, and returns email + trip', async () => {
+    assert.deepEqual(await mock.appendWaitlist(row), { email: 'ana.guest@example.com', trip: 'Charleston' });
+    assert.deepEqual(await mock.appendWaitlist({ timestamp: '2026-10-22T12:01:00.000Z', email: 'b@example.com', trip: 'General', bogus: 'ignored' }), { email: 'b@example.com', trip: 'General' });
+    const { waitlist } = readFile();
+    assert.equal(waitlist.length, 2);
+    assert.deepEqual(Object.keys(waitlist[0]), [...TAB_HEADERS.Waitlist]);
+    assert.deepEqual(waitlist[0], { timestamp: '2026-10-22T12:00:00.000Z', email: 'ana.guest@example.com', name: 'Ana Guest', trip: 'Charleston', source: 'card' });
+    assert.deepEqual(waitlist[1], { timestamp: '2026-10-22T12:01:00.000Z', email: 'b@example.com', name: '', trip: 'General', source: '' });
+    assert.equal('bogus' in waitlist[1], false);
+    assert.equal(readFile().requests.length, 0, 'Requests is untouched');
+    assert.equal(readFile().log.length, 0, 'Log is untouched; the API route writes its own Log row');
+  });
+
+  test('requires email and writes nothing without it', async () => {
+    await mock.listTrips();
+    await assert.rejects(mock.appendWaitlist({ timestamp: row.timestamp, trip: 'General' }), /email/);
+    await assert.rejects(mock.appendWaitlist({ ...row, email: '   ' }), /email/);
+    assert.equal(readFile().waitlist.length, 0);
+  });
+
+  test('a mock file written before the Waitlist tab existed gains an empty waitlist section', async () => {
+    const legacy = { ...SEED };
+    delete legacy.waitlist;
+    fs.writeFileSync(process.env.MOCK_DATA_PATH, JSON.stringify(legacy));
+    assert.equal((await mock.listTrips()).length, 1);
+    await mock.appendWaitlist(row);
+    assert.deepEqual(readFile().waitlist.map((r) => r.email), ['ana.guest@example.com']);
   });
 });
 

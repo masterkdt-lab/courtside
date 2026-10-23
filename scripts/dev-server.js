@@ -6,7 +6,9 @@
 // middleware.js (the legacy /?invite=CODE redirect to /invite and the cookie guard on /site), and
 // routes /api/<name> to the Web-standard GET/POST exports in api/<name>.js. Nothing else is served
 // (lib/, api/, scripts/, tests/, .env*, package*.json, .data/, .git/, the plans, the README, and
-// no *.html by file name). Not `vercel dev`: no accounts, no keys.
+// no *.html by file name). Any other path is a 404: public/404.html with status 404 when that file
+// exists (as Vercel serves a 404.html from the output directory), the plain text "Not found"
+// otherwise; unknown /api/<name> paths stay JSON. Not `vercel dev`: no accounts, no keys.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -19,12 +21,14 @@ import { GATE_PATH, legacyInviteRedirect } from '../middleware.js';
 // Static files live at the repo root today. If they are moved into public/ (what Vercel's "Other"
 // preset serves when that folder exists, instead of the whole root), the server follows.
 const STATIC_ROOT = fs.existsSync(path.join(ROOT, 'public')) ? path.join(ROOT, 'public') : ROOT;
-const API_ROUTES = new Set(['code', 'session', 'trips', 'request']);
+const API_ROUTES = new Set(['code', 'session', 'trips', 'request', 'waitlist', 'event']);
+// The designed 404 page (polish plan section 7). Read on every miss, so adding the file needs no restart.
+const NOT_FOUND_PAGE = path.join(STATIC_ROOT, '404.html');
 // Clean URLs only: /invite serves invite.html, /invite.html is a 404. A page whose file does not
 // exist yet (Wave 2 adds pros.html) is a plain 404 from sendFile.
 const PAGES = Object.freeze({ '/': 'index.html', '/invite': 'invite.html', '/pros': 'pros.html', '/privacy': 'privacy.html' });
 const GUARDED = new Set(['/site', '/site.html']);
-const FILES = new Set(['/robots.txt', '/style.css', '/marketing.css']);
+const FILES = new Set(['/robots.txt', '/style.css', '/marketing.css', '/favicon.svg']);
 const DIRS = Object.freeze({ '/js/': 'js', '/assets/': 'assets' });
 const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/; // one path segment: no slashes, no leading dot, so never ".."
 const MIME = Object.freeze({
@@ -54,6 +58,19 @@ function sendJson(res, status, body, headers = {}) {
   send(res, status, JSON.stringify(body), { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers });
 }
 
+// 404 for anything that is not an API path: public/404.html as text/html when it exists, else plain text.
+async function sendNotFound(req, res) {
+  let page = null;
+  try {
+    page = await fs.promises.readFile(NOT_FOUND_PAGE);
+  } catch {
+    page = null;
+  }
+  if (!page) return send(res, 404, 'Not found');
+  res.writeHead(404, { 'Content-Type': MIME['.html'], 'Content-Length': page.length });
+  return res.end(req.method === 'HEAD' ? undefined : page);
+}
+
 // Resolve a request path to a file under ROOT, or null. Only the allow-listed pages, files and
 // directories. Inside a directory the path may nest (assets/derived/<file>), but every segment
 // must be a safe name (no "..", no dotfiles, no empty segment) and the resolved path must stay
@@ -76,10 +93,10 @@ async function sendFile(req, res, file) {
   let data;
   try {
     const stat = await fs.promises.stat(file);
-    if (!stat.isFile()) return send(res, 404, 'Not found');
+    if (!stat.isFile()) return sendNotFound(req, res);
     data = await fs.promises.readFile(file);
   } catch {
-    return send(res, 404, 'Not found');
+    return sendNotFound(req, res);
   }
   res.writeHead(200, { 'Content-Type': contentType(file), 'Content-Length': data.length });
   return res.end(req.method === 'HEAD' ? undefined : data);
@@ -116,7 +133,7 @@ async function writeWebResponse(res, response) {
 }
 
 async function handleApi(req, res, name) {
-  if (!API_ROUTES.has(name)) return send(res, 404, 'Not found');
+  if (!API_ROUTES.has(name)) return sendJson(res, 404, { ok: false, reason: 'not_found' });
   const mod = await import(new URL(`../api/${name}.js`, import.meta.url));
   const handler = mod[req.method];
   if (typeof handler !== 'function') {
@@ -158,7 +175,7 @@ async function handle(req, res) {
   }
 
   const file = resolveStatic(pathname);
-  if (!file) return send(res, 404, 'Not found');
+  if (!file) return sendNotFound(req, res);
   return sendFile(req, res, file);
 }
 

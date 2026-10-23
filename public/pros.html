@@ -5,57 +5,96 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="#f4efe5" name="theme-color"/>
+<script>document.documentElement.className+=" js"</script>
 <title>Meet the pros — Courtside Travel Co.</title>
-<meta content="The pros who host Courtside Travel Co. trips: Katie Delich, founder and host, Eva, her co-host at Club de Tenis Almoradí, and Nelson Ramos. Every Courtside trip is hosted by a pro who plays the week with you." name="description"/>
+<meta content="The pros who host Courtside Travel Co. trips: Katie Delich, founder and host, and Eva, her co-host at Club de Tenis Almoradí. Every trip is played with you." name="description"/>
+<meta content="Meet the pros — Courtside Travel Co." property="og:title"/>
+<meta content="The pros who host Courtside Travel Co. trips: Katie Delich, founder and host, and Eva, her co-host at Club de Tenis Almoradí. Every trip is played with you." property="og:description"/>
 <meta content="noindex,nofollow" name="robots"/>
+<link href="https://courtside-ivory.vercel.app/pros" rel="canonical"/>
+<meta content="website" property="og:type"/>
+<meta content="https://courtside-ivory.vercel.app/pros" property="og:url"/>
+<meta content="https://courtside-ivory.vercel.app/assets/og/pros.jpg" property="og:image"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="/assets/icons/apple-touch-icon.png" rel="apple-touch-icon"/>
 <link href="/style.css" rel="stylesheet"/>
 <link href="/marketing.css" rel="stylesheet"/>
-<link as="image" href="/assets/derived/play-katie-eva-clay-960.webp" imagesizes="(min-width:1050px) 64vw, (min-width:700px) 960px, 200vw" imagesrcset="/assets/derived/play-katie-eva-clay-480.webp 480w, /assets/derived/play-katie-eva-clay-960.webp 960w" rel="preload" type="image/webp"/>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<!-- Public header (Phase 2 decision 6). On /pros the "Trips" link is /#trips. -->
+<!-- Public header (Phase 2 decision 6; polish: the pill reads "Enter code" at every width, the two text links
+     sit on a second row on phones, "powered by tgl.rsvp" lives in the footer only). On /pros the "Trips" link is /#trips. -->
 <header class="site-header">
 <a aria-label="Courtside home" href="/"><picture><source sizes="(max-width:700px) 128px, 160px" srcset="/assets/derived/courtside-lockup-320.webp 320w, /assets/derived/courtside-lockup-640.webp 640w" type="image/webp"/><img alt="Courtside Travel Co." class="ct-logo" height="129" sizes="(max-width:700px) 128px, 160px" src="/assets/derived/courtside-lockup-320.png" srcset="/assets/derived/courtside-lockup-320.png 320w, /assets/derived/courtside-lockup-640.png 640w" width="320"/></picture></a>
-<nav aria-label="Site" class="site-nav"><a href="/#trips">Trips</a><a href="/pros">Meet the pros</a><a class="invite-pill" href="/invite">Have an invitation?</a></nav>
-<div class="site-powered">powered by tgl.rsvp</div>
+<nav aria-label="Site" class="site-nav"><a href="/#trips">Trips</a><a aria-current="page" href="/pros">Meet the pros</a></nav>
+<a class="invite-pill" href="/invite">Enter code</a>
 </header>
 <main id="main" tabindex="-1">
+<!-- Intro band: the copy, and the three portraits as the jump links (rendered from /js/pros.js by /js/pros-page.js;
+     everything between the pros-jump markers is generated, never edited by hand). -->
 <section aria-labelledby="prosTitle" class="section band-paper pros-intro">
-<div class="section-inner">
+<div class="section-inner pros-intro-grid">
+<div class="pros-intro-copy">
 <div class="eyebrow">Meet the pros</div>
-<h1 id="prosTitle">the people<br/>you’ll <em>play with.</em></h1>
+<h1 id="prosTitle">the people you’ll play&nbsp;<em>with.</em></h1>
 <p class="intro">Every Courtside trip is hosted by a pro who knows the place and plays the week with you, because the tennis only feels real when your host is on court too.</p>
+</div>
+<div id="prosJump">
+<!-- pros-jump:start -->
+<nav aria-label="Pros on this page" class="pros-jump">
+<a href="#katie">
+<span class="pro-portrait">
+<picture>
+<source sizes="(min-width:1050px) 88px, (min-width:700px) 176px, 30vw" srcset="/assets/derived/katie-portrait-34-480.webp 480w, /assets/derived/katie-portrait-34-499.webp 499w" type="image/webp"/>
+<img alt="Katie on a clay court in Spain" decoding="async" height="665" loading="lazy" sizes="(min-width:1050px) 88px, (min-width:700px) 176px, 30vw" src="/assets/derived/katie-portrait-34-499.jpg" srcset="/assets/derived/katie-portrait-34-480.jpg 480w, /assets/derived/katie-portrait-34-499.jpg 499w" width="499"/>
+</picture>
+</span>
+<span class="pros-jump-name">Katie Delich</span>
+</a>
+<a href="#eva">
+<span class="pro-portrait">
+<picture>
+<source sizes="(min-width:1050px) 88px, (min-width:700px) 176px, 30vw" srcset="/assets/derived/eva-portrait-34-403.webp 403w" type="image/webp"/>
+<img alt="Eva on a clay court in Spain" decoding="async" height="537" loading="lazy" sizes="(min-width:1050px) 88px, (min-width:700px) 176px, 30vw" src="/assets/derived/eva-portrait-34-403.jpg" srcset="/assets/derived/eva-portrait-34-403.jpg 403w" width="403"/>
+</picture>
+</span>
+<span class="pros-jump-name">Eva</span>
+</a>
+<a href="#nelson">
+<span aria-hidden="true" class="pro-portrait monogram"><span>NR</span></span>
+<span class="pros-jump-name">Nelson Ramos</span>
+</a>
+</nav>
+<!-- pros-jump:end -->
+</div>
 </div>
 </section>
 <!-- Profiles: rendered from /js/pros.js by /js/pros-page.js. Everything between the markers is generated;
      edit pros.js, then run `node public/js/pros-page.js --write` (and `--check`), never this block by hand. -->
 <div id="prosRoot">
 <!-- pros:start -->
-<nav aria-label="Pros on this page" class="pros-jump"><div class="section-inner"><a class="secondary" href="#katie">Katie Delich</a><a class="secondary" href="#eva">Eva</a><a class="secondary" href="#nelson">Nelson Ramos</a></div></nav>
 <section aria-labelledby="katieName" class="section profile-section" id="katie">
 <div class="section-inner profile">
 <div class="profile-media">
-<div class="media-card pro-portrait crop-right">
+<div class="media-card pro-portrait">
 <picture>
-<source sizes="(min-width:1050px) 64vw, (min-width:700px) 960px, 200vw" srcset="/assets/derived/play-katie-eva-clay-480.webp 480w, /assets/derived/play-katie-eva-clay-960.webp 960w" type="image/webp"/>
-<img alt="Katie on a clay court in Spain" decoding="async" fetchpriority="high" height="2042" loading="eager" sizes="(min-width:1050px) 64vw, (min-width:700px) 960px, 200vw" src="/assets/derived/play-katie-eva-clay-960.jpg" srcset="/assets/derived/play-katie-eva-clay-480.jpg 480w, /assets/derived/play-katie-eva-clay-960.jpg 960w" width="960"/>
+<source sizes="(min-width:1050px) 32vw, (min-width:700px) 480px, 100vw" srcset="/assets/derived/katie-portrait-34-480.webp 480w, /assets/derived/katie-portrait-34-499.webp 499w" type="image/webp"/>
+<img alt="Katie on a clay court in Spain" decoding="async" fetchpriority="high" height="665" loading="eager" sizes="(min-width:1050px) 32vw, (min-width:700px) 480px, 100vw" src="/assets/derived/katie-portrait-34-499.jpg" srcset="/assets/derived/katie-portrait-34-480.jpg 480w, /assets/derived/katie-portrait-34-499.jpg 499w" width="499"/>
 </picture>
 </div>
 </div>
 <div class="profile-body">
 <div class="eyebrow">Founder + host, Courtside Travel Co.</div>
 <h2 id="katieName">Katie Delich</h2>
-<p class="profile-base"><span class="profile-base-label">Home base</span><span class="placeholder">Details to come</span></p>
 <section aria-label="Katie Delich at a glance" class="quickfacts trust profile-facts">
 <div class="quickfact"><strong>Almoradí</strong><span>Club de Tenis · home court</span></div>
 <div class="quickfact"><strong>Spain</strong><span>hosts The Spanish Offseason</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>playing level</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>coaching</span></div>
 </section>
 <div class="profile-panels">
-<div class="panel"><h3 class="profile-label">About</h3><p class="placeholder">Bio to come.</p></div>
-<div class="panel"><h3 class="profile-label">On court</h3><ul class="on-court"><li>Club de Tenis Almoradí is her tennis home in Spain.</li><li>Co-hosts The Spanish Offseason with Eva.</li><li class="placeholder">Playing level: details to come.</li><li class="placeholder">Coaching: details to come.</li></ul></div>
+<div class="panel"><h3 class="profile-label">On court</h3><ul class="on-court"><li>Club de Tenis Almoradí is her tennis home in Spain.</li><li>Co-hosts The Spanish Offseason with Eva.</li></ul></div>
 </div>
 <div class="profile-trips">
 <h3 class="profile-label">Trips</h3>
@@ -63,10 +102,10 @@
 <article class="trip-card" id="katie-trip-spain">
 <div class="trip-art has-photo">
 <picture>
-<source sizes="(min-width:1050px) 30vw, (min-width:700px) 45vw, 100vw" srcset="/assets/derived/play-katie-eva-clay-480.webp 480w, /assets/derived/play-katie-eva-clay-960.webp 960w" type="image/webp"/>
-<img alt="Katie and Eva celebrating together on a clay court in Spain" decoding="async" height="2042" loading="lazy" sizes="(min-width:1050px) 30vw, (min-width:700px) 45vw, 100vw" src="/assets/derived/play-katie-eva-clay-960.jpg" srcset="/assets/derived/play-katie-eva-clay-480.jpg 480w, /assets/derived/play-katie-eva-clay-960.jpg 960w" style="object-position:50% 30%" width="960"/>
+<source sizes="(min-width:1050px) 30vw, (min-width:700px) 45vw, 100vw" srcset="/assets/derived/spain-card-43-480.webp 480w, /assets/derived/spain-card-43-960.webp 960w" type="image/webp"/>
+<img alt="Katie and Eva celebrating together on a clay court in Spain" decoding="async" height="720" loading="lazy" sizes="(min-width:1050px) 30vw, (min-width:700px) 45vw, 100vw" src="/assets/derived/spain-card-43-960.jpg" srcset="/assets/derived/spain-card-43-480.jpg 480w, /assets/derived/spain-card-43-960.jpg 960w" width="960"/>
 </picture>
-<span aria-hidden="true">Costa Blanca, Spain</span>
+<span aria-hidden="true">Winter 2027</span>
 </div>
 <div class="trip-body">
 <div class="caps trip-tag">Invitation only</div>
@@ -79,7 +118,7 @@
 </article>
 </div>
 </div>
-<div class="section-cta"><a class="primary" href="/invite">Have an invitation?</a></div>
+<div class="section-cta"><a class="primary" href="/invite">Enter invite code</a></div>
 </div>
 </div>
 </section>
@@ -88,48 +127,26 @@
 <div class="profile-media">
 <div class="media-card pro-portrait">
 <picture>
-<source sizes="(min-width:1050px) 32vw, (min-width:700px) 480px, 100vw" srcset="/assets/derived/life-eva-paella-480.webp 480w, /assets/derived/life-eva-paella-768.webp 768w" type="image/webp"/>
-<img alt="Eva with paella by the water" decoding="async" height="1024" loading="lazy" sizes="(min-width:1050px) 32vw, (min-width:700px) 480px, 100vw" src="/assets/derived/life-eva-paella-768.jpg" srcset="/assets/derived/life-eva-paella-480.jpg 480w, /assets/derived/life-eva-paella-768.jpg 768w" width="768"/>
+<source sizes="(min-width:1050px) 32vw, (min-width:700px) 480px, 100vw" srcset="/assets/derived/eva-portrait-34-403.webp 403w" type="image/webp"/>
+<img alt="Eva on a clay court in Spain" decoding="async" height="537" loading="lazy" sizes="(min-width:1050px) 32vw, (min-width:700px) 480px, 100vw" src="/assets/derived/eva-portrait-34-403.jpg" srcset="/assets/derived/eva-portrait-34-403.jpg 403w" width="403"/>
 </picture>
 </div>
 </div>
 <div class="profile-body">
 <div class="eyebrow">Co-host, The Spanish Offseason · Club de Tenis Almoradí</div>
 <h2 id="evaName">Eva</h2>
-<p class="profile-base"><span class="profile-base-label">Home base</span><span class="placeholder">Details to come</span></p>
 <section aria-label="Eva at a glance" class="quickfacts trust profile-facts">
 <div class="quickfact"><strong>Almoradí</strong><span>Club de Tenis · home club</span></div>
 <div class="quickfact"><strong>Spain</strong><span>co-hosts The Spanish Offseason</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>playing level</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>coaching</span></div>
 </section>
 <div class="profile-panels">
-<div class="panel"><h3 class="profile-label">About</h3><p class="placeholder">Bio to come.</p></div>
-<div class="panel"><h3 class="profile-label">On court</h3><ul class="on-court"><li>Club de Tenis Almoradí is her home club.</li><li>Co-hosts The Spanish Offseason with Katie.</li><li class="placeholder">Playing level: details to come.</li><li class="placeholder">Coaching: details to come.</li></ul></div>
+<div class="panel"><h3 class="profile-label">On court</h3><ul class="on-court"><li>Club de Tenis Almoradí is her home club.</li><li>Co-hosts The Spanish Offseason with Katie.</li></ul></div>
 </div>
 <div class="profile-trips">
 <h3 class="profile-label">Trips</h3>
-<div class="trip-grid">
-<article class="trip-card" id="eva-trip-spain">
-<div class="trip-art has-photo">
-<picture>
-<source sizes="(min-width:1050px) 30vw, (min-width:700px) 45vw, 100vw" srcset="/assets/derived/play-katie-eva-clay-480.webp 480w, /assets/derived/play-katie-eva-clay-960.webp 960w" type="image/webp"/>
-<img alt="Katie and Eva celebrating together on a clay court in Spain" decoding="async" height="2042" loading="lazy" sizes="(min-width:1050px) 30vw, (min-width:700px) 45vw, 100vw" src="/assets/derived/play-katie-eva-clay-960.jpg" srcset="/assets/derived/play-katie-eva-clay-480.jpg 480w, /assets/derived/play-katie-eva-clay-960.jpg 960w" style="object-position:50% 30%" width="960"/>
-</picture>
-<span aria-hidden="true">Costa Blanca, Spain</span>
+<p class="profile-trip-line" id="eva-trip-spain"><a href="/invite">Co-hosts The Spanish Offseason with Katie</a></p>
 </div>
-<div class="trip-body">
-<div class="caps trip-tag">Invitation only</div>
-<h3>The Spanish Offseason</h3>
-<p class="trip-meta">Costa Blanca, Spain · Winter 2027</p>
-<p>Seven Sunday–Saturday weeks, January 10 – February 27, 2027</p>
-<p class="trip-meta">from $2,995 per player, six nights</p>
-<a class="secondary" href="/invite">Enter with your invitation</a>
-</div>
-</article>
-</div>
-</div>
-<div class="section-cta"><a class="primary" href="/invite">Have an invitation?</a></div>
+<div class="section-cta"><a class="primary" href="/invite">Enter invite code</a></div>
 </div>
 </div>
 </section>
@@ -137,34 +154,21 @@
 <div class="section-inner profile">
 <div class="profile-media">
 <div aria-hidden="true" class="media-card pro-portrait monogram"><span>NR</span></div>
-<p class="placeholder">Photo to come.</p>
 </div>
 <div class="profile-body">
-<div class="eyebrow">Role to come</div>
 <h2 id="nelsonName">Nelson Ramos</h2>
-<p class="profile-base"><span class="profile-base-label">Home base</span><span class="placeholder">Details to come</span></p>
-<section aria-label="Nelson Ramos at a glance" class="quickfacts trust profile-facts">
-<div class="quickfact"><strong class="placeholder">To come</strong><span>home court</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>hosts</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>playing level</span></div>
-<div class="quickfact"><strong class="placeholder">To come</strong><span>coaching</span></div>
-</section>
-<div class="profile-panels">
-<div class="panel"><h3 class="profile-label">About</h3><p class="placeholder">Bio to come.</p></div>
-<div class="panel"><h3 class="profile-label">On court</h3><ul class="on-court"><li class="placeholder">Home court: details to come.</li><li class="placeholder">Playing level: details to come.</li><li class="placeholder">Coaching: details to come.</li></ul></div>
-</div>
 <div class="profile-trips">
 <h3 class="profile-label">Trips</h3>
 <p class="placeholder">Trips to be announced.</p>
 </div>
-<div class="section-cta"><a class="primary" href="/invite">Have an invitation?</a></div>
+<div class="section-cta"><a class="primary" href="/invite">Enter invite code</a></div>
 </div>
 </div>
 </section>
 <!-- pros:end -->
 </div>
 </main>
-<footer class="footer"><div class="footer-inner"><div><picture><source sizes="(max-width:700px) 70vw, 260px" srcset="/assets/derived/courtside-lockup-footer-320.webp 320w, /assets/derived/courtside-lockup-footer-640.webp 640w" type="image/webp"/><img alt="Courtside Travel Co." class="ct-logo footer-logo" decoding="async" height="116" loading="lazy" sizes="(max-width:700px) 70vw, 260px" src="/assets/derived/courtside-lockup-footer-320.png" srcset="/assets/derived/courtside-lockup-footer-320.png 320w, /assets/derived/courtside-lockup-footer-640.png 640w" width="320"/></picture><p>Private tennis + travel experiences built around the people you want to spend time with.</p><p class="jeff-footnote">Behind the scenes, Jeff supports trip logistics and coordination so Katie can stay focused on hosting the experience.</p></div><div class="footer-side"><nav aria-label="Footer" class="footer-links"><a href="/pros">Meet the pros</a><a href="/privacy">Privacy</a><a href="/invite">Have an invitation?</a></nav><div class="site-powered">powered by tgl.rsvp</div></div></div></footer>
+<footer class="footer"><div class="footer-inner"><div><picture><source sizes="(max-width:700px) 70vw, 260px" srcset="/assets/derived/courtside-lockup-footer-320.webp 320w, /assets/derived/courtside-lockup-footer-640.webp 640w" type="image/webp"/><img alt="Courtside Travel Co." class="ct-logo footer-logo" decoding="async" height="116" loading="lazy" sizes="(max-width:700px) 70vw, 260px" src="/assets/derived/courtside-lockup-footer-320.png" srcset="/assets/derived/courtside-lockup-footer-320.png 320w, /assets/derived/courtside-lockup-footer-640.png 640w" width="320"/></picture><p>Private tennis + travel experiences built around the people you want to spend time with.</p><p class="jeff-footnote">Behind the scenes, Jeff supports trip logistics and coordination so Katie can stay focused on hosting the experience.</p></div><div class="footer-side"><nav aria-label="Footer" class="footer-links"><a href="/pros">Meet the pros</a><a href="/privacy">Privacy</a><a href="/invite">Enter code</a></nav><div class="site-powered">powered by tgl.rsvp</div></div></div></footer>
 <script src="/js/pros-page.js" type="module"></script>
 </body>
 </html>

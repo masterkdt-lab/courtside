@@ -313,5 +313,263 @@
         "bytes": 78638
       }
     ]
+  },
+  "hero-clay-32": {
+    "original": {
+      "width": 960,
+      "height": 640,
+      "file": "/assets/play-katie-eva-clay.jpg",
+      "crop": {
+        "left": 0,
+        "top": 415,
+        "width": 960,
+        "height": 640
+      }
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/hero-clay-32-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 320,
+        "bytes": 20958
+      },
+      {
+        "file": "/assets/derived/hero-clay-32-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 320,
+        "bytes": 26457
+      },
+      {
+        "file": "/assets/derived/hero-clay-32-960.webp",
+        "format": "webp",
+        "width": 960,
+        "height": 640,
+        "bytes": 50072
+      },
+      {
+        "file": "/assets/derived/hero-clay-32-960.jpg",
+        "format": "jpg",
+        "width": 960,
+        "height": 640,
+        "bytes": 71143
+      }
+    ]
+  },
+  "hero-clay-45": {
+    "original": {
+      "width": 960,
+      "height": 1200,
+      "file": "/assets/play-katie-eva-clay.jpg",
+      "crop": {
+        "left": 0,
+        "top": 462,
+        "width": 960,
+        "height": 1200
+      }
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/hero-clay-45-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 600,
+        "bytes": 51020
+      },
+      {
+        "file": "/assets/derived/hero-clay-45-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 600,
+        "bytes": 51045
+      },
+      {
+        "file": "/assets/derived/hero-clay-45-960.webp",
+        "format": "webp",
+        "width": 960,
+        "height": 1200,
+        "bytes": 149108
+      },
+      {
+        "file": "/assets/derived/hero-clay-45-960.jpg",
+        "format": "jpg",
+        "width": 960,
+        "height": 1200,
+        "bytes": 156994
+      }
+    ]
+  },
+  "katie-portrait-34": {
+    "original": {
+      "width": 499,
+      "height": 665,
+      "file": "/assets/play-katie-eva-clay.jpg",
+      "crop": {
+        "left": 135,
+        "top": 505,
+        "width": 499,
+        "height": 665
+      }
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/katie-portrait-34-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 640,
+        "bytes": 32518
+      },
+      {
+        "file": "/assets/derived/katie-portrait-34-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 640,
+        "bytes": 42998
+      },
+      {
+        "file": "/assets/derived/katie-portrait-34-499.webp",
+        "format": "webp",
+        "width": 499,
+        "height": 665,
+        "bytes": 35860
+      },
+      {
+        "file": "/assets/derived/katie-portrait-34-499.jpg",
+        "format": "jpg",
+        "width": 499,
+        "height": 665,
+        "bytes": 46455
+      }
+    ]
+  },
+  "eva-portrait-34": {
+    "original": {
+      "width": 403,
+      "height": 537,
+      "file": "/assets/play-katie-eva-clay.jpg",
+      "crop": {
+        "left": 557,
+        "top": 548,
+        "width": 403,
+        "height": 537
+      }
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/eva-portrait-34-403.webp",
+        "format": "webp",
+        "width": 403,
+        "height": 537,
+        "bytes": 19252
+      },
+      {
+        "file": "/assets/derived/eva-portrait-34-403.jpg",
+        "format": "jpg",
+        "width": 403,
+        "height": 537,
+        "bytes": 26841
+      }
+    ]
+  },
+  "spain-card-43": {
+    "original": {
+      "width": 960,
+      "height": 720,
+      "file": "/assets/play-katie-eva-clay.jpg",
+      "crop": {
+        "left": 0,
+        "top": 396,
+        "width": 960,
+        "height": 720
+      }
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/spain-card-43-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 360,
+        "bytes": 24856
+      },
+      {
+        "file": "/assets/derived/spain-card-43-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 360,
+        "bytes": 30750
+      },
+      {
+        "file": "/assets/derived/spain-card-43-960.webp",
+        "format": "webp",
+        "width": 960,
+        "height": 720,
+        "bytes": 60996
+      },
+      {
+        "file": "/assets/derived/spain-card-43-960.jpg",
+        "format": "jpg",
+        "width": 960,
+        "height": 720,
+        "bytes": 83292
+      }
+    ]
+  },
+  "coast-small-11": {
+    "original": {
+      "width": 768,
+      "height": 768,
+      "file": "/assets/katie-eva-coast.jpg",
+      "crop": {
+        "left": 0,
+        "top": 128,
+        "width": 768,
+        "height": 768
+      }
+    },
+    "variants": [
+      {
+        "file": "/assets/derived/coast-small-11-240.webp",
+        "format": "webp",
+        "width": 240,
+        "height": 240,
+        "bytes": 5800
+      },
+      {
+        "file": "/assets/derived/coast-small-11-240.jpg",
+        "format": "jpg",
+        "width": 240,
+        "height": 240,
+        "bytes": 8091
+      },
+      {
+        "file": "/assets/derived/coast-small-11-480.webp",
+        "format": "webp",
+        "width": 480,
+        "height": 480,
+        "bytes": 13900
+      },
+      {
+        "file": "/assets/derived/coast-small-11-480.jpg",
+        "format": "jpg",
+        "width": 480,
+        "height": 480,
+        "bytes": 21535
+      },
+      {
+        "file": "/assets/derived/coast-small-11-768.webp",
+        "format": "webp",
+        "width": 768,
+        "height": 768,
+        "bytes": 24406
+      },
+      {
+        "file": "/assets/derived/coast-small-11-768.jpg",
+        "format": "jpg",
+        "width": 768,
+        "height": 768,
+        "bytes": 42926
+      }
+    ]
   }
 }

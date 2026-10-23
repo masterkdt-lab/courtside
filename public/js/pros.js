@@ -1,12 +1,17 @@
 // public/js/pros.js — the pros shown on /pros (Phase 2 plan 4.2, decision 4) and teased on /.
-// Source of truth for /pros: public/js/pros-page.js renders every profile section from this file,
-// and the markup committed between <!-- pros:start --> and <!-- pros:end --> in public/pros.html
-// must be exactly what it renders (`node public/js/pros-page.js --check` fails on drift;
-// `--write` regenerates it). A pro's trips come from public/js/trips.js via each trip's hostIds.
+// Source of truth for /pros: public/js/pros-page.js renders every profile section and the intro's
+// portrait links from this file, and the markup committed between <!-- pros:start --> / <!-- pros:end -->
+// and <!-- pros-jump:start --> / <!-- pros-jump:end --> in public/pros.html must be exactly what it
+// renders (`node public/js/pros-page.js --check` fails on drift; `--write` regenerates both). A pro's
+// trips come from public/js/trips.js via each trip's hostIds.
 //
-// Decision 7: nothing here is invented. Anything KC has not given is a visible placeholder
-// (`placeholder: true`, shown in the .placeholder style with honest text such as "Details to come"),
-// never a guess. No numbers, levels, years, ratings or prices belong in this file.
+// Decision 7, polish brief section 4: nothing here is invented, and nothing flagged `placeholder: true`
+// is rendered. The placeholder rows stay in the file so Katie's facts drop in without a rewrite; until
+// then the page shows only what is known (Nelson: name, monogram, "Trips to be announced").
+// No numbers, levels, years, ratings or prices belong in this file.
+//
+// Photos: who is in which photo, and which crop shows whom, is in public/assets/PHOTOS.md. The
+// portrait `key` is a crop or image name from public/assets/derived/manifest.json.
 //
 // Field by field, see the commented template entry at the end of the array.
 
@@ -17,9 +22,8 @@ export const PROS = Object.freeze([
     role: 'Founder + host, Courtside Travel Co.',
     base: null,
     portrait: {
-      key: 'play-katie-eva-clay',
+      key: 'katie-portrait-34',
       alt: 'Katie on a clay court in Spain',
-      crop: 'right',
       position: null,
     },
     monogram: 'KD',
@@ -44,9 +48,8 @@ export const PROS = Object.freeze([
     role: 'Co-host, The Spanish Offseason · Club de Tenis Almoradí',
     base: null,
     portrait: {
-      key: 'life-eva-paella',
-      alt: 'Eva with paella by the water',
-      crop: null,
+      key: 'eva-portrait-34',
+      alt: 'Eva on a clay court in Spain',
       position: null,
     },
     monogram: 'E',
@@ -68,7 +71,7 @@ export const PROS = Object.freeze([
   {
     id: 'nelson',
     name: 'Nelson Ramos',
-    role: 'Role to come',
+    role: { text: 'Role to come', placeholder: true },
     base: null,
     portrait: null,
     monogram: 'NR',
@@ -91,23 +94,22 @@ export const PROS = Object.freeze([
   // {
   //   id: 'firstname',            // URL anchor (/pros#firstname) and the id trips.js hostIds point at; lowercase, unique
   //   name: 'First Last',         // shown as the section heading, exactly as the pro spells it
-  //   role: 'Role to come',       // one line under the eyebrow, e.g. 'Co-host, The Spanish Offseason'; 'Role to come' until KC gives it
-  //   base: null,                 // home base as a short string ('Napa, California') or null, which renders "Details to come"
+  //   role: 'Co-host, …',         // one line over the name; { text: 'Role to come', placeholder: true } until KC gives it (not rendered)
+  //   base: null,                 // home base as a short string ('Napa, California') or null (the line is not rendered)
   //   portrait: {                 // null renders the brand monogram panel instead of a photo
-  //     key: 'life-eva-paella',   //   an entry in public/assets/derived/manifest.json (run `npm run images` after adding a photo)
-  //     alt: 'Who, where',        //   alt text that says who is in the photo and where
-  //     crop: null,               //   'right' shows the right half of a two-person photo (.crop-right); null shows the whole frame
-  //     position: null,           //   CSS object-position like '50% 30%', or null for the .pro-portrait default (50% 25%)
+  //     key: 'katie-portrait-34', //   a crop or image in public/assets/derived/manifest.json (add crops in scripts/make-images.js, then `npm run images`)
+  //     alt: 'Who, where',        //   alt text that says who is in the photo and where (check public/assets/PHOTOS.md)
+  //     position: null,           //   CSS object-position like '50% 30%', or null for the .pro-portrait default
   //   },
   //   monogram: 'FL',             // one or two initials for the monogram panel (used when portrait is null)
-  //   facts: [                    // four facts for the .quickfacts row (2 columns on phones, 4 above 700px)
+  //   facts: [                    // four facts for the .quickfacts row; placeholders are skipped, an all-placeholder row is not rendered
   //     { label: 'home court', value: 'To come', placeholder: true },   // label is the small caps line, value the big serif
-  //     { label: 'hosts', value: 'To come', placeholder: true },        // placeholder: true renders the value in the .placeholder style
+  //     { label: 'hosts', value: 'To come', placeholder: true },
   //     { label: 'playing level', value: 'To come', placeholder: true },
   //     { label: 'coaching', value: 'To come', placeholder: true },
   //   ],
   //   bio: { text: 'Bio to come.', placeholder: true },   // the "About" paragraph; placeholder: false once KC supplies the bio
-  //   onCourt: [                                           // the "On court" list, one line each, known lines first
+  //   onCourt: [                                           // the "On court" list, one line each, known lines first; placeholders are skipped
   //     { text: 'Home court: details to come.', placeholder: true },
   //     { text: 'Playing level: details to come.', placeholder: true },
   //     { text: 'Coaching: details to come.', placeholder: true },

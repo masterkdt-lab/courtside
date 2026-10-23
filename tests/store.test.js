@@ -9,7 +9,7 @@ import path from 'node:path';
 import * as store from '../lib/store.js';
 import * as mock from '../lib/store.mock.js';
 
-const INTERFACE = ['findInvite', 'recordInviteUse', 'logAttempt', 'listTrips', 'listWeeks', 'appendRequest'];
+const INTERFACE = ['findInvite', 'recordInviteUse', 'logAttempt', 'listTrips', 'listWeeks', 'appendRequest', 'appendWaitlist'];
 const GOOGLE_ENV = ['SHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_PRIVATE_KEY'];
 
 let dir;
@@ -21,7 +21,7 @@ before(() => {
 });
 after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
-test('exposes exactly the 4.1 interface as functions', () => {
+test('exposes exactly the 4.1 interface plus appendWaitlist as functions', () => {
   for (const name of INTERFACE) assert.equal(typeof store[name], 'function', name);
   for (const name of INTERFACE) assert.equal(typeof mock[name], 'function', `mock.${name}`);
 });
@@ -73,4 +73,14 @@ test('the mock backend round-trips a request through the shared interface', asyn
   const saved = mock.readMockData().requests.find((r) => r.request_id === 'CS-ABCDEFGH');
   assert.equal(saved.request_type, 'vetted');
   assert.equal(saved.status, 'New');
+});
+
+test('the mock backend round-trips a waitlist row through the shared interface', async () => {
+  const result = await store.appendWaitlist({
+    timestamp: new Date().toISOString(), email: 'ana.guest@example.com', name: 'Ana Guest', trip: 'General', source: 'footer',
+  });
+  assert.deepEqual(result, { email: 'ana.guest@example.com', trip: 'General' });
+  const saved = mock.readMockData().waitlist.find((r) => r.email === 'ana.guest@example.com');
+  assert.equal(saved.trip, 'General');
+  assert.equal(saved.source, 'footer');
 });
