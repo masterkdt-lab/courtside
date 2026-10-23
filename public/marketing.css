@@ -275,10 +275,10 @@ body.has-sticky{padding-bottom:0}
 .pro-card:has(.pro-link:focus-visible){transform:translateY(-4px);box-shadow:var(--shadow)}
 .trip-art img,.pro-portrait img{transition:transform .5s var(--ease)}
 @media (hover:hover) and (min-width:700px){.trip-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}}
-@view-transition{navigation:auto}
+/* The @view-transition opt-in is inline in each page head: an external stylesheet is not reliably
+   applied when Chrome checks the new document, and the transition then aborts with a console error. */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:220ms}
 @media (prefers-reduced-motion:reduce){
-  @view-transition{navigation:none}
   .home-hero .hero-copy>*,.home-hero .hero-image::before,.home-hero .hero-label{animation:none}
   .sticky-cta,.sticky-cta.is-on{transition:none}
   .primary,.secondary,.site-header .invite-pill,.site-nav a,.no-code,.pro-card,.trip-card,.media-card img,.pro-portrait img,.site-header>a[aria-label],a.primary::after,a.secondary::after,button.waitlist-open::after{transition:none}
