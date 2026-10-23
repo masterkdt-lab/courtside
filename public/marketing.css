@@ -387,7 +387,9 @@ body.has-sticky{padding-bottom:0}
 .profile .trip-body>a{margin-top:auto;align-self:flex-start}
 .profile-trip-line{margin:0;font-size:var(--t-0);color:var(--brown)}
 .profile-trip-line a{color:var(--espresso);text-decoration:none;background-image:linear-gradient(currentColor,currentColor);background-repeat:no-repeat;background-size:100% 1px;background-position:0 100%;padding-bottom:1px}
-.profile-trip-line a:hover,.profile-trip-line a:focus-visible{color:var(--clay)}
+.profile-trip-line a{display:inline-flex;align-items:center;min-height:44px;transition:background-size .24s var(--ease),color .24s var(--ease)}
+.profile-trip-line a:focus-visible{color:var(--clay);background-size:100% .35em}
+@media (hover:hover){.profile-trip-line a:hover{color:var(--clay);background-size:100% .35em}}
 .trip-art.has-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .trip-art.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(37,23,16,.72))}
 .trip-art.has-photo span{position:relative;z-index:1}
