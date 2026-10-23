@@ -1,19 +1,21 @@
 // tests/e2e/public.test.js
-// Phase 2 Wave 3 QA: the public pages (/, /pros, /invite) against COURTSIDE_PHASE2_PLAN.md sections
-// 3, 5, 6 and 8. Playwright (library) drives headless Chromium against a dev server started in this
-// process on a free port with a temp mock file, exactly as browser.test.js does. Every request that
-// would leave 127.0.0.1 is aborted and recorded, so the suite never touches the network.
+// The public pages (/, /pros, /invite) against COURTSIDE_PHASE2_PLAN.md sections 3, 5, 6 and 8, with the
+// expectations the approved polish redesign changed (COURTSIDE_POLISH_BRIEF.md section 1, POLISH_PLAN.md
+// sections 1–8 and the approved decisions) rewritten; every Phase 2 check that still applies is kept.
+// Playwright (library) drives headless Chromium against a dev server started in this process on a free
+// port with a temp mock file, exactly as browser.test.js does. Every request that would leave 127.0.0.1
+// is aborted and recorded, so the suite never touches the network.
 //
-// The items are numbered as in QA_REPORT_PHASE2.md. A failing test documents a defect; nothing here
-// fixes anything.
+// The items are numbered as in QA_REPORT_PHASE2.md. The polish checklist (QA_REPORT_POLISH.md) lives in
+// polish.test.js, which also owns the axe scan (all five pages, both widths, color-contrast included).
+// A failing test documents a defect; nothing here fixes anything.
 //
-// Run: npm run test:e2e   (needs `npx playwright install chromium`; axe-core is a devDependency)
+// Run: npm run test:e2e   (needs `npx playwright install chromium`)
 // Set E2E_SCREENSHOT_DIR=/some/dir to save the full-page screenshots (item 14).
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
 import { NOINDEX, ROOT, freshIp, http, resetMock, startServer, useTempMock } from './helpers.js';
@@ -27,20 +29,14 @@ try {
   playwright = null;
 }
 
-const require = createRequire(import.meta.url);
-let axePath = null;
-try {
-  axePath = path.join(path.dirname(require.resolve('axe-core/package.json')), 'axe.min.js');
-} catch {
-  axePath = null;
-}
-
 const SHOTS = process.env.E2E_SCREENSHOT_DIR || '';
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
 const MOBILE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+// textContent with the typographic no-break spaces (the "&nbsp;" before the last word of each display line) folded.
+const plain = (s) => s.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 
 let srv;
 let browser;
@@ -76,6 +72,8 @@ const activeInfo = (page) => page.evaluate(() => {
   return el ? { tag: el.tagName.toLowerCase(), id: el.id, cls: String(el.className), href: el.getAttribute('href'), text: (el.textContent || '').trim().slice(0, 48) } : null;
 });
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 50))));
+// The hero settles once on load (polish, one motion moment); measurements wait for it.
+const settled = (page) => page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
 const shot = async (page, name) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true }); };
 
 // Scroll through the whole page so every lazy image is requested, wait for them, then go back up.
@@ -94,11 +92,13 @@ async function loadWholePage(page) {
   });
   await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => window.scrollY === 0);
+  await settled(page);
   await settle(page);
 }
 
-// Press Tab until focus leaves the document; returns what had focus at each step and whether a
-// focus ring was drawn (on the element, or on the .pro-card that carries the ring for .pro-link).
+// Press Tab until focus leaves the document; returns what had focus at each step and whether a focus ring
+// was drawn: on the element, or on the frame that carries the ring for a stretched link (.pro-card for
+// .pro-link, .panel for the featured card's button; polish plan section 7).
 async function tabWalk(page, max = 120) {
   await page.evaluate(() => { window.scrollTo(0, 0); if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); });
   const steps = [];
@@ -108,11 +108,11 @@ async function tabWalk(page, max = 120) {
       const el = document.activeElement;
       if (!el || el === document.body || el === document.documentElement) return null;
       const ring = (e) => { const s = getComputedStyle(e); return s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0; };
-      const card = el.closest('.pro-card');
+      const frame = el.closest('.pro-card, .panel');
       return {
         tag: el.tagName.toLowerCase(), id: el.id, cls: String(el.className), href: el.getAttribute('href'),
         text: (el.textContent || '').trim().slice(0, 48), focusVisible: el.matches(':focus-visible'),
-        ring: ring(el) || (card ? ring(card) : false),
+        ring: ring(el) || (frame ? ring(frame) : false),
       };
     });
     if (!info) break;
@@ -123,7 +123,8 @@ async function tabWalk(page, max = 120) {
 
 // Every keyboard-reachable control in DOM order (what tabWalk should produce).
 const focusableInDomOrder = (page) => page.evaluate(() => {
-  const els = [...document.querySelectorAll('a[href], button:not([disabled]), summary, input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')];
+  const els = [...document.querySelectorAll('a[href], button:not([disabled]), summary, input:not([disabled]), select, textarea, [tabindex]')]
+    .filter((el) => el.getAttribute('tabindex') !== '-1');
   const visible = (el) => {
     if (!el.getClientRects().length) return false;
     for (let e = el; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden') return false; }
@@ -146,9 +147,9 @@ after(async () => {
   if (srv) { await resetMock(); await srv.close(); }
 });
 
-describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playwright is not installed: npm i -D playwright && npx playwright install chromium' }, () => {
+describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwright ? false : 'playwright is not installed: npm i -D playwright && npx playwright install chromium' }, () => {
   describe('2. / is the homepage', () => {
-    test('200, noindex, no gate form, one <h1>, eight sections in plan order', async () => {
+    test('200, noindex, no gate form, one <h1>, the sections in plan order plus the general waitlist close', async () => {
       const r = await http(srv.base, '/');
       assert.equal(r.status, 200);
       assert.match(r.text, NOINDEX, 'noindex,nofollow');
@@ -158,14 +159,15 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       const page = await open();
       await page.goto('/');
       assert.equal(await page.locator('h1').count(), 1);
-      assert.equal(await text(page, 'h1'), 'tennis takesyou further.');
+      assert.equal(plain(await text(page, 'h1')), 'tennis takes you further.');
       const order = await page.evaluate(() => {
         const sig = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : `.${String(el.className).trim().split(/\s+/)[0]}`}`;
-        return { body: [...document.body.children].map(sig), main: [...document.querySelector('main').children].map(sig) };
+        return { body: [...document.body.children].filter((el) => el.tagName !== 'SCRIPT').map(sig), main: [...document.querySelector('main').children].map(sig) };
       });
-      assert.deepEqual(order.body, ['a.skip-link', 'header.site-header', 'main#main', 'footer.footer'], 'header, main, footer');
-      assert.deepEqual(order.main, ['section.hero', 'section#about', 'section.quickfacts', 'section#trips', 'section#season', 'section#how', 'section#pros'],
-        'hero, what Courtside is + trust row, featured trip #trips, upcoming trips, how it works, pros teaser');
+      // Polish: the sticky "Enter code" bar for phones sits after the footer (home.js shows it once the hero scrolls out).
+      assert.deepEqual(order.body, ['a.skip-link', 'header.site-header', 'main#main', 'footer.footer', 'aside.sticky-cta'], 'header, main, footer, sticky bar (a complementary landmark so axe sees it inside a region)');
+      assert.deepEqual(order.main, ['section.hero', 'section#about', 'section.quickfacts', 'section#trips', 'section#season', 'section#how', 'section#pros', 'section#waitlist'],
+        'hero, what Courtside is + trust row, featured trip #trips, upcoming trips, how it works, pros teaser, general waitlist close');
       assert.equal(await page.locator('#about .pillar').count(), 3, 'three columns');
       assert.equal(await page.locator('section.quickfacts.trust .quickfact').count(), 4, 'trust row');
       assert.deepEqual(await texts(page, 'section.quickfacts.trust .quickfact strong'), ['Katie Delich', '4–12', 'Almoradí', 'La Finca']);
@@ -173,6 +175,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       assert.equal(await page.locator('#how .path-card').count(), 3, 'three steps');
       assert.equal(await page.locator('#pros .pro-card').count(), 3, 'three pro cards');
       assert.deepEqual(await page.locator('#pros .pro-link').evaluateAll((els) => els.map((a) => a.getAttribute('href'))), ['/pros#katie', '/pros#eva', '/pros#nelson']);
+      assert.equal(await page.locator('#waitlist button.waitlist-open[aria-controls="waitlist-general"]').count(), 1, 'one general waitlist button at the close');
       assert.deepEqual(page.errors(), [], 'no console errors');
       assert.deepEqual(page.external(), [], 'no request left the origin');
       await page.close2();
@@ -180,7 +183,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
   });
 
   describe('3. /pros', () => {
-    test('profiles render in pros.js order; `pros-page.js --check` passes; Nelson has a monogram and "Trips to be announced"; Katie and Eva show Spain', async (t) => {
+    test('profiles render in pros.js order; `pros-page.js --check` passes; Nelson has a monogram and "Trips to be announced"; Katie has the Spain card, Eva the one-line reference', async (t) => {
       assert.deepEqual(PROS.map((p) => p.id), ['katie', 'eva', 'nelson'], 'pros.js order');
       assert.equal(PROS[0].name, 'Katie Delich', 'spelled Delich');
       const out = execFileSync(process.execPath, [path.join(ROOT, 'public/js/pros-page.js'), '--check'], { cwd: ROOT, encoding: 'utf8' });
@@ -202,12 +205,17 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       assert.equal(await page.locator('#nelson img').count(), 0, 'no photo for Nelson');
       assert.equal(await text(page, '#nelson .profile-trips .placeholder'), 'Trips to be announced.');
       assert.equal(await page.locator('#nelson .trip-card').count(), 0);
-      for (const id of ['katie', 'eva']) {
-        assert.equal(await page.locator(`#${id} .trip-card`).count(), 1, `${id}: one trip card`);
-        assert.equal(await text(page, `#${id}-trip-spain h3`), 'The Spanish Offseason');
-        assert.equal(await text(page, `#${id}-trip-spain .trip-tag`), 'Invitation only');
-        assert.equal(await page.locator(`#${id}-trip-spain a.secondary`).getAttribute('href'), '/invite');
-      }
+      // Polish plan section 7: the full Spain card appears once, under its first host; Eva gets a one-line reference.
+      assert.equal(await page.locator('#katie .trip-card').count(), 1, 'katie: one trip card');
+      assert.equal(await text(page, '#katie-trip-spain h3'), 'The Spanish Offseason');
+      assert.equal(await text(page, '#katie-trip-spain .trip-tag'), 'Invitation only');
+      assert.equal(await page.locator('#katie-trip-spain a.secondary').getAttribute('href'), '/invite');
+      assert.equal(await page.locator('#eva .trip-card').count(), 0, 'eva: no second copy of the card');
+      assert.equal(await page.locator('#eva-trip-spain').evaluate((el) => el.tagName.toLowerCase() + '.' + el.className), 'p.profile-trip-line');
+      assert.equal(await text(page, '#eva-trip-spain'), 'Co-hosts The Spanish Offseason with Katie');
+      assert.equal(await page.locator('#eva-trip-spain a').getAttribute('href'), '/invite');
+      assert.equal(await page.locator('.profile-section .section-cta a.primary[href="/invite"]').count(), 3, 'each profile ends with "Enter invite code"');
+      assert.deepEqual(await texts(page, '.profile-section .section-cta a.primary'), ['Enter invite code', 'Enter invite code', 'Enter invite code']);
       assert.ok(await page.locator('#katie img').count() >= 1, 'Katie has a portrait');
       assert.ok(await page.locator('#eva img').count() >= 1, 'Eva has a portrait');
       assert.equal(await page.locator('text=Dellich').count(), 0);
@@ -217,7 +225,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
     });
 
     test('beyond: pros-page.js leaves the committed #prosRoot DOM alone when it already matches pros.js', async (t) => {
-      // pros-page.js says it only swaps #prosRoot when the committed markup drifts. --check passes, so a load of /pros
+      // pros-page.js says it only swaps a region when the committed markup drifts. --check passes, so a load of /pros
       // should call replaceChildren() zero times; the init script counts the calls before the module runs.
       const context = await browser.newContext({ baseURL: srv.base, extraHTTPHeaders: { 'x-forwarded-for': freshIp() } });
       contexts.add(context);
@@ -324,22 +332,27 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
     });
   });
 
-  describe('5. homepage CTAs', () => {
-    test('hero primary scrolls to #trips without navigating; "Meet the pros" → /pros; featured link and header pill → /invite', async () => {
+  describe('5. homepage CTAs (polish brief section 1 item 1)', () => {
+    test('hero: one primary "Enter invite code" → /invite and the "Don’t have an invite code?" link scrolls to #trips without navigating; pill, featured link, teaser', async () => {
       const page = await open({ viewport: DESKTOP });
       await page.goto('/');
-      assert.equal(await text(page, '.hero-ctas a.primary'), 'See The Spanish Offseason');
-      assert.equal(await page.getAttribute('.hero-ctas a.primary', 'href'), '#trips');
-      assert.equal(await text(page, '.hero-ctas a.secondary'), 'Meet the pros');
-      assert.equal(await page.getAttribute('.hero-ctas a.secondary', 'href'), '/pros');
+      await settled(page);
+      assert.equal(await page.locator('.hero-ctas a').count(), 2, 'one button and one text link in the hero');
+      assert.equal(await page.locator('.hero-ctas a.primary').count(), 1, 'exactly one primary');
+      assert.equal(await page.locator('.hero-ctas a.secondary').count(), 0, 'the second hero button is gone (decision 5)');
+      assert.equal(await text(page, '.hero-ctas a.primary'), 'Enter invite code');
+      assert.equal(await page.getAttribute('.hero-ctas a.primary', 'href'), '/invite');
+      assert.equal(await text(page, '.hero-ctas a.no-code'), 'Don’t have an invite code?');
+      assert.equal(await page.getAttribute('.hero-ctas a.no-code', 'href'), '#trips');
       assert.equal(await text(page, '#trips .panel a.primary'), 'Enter with your invitation');
       assert.equal(await page.getAttribute('#trips .panel a.primary', 'href'), '/invite');
-      assert.equal(await text(page, '.site-header .invite-pill'), 'Have an invitation?');
+      assert.equal(await text(page, '.site-header .invite-pill'), 'Enter code');
       assert.equal(await page.getAttribute('.site-header .invite-pill', 'href'), '/invite');
-      assert.equal(await page.locator('a[href="/invite"]').count(), 4, 'invite links: header pill, featured card, step 01, footer');
+      assert.deepEqual(await page.locator('.site-nav a').evaluateAll((els) => els.map((a) => [a.textContent.trim(), a.getAttribute('href')])), [['Trips', '#trips'], ['Meet the pros', '/pros']]);
+      assert.equal(await page.locator('a[href="/invite"]').count(), 6, 'invite links: header pill, hero button, featured card, step 01, footer, sticky bar');
 
       await page.evaluate(() => { window.__sameDocument = true; });
-      await page.click('.hero-ctas a.primary');
+      await page.click('.hero-ctas a.no-code');
       await page.waitForFunction(() => location.hash === '#trips');
       await page.waitForFunction(() => {
         const el = document.getElementById('trips');
@@ -350,8 +363,9 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       const trips = await page.evaluate(() => { const r = document.getElementById('trips').getBoundingClientRect(); return { top: Math.round(r.top), header: Math.round(document.querySelector('.site-header').getBoundingClientRect().bottom) }; });
       assert.ok(trips.top >= trips.header - 1, `#trips (${trips.top}) below the sticky header (${trips.header})`);
 
-      await page.click('.hero-ctas a.secondary');
-      await page.waitForURL(/\/pros$/);
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+      await page.click('.hero-ctas a.primary');
+      await page.waitForURL(/\/invite$/);
       await page.goto('/');
       await page.click('.site-header .invite-pill');
       await page.waitForURL(/\/invite$/);
@@ -361,15 +375,18 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       await page.goto('/');
       await page.click('#pros .section-cta a.secondary');
       await page.waitForURL(/\/pros$/);
+      await page.goto('/');
+      await page.click('.site-nav a[href="/pros"]');
+      await page.waitForURL(/\/pros$/);
       assert.deepEqual(page.errors(), []);
       await page.close2();
     });
   });
 
-  describe('6. no invented claims (decision 7)', () => {
-    test('every grep hit in index.html, pros.html, trips.js, pros.js is an allowed fact, a placeholder or markup noise', async (t) => {
-      const files = ['public/index.html', 'public/pros.html', 'public/js/trips.js', 'public/js/pros.js'];
-      const patterns = { '\\$': /\$/, guests: /guests/, players: /players/, star: /star/, '8–12': /8–12/, Dellich: /Dellich/i, Miami: /Miami/i };
+  describe('6. no invented claims (decision 7, polish brief section 4)', () => {
+    test('every grep hit in index.html, pros.html, 404.html, trips.js, pros.js is an allowed fact, "To be announced" or markup noise', async (t) => {
+      const files = ['public/index.html', 'public/pros.html', 'public/404.html', 'public/js/trips.js', 'public/js/pros.js'];
+      const patterns = { '\\$': /\$/, guests: /guests/, players: /players/, star: /star/, '8–12': /8–12/, Dellich: /Dellich/i, Miami: /Miami/i, 'white visor': /white visor/i };
       const hits = [];
       for (const file of files) {
         read(file).split('\n').forEach((line, i) => {
@@ -377,16 +394,18 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
         });
       }
       // The verdict looks at the whole line; only the diagnostic is shortened.
+      const HERO_SENTENCE = 'For the players they coach and the friends they bring.'; // POLISH_PLAN.md section 1, sentence 2 (approved)
       const verdict = (h) => {
         const s = h.full;
         if (h.pattern === '\\$') return /\$2,995/.test(s) && !/\$\s?[0-9]/.test(s.replaceAll('$2,995', '')) ? 'allowed: $2,995' : 'NOT ALLOWED';
         if (h.pattern === 'players') {
-          // Only "4–12 players" (prose) or the trust-row pair "<strong>4–12</strong><span>players" may remain.
-          const rest = s.replaceAll('4–12 players', '').replaceAll('4–12</strong><span>players', '');
-          return !/players/.test(rest) ? 'allowed: 4–12 players' : 'NOT ALLOWED';
+          // Only "4–12 players" (prose), the trust-row pair "<strong>4–12</strong><span>players" or the approved hero sentence may remain.
+          const rest = s.replaceAll('4–12 players', '').replaceAll('4–12</strong><span>players', '').replaceAll(HERO_SENTENCE, '');
+          if (/players/.test(rest)) return 'NOT ALLOWED';
+          return s.includes(HERO_SENTENCE) ? 'allowed: the approved hero sentence' : 'allowed: 4–12 players';
         }
         if (h.pattern === 'star') {
-          if (/pros:start|pros:end/.test(s)) return 'markup noise: pros:start/end marker';
+          if (/pros(?:-jump)?:start|pros(?:-jump)?:end/.test(s) && !/star(?!t)/.test(s)) return 'markup noise: pros:start / pros-jump:start marker';
           return /five-star/.test(s) && /La Finca/.test(s) && !/star(?!t)/.test(s.replaceAll('five-star', '')) ? 'allowed: five-star La Finca' : 'NOT ALLOWED';
         }
         return 'NOT ALLOWED';
@@ -394,7 +413,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       for (const h of hits) t.diagnostic(`[${h.pattern}] ${h.file}:${h.line} -> ${verdict(h)} | ${h.text}`);
       const bad = hits.filter((h) => verdict(h) === 'NOT ALLOWED').map(({ full, ...rest }) => rest);
       assert.deepEqual(bad, [], 'no disallowed claim');
-      for (const name of ['guests', '8–12', 'Dellich', 'Miami']) assert.equal(hits.filter((h) => h.pattern === name).length, 0, `${name} must not appear`);
+      for (const name of ['guests', '8–12', 'Dellich', 'Miami', 'white visor']) assert.equal(hits.filter((h) => h.pattern === name).length, 0, `${name} must not appear`);
       assert.ok(hits.some((h) => h.pattern === '\\$'), 'the price is stated (sanity)');
       // The correct spelling is on both pages.
       assert.match(read('public/index.html'), /Katie Delich/);
@@ -427,28 +446,42 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       assert.equal(TRIPS[0].price, 'from $2,995 per player, six nights');
       assert.equal(TRIPS[0].blurb, 'seven Sunday–Saturday weeks, January 10 – February 27, 2027');
       assert.equal(TRIPS[0].link, '/invite');
+      assert.equal(TRIPS[0].photo.key, 'spain-card-43', 'the featured card uses the named crop (PHOTOS.md)');
       assert.ok(!JSON.stringify(TRIPS).includes('Miami'));
       assert.equal(WAITLIST_NOTE, 'Waitlist opens soon. Invitations go out first; check back or ask Katie.');
     });
 
-    test('the hand-written homepage cards match trips.js field by field', async (t) => {
+    test('the hand-written homepage cards match trips.js field by field (polish: timing in the art, the city once, a capture form per card)', async (t) => {
       const page = await open();
       await page.goto('/');
-      const cards = await page.locator('#season .trip-card').evaluateAll((els) => els.map((el) => ({
-        id: el.id,
-        art: el.querySelector('.trip-art span')?.textContent.trim(),
-        tag: el.querySelector('.trip-tag')?.textContent.trim(),
-        name: el.querySelector('h3')?.textContent.trim(),
-        meta: el.querySelector('.trip-meta')?.textContent.trim(),
-        blurb: [...el.querySelectorAll('.trip-body > p:not(.trip-meta)')].map((p) => p.textContent.trim()),
-        button: el.querySelector('summary')?.textContent.trim(),
-        note: el.querySelector('.waitlist-note')?.textContent.trim(),
-        hasImage: !!el.querySelector('img'),
-      })));
-      const wanted = TRIPS.slice(1).map((t) => ({
-        id: `trip-${t.id}`, art: t.place, tag: 'Waitlist', name: t.name, meta: `${t.place} · ${t.timing}`,
-        blurb: t.blurb ? [t.blurb.charAt(0).toUpperCase() + t.blurb.slice(1)] : [], button: 'Join the waitlist', note: WAITLIST_NOTE, hasImage: false,
+      const cards = await page.locator('#season .trip-card').evaluateAll((els) => els.map((el) => {
+        const form = el.querySelector('form.waitlist-form');
+        const button = el.querySelector('button.waitlist-open');
+        return {
+          id: el.id,
+          art: el.querySelector('.trip-art span')?.textContent.trim(),
+          tag: el.querySelector('.trip-tag')?.textContent.trim(),
+          name: el.querySelector('h3')?.textContent.trim(),
+          timing: el.querySelector('.trip-timing')?.textContent.trim(),
+          blurb: [...el.querySelectorAll('.trip-body > p:not(.trip-meta):not(.trip-tba)')].map((p) => p.textContent.trim()),
+          tba: el.querySelector('.trip-tba')?.textContent.trim() ?? null,
+          button: button?.textContent.trim(),
+          controls: button?.getAttribute('aria-controls'),
+          expanded: button?.getAttribute('aria-expanded'),
+          form: form ? { trip: form.dataset.trip, source: form.dataset.source, tripName: form.dataset.tripName, title: form.querySelector('.waitlist-title')?.textContent.trim(), id: form.closest('.waitlist-capture')?.id } : null,
+          hasImage: !!el.querySelector('img'),
+          cityMentions: (el.textContent.match(new RegExp(el.querySelector('h3')?.textContent.trim().split(' ')[0] || '§', 'g')) || []).length,
+        };
       }));
+      const wanted = TRIPS.slice(1).map((trip) => ({
+        id: `trip-${trip.id}`, art: trip.timing, tag: 'Waitlist', name: trip.name, timing: trip.timing,
+        blurb: trip.blurb ? [trip.blurb.charAt(0).toUpperCase() + trip.blurb.slice(1)] : [], tba: trip.blurb ? null : 'To be announced',
+        button: 'Join the waitlist', controls: `waitlist-${trip.id}`, expanded: 'false',
+        form: { trip: trip.id, source: 'card', tripName: trip.name, title: `Join the waitlist for ${trip.name}`, id: `waitlist-${trip.id}` },
+        hasImage: false,
+        cityMentions: trip.id === 'charleston' ? 3 : 2, // the heading and the capture title; Charleston's blurb names the Charleston Open
+      }));
+      t.diagnostic(`city mentions per card: ${cards.map((c) => `${c.name} ${c.cityMentions}`).join(', ')}`);
       assert.deepEqual(cards, wanted);
       const featured = await page.evaluate(() => ({
         tag: document.querySelector('#trips .overlay .caps').textContent.trim(),
@@ -456,12 +489,14 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
         line: document.querySelector('#trips .overlay p').textContent.trim(),
         panel: document.querySelector('#trips .panel').textContent.replace(/\s+/g, ' ').trim(),
         alt: document.querySelector('#trips .media-card img').getAttribute('alt'),
+        src: (document.querySelector('#trips .media-card img').currentSrc || '').split('/').pop(),
         link: document.querySelector('#trips .panel a.primary').getAttribute('href'),
       }));
       const spain = TRIPS[0];
       assert.equal(featured.tag, 'Invitation only');
       assert.equal(featured.name, spain.name);
       assert.equal(featured.alt, spain.photo.alt);
+      assert.match(featured.src, /^spain-card-43-/, 'the featured photo is the spain-card-43 crop');
       assert.equal(featured.link, spain.link);
       // Plan 4.1 fixes the overlay line as "Costa Blanca, Spain · Winter 2027 · seven Sunday–Saturday weeks · from $2,995 per
       // player, six nights"; trips.js's blurb adds the January 10 – February 27 dates, which the card's panel carries instead.
@@ -507,19 +542,23 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
               return { src: (img.currentSrc || img.src).split('/').pop(), fit: getComputedStyle(img).objectFit, natural: +(img.naturalWidth / img.naturalHeight).toFixed(3), rendered: +(r.width / r.height).toFixed(3) };
             });
             const stretched = images.filter((i) => i.fit !== 'cover' && Math.abs(i.natural / i.rendered - 1) > 0.03);
-            // Text overlap: leaf text elements that intersect by more than 2px on both axes, ancestors excluded. The sticky
-            // header floats over content by design once the page scrolls, so it is left out here and checked below instead.
-            const INLINE = new Set(['BR', 'EM', 'STRONG', 'SPAN', 'A', 'B', 'I']);
+            // Text overlap: the glyph boxes (a Range over each leaf's contents, so padding that only enlarges a tap
+            // target, like .pro-link's, does not count) of leaf text elements that intersect by more than 2px on both
+            // axes, ancestors excluded. The sticky header floats over content by design once the page scrolls, so it
+            // is left out here and checked below instead.
+            const INLINE = new Set(['BR', 'EM', 'STRONG', 'SPAN', 'A', 'B', 'I', 'SMALL']);
             const stickyHeader = document.querySelector('.site-header');
             const leaves = withText.filter((el) => [...el.children].every((c) => INLINE.has(c.tagName)) && !(stickyHeader && stickyHeader.contains(el)));
+            const glyphBox = (el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect(); };
             const mainTop = document.querySelector('main')?.getBoundingClientRect().top ?? 0;
             const headerBottom = stickyHeader ? stickyHeader.getBoundingClientRect().bottom : 0;
             const overlaps = [];
+            const boxes = leaves.map(glyphBox);
             for (let i = 0; i < leaves.length; i += 1) {
-              const a = leaves[i].getBoundingClientRect();
+              const a = boxes[i];
               for (let j = i + 1; j < leaves.length; j += 1) {
                 if (leaves[i].contains(leaves[j]) || leaves[j].contains(leaves[i])) continue;
-                const b = leaves[j].getBoundingClientRect();
+                const b = boxes[j];
                 const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
                 const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
                 if (x > 2 && y > 2) overlaps.push(`${leaves[i].tagName}.${leaves[i].className} "${leaves[i].textContent.trim().slice(0, 20)}" × ${leaves[j].tagName}.${leaves[j].className} "${leaves[j].textContent.trim().slice(0, 20)}" (${Math.round(x)}×${Math.round(y)}px)`);
@@ -540,7 +579,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
           t.diagnostic(`${route} ${viewport.width}px: scrollWidth ${m.scrollWidth}/${m.innerWidth}, page ${m.pageHeight}px tall, smallest text ${m.smallest.map((f) => `${f.size}px ${f.tag}.${f.cls}`).join('; ')}; Phase 1 "powered by" line: ${m.phase1Tiny.map((f) => `${f.size}px ${f.tag}.${f.cls}`).join('; ') || 'hidden'}; images: ${m.images.map((i) => `${i.src} ${i.fit}`).join(', ')}`);
           await shot(page, `${name}-${viewport.width}`);
           assert.ok(m.scrollWidth <= m.innerWidth, `no horizontal scroll (${m.scrollWidth} > ${m.innerWidth})`);
-          assert.ok(m.smallest[0].size >= 10, `smallest Phase 2 text ${m.smallest[0].size}px (${m.smallest[0].tag}.${m.smallest[0].cls} "${m.smallest[0].text}")`);
+          assert.ok(m.smallest[0].size >= 12, `smallest text ${m.smallest[0].size}px (${m.smallest[0].tag}.${m.smallest[0].cls} "${m.smallest[0].text}")`);
           assert.deepEqual(m.stretched, [], 'no image drawn off its natural ratio');
           assert.deepEqual(m.overlaps, [], 'no overlapping text');
           assert.deepEqual(m.headerCollisions, [], 'header items do not collide');
@@ -553,7 +592,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
     }
   });
 
-  describe('9. accessibility', () => {
+  describe('9. accessibility (the axe scan is in polish.test.js, item 9)', () => {
     for (const route of ['/', '/pros']) {
       test(`${route}: skip link first and working, landmarks, one <h1>, alt on every <img>`, async (t) => {
         const page = await open({ viewport: DESKTOP });
@@ -586,71 +625,52 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
         await page.close2();
       });
 
-      test(`${route}: a :focus-visible ring on every link/button/summary, Tab order = DOM order, waitlist <details> toggles by keyboard`, async (t) => {
+      test(`${route}: a :focus-visible ring on every link and button, Tab order = DOM order, the waitlist capture opens and closes by keyboard`, async (t) => {
         const page = await open({ viewport: DESKTOP });
         await page.goto(route);
+        await settled(page);
         const steps = await tabWalk(page);
         const expected = await focusableInDomOrder(page);
         t.diagnostic(`${route}: ${steps.length} Tab stops`);
         assert.deepEqual(steps.map(key), expected.map(key), 'keyboard reaches every control in DOM order');
         const noRing = steps.filter((s) => !s.ring).map(key);
-        assert.deepEqual(noRing, [], 'every focused control draws a focus ring');
+        assert.deepEqual(noRing, [], 'every focused control draws a focus ring (on itself or on its card frame)');
         assert.ok(steps.every((s) => s.focusVisible), ':focus-visible matched on each');
         const kinds = new Set(steps.map((s) => s.tag));
         assert.ok(kinds.has('a'), 'links were walked');
         if (route === '/') {
-          assert.ok(kinds.has('summary'), 'the waitlist summaries are in the tab order');
+          // Polish plan section 3 and critic fix 4: the <details> summaries became <button aria-expanded> openers with a real form.
+          assert.ok(kinds.has('button'), 'the waitlist openers are in the tab order');
+          assert.equal(steps.filter((s) => s.tag === 'summary').length, 0, 'no <details>/<summary> left');
+          assert.equal(steps.filter((s) => s.cls.includes('waitlist-open')).length, 7, 'six card openers and the general one');
           await page.evaluate(() => { window.scrollTo(0, 0); document.activeElement.blur(); });
           let info = null;
-          for (let i = 0; i < 60; i += 1) { await page.keyboard.press('Tab'); info = await activeInfo(page); if (info && info.tag === 'summary') break; }
-          assert.equal(info.tag, 'summary');
-          const state = () => page.evaluate(() => { const d = document.activeElement.closest('details'); const note = d.querySelector('.waitlist-note'); return { open: d.open, noteVisible: note.getClientRects().length > 0, note: note.textContent.trim() }; });
-          assert.equal((await state()).open, false);
+          for (let i = 0; i < 60; i += 1) { await page.keyboard.press('Tab'); info = await activeInfo(page); if (info && info.cls.includes('waitlist-open')) break; }
+          assert.ok(info.cls.includes('waitlist-open'), 'reached the first opener');
+          const state = () => page.evaluate(() => {
+            const opener = document.querySelector('#trip-charleston button.waitlist-open');
+            const panel = document.getElementById(opener.getAttribute('aria-controls'));
+            return { expanded: opener.getAttribute('aria-expanded'), open: panel.classList.contains('is-open'), visible: panel.getClientRects().length > 0, active: document.activeElement.id || document.activeElement.className };
+          });
+          assert.deepEqual(await state(), { expanded: 'false', open: false, visible: false, active: 'secondary waitlist-open' });
           await page.keyboard.press('Enter');
-          assert.deepEqual(await state(), { open: true, noteVisible: true, note: 'Waitlist opens soon. Invitations go out first; check back or ask Katie.' });
+          assert.deepEqual(await state(), { expanded: 'true', open: true, visible: true, active: 'wl-charleston-email' }, 'Enter opens the capture and focuses the email field');
+          await page.keyboard.press('Escape');
+          assert.deepEqual(await state(), { expanded: 'false', open: false, visible: false, active: 'secondary waitlist-open' }, 'Escape closes it and returns focus to the opener');
           await page.keyboard.press('Space');
-          assert.equal((await state()).open, false, 'Space closes it again');
-          const ariaLive = await page.locator('.waitlist-note[aria-live], .waitlist[aria-live]').count();
-          t.diagnostic(`waitlist note aria-live elements: ${ariaLive} (plan section 5 asks for aria-live; <details> is used instead)`);
+          assert.equal((await state()).expanded, 'true', 'Space opens it again');
+          const live = await page.locator('#waitlist-charleston .form-status[aria-live="polite"]').count();
+          assert.equal(live, 1, 'the status line is aria-live (plan section 5)');
         }
         assert.deepEqual(page.errors(), []);
         await page.close2();
       });
     }
-
-    test('axe-core: no serious or critical violations on / and /pros at 1440 and 390; moderate and minor listed', { skip: axePath ? false : 'axe-core is not installed: npm i -D axe-core' }, async (t) => {
-      const serious = [];
-      const known = [];
-      for (const route of ['/', '/pros']) {
-        for (const viewport of [DESKTOP, MOBILE]) {
-          const page = await open({ viewport });
-          await page.goto(route);
-          await loadWholePage(page);
-          await page.addScriptTag({ path: axePath });
-          const results = await page.evaluate(() => window.axe.run(document, { resultTypes: ['violations'] }));
-          for (const v of results.violations) {
-            const line = `${route} @${viewport.width}: [${v.impact}] ${v.id} (${v.nodes.length} node${v.nodes.length === 1 ? '' : 's'}) ${v.help} e.g. ${v.nodes[0]?.target.join(' ')}`;
-            t.diagnostic(line);
-            // Known exception, documented in QA_REPORT_PHASE2.md: gold (#b9985d) eyebrow and label text on
-            // cream fails WCAG 2 contrast. It is a locked brand token; COURTSIDE_POLISH_BRIEF.md assigns the
-            // APCA-checked fix to the polish branch. Reported here, not failed, so the defect stays visible.
-            if (v.id === 'color-contrast') { known.push(line); continue; }
-            if (v.impact === 'serious' || v.impact === 'critical') serious.push(line);
-          }
-          if (!results.violations.length) t.diagnostic(`${route} @${viewport.width}: axe ${results.testEngine.version}: no violations`);
-          await page.close2();
-        }
-      }
-      for (const line of known) t.diagnostic(`KNOWN (polish branch): ${line}`);
-      assert.deepEqual(serious, [], 'no serious/critical axe violations');
-    });
   });
 
   describe('10. performance', () => {
-    // <link rel="preload" as="image" …> in any attribute order (the pages write attributes alphabetically).
-    const PRELOAD = /<link\b(?=[^>]*\brel="preload")(?=[^>]*\bas="image")[^>]*>/;
     for (const route of ['/', '/pros']) {
-      test(`${route} at 390px: every request same-origin, total transfer under 1 MB with images, first image eager + preloaded, the rest lazy, module scripts only`, async (t) => {
+      test(`${route} at 390px: every request same-origin, total transfer under 1 MB with images, first image eager (+ preloaded on /), the rest lazy, external scripts are modules`, async (t) => {
         const page = await open({ viewport: MOBILE });
         const transfers = [];
         page.on('requestfinished', async (req) => {
@@ -675,27 +695,35 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
         assert.deepEqual(page.external(), [], 'no third-party request');
         assert.ok(transfers.every((r) => r.url.startsWith('/')), 'every request is same-origin');
 
-        const html = (await http(srv.base, route)).text;
         const img = await page.evaluate(() => {
           const imgs = [...document.querySelectorAll('img')].map((i) => ({ src: (i.currentSrc || i.src).split('/').pop(), loading: i.getAttribute('loading'), priority: i.getAttribute('fetchpriority'), inMain: !!i.closest('main'), alt: i.alt }));
           const eager = imgs.filter((i) => i.inMain && i.loading !== 'lazy');
-          const preload = [...document.querySelectorAll('link[rel="preload"][as="image"]')].map((l) => ({ srcset: l.getAttribute('imagesrcset'), sizes: l.getAttribute('imagesizes'), href: l.getAttribute('href') }));
+          // The hero preloads one crop per breakpoint (polish plan section 5): the link whose media matches is the one that counts.
+          const preloads = [...document.querySelectorAll('link[rel="preload"][as="image"]')].map((l) => ({ media: l.getAttribute('media'), srcset: l.getAttribute('imagesrcset'), sizes: l.getAttribute('imagesizes'), matches: !l.media || matchMedia(l.media).matches }));
           const firstMainImg = document.querySelector('main img');
-          const source = firstMainImg?.parentElement.querySelector('source[type="image/webp"]')?.getAttribute('srcset');
-          return { imgs, eager, preload, firstSrc: (firstMainImg?.currentSrc || '').split('/').pop(), firstSourceSrcset: source, scripts: [...document.scripts].map((s) => ({ src: s.getAttribute('src'), type: s.getAttribute('type') })) };
+          const activeSource = firstMainImg ? [...firstMainImg.parentElement.querySelectorAll('source[type="image/webp"]')].find((s) => !s.media || matchMedia(s.media).matches) : null;
+          return { imgs, eager, preloads, firstSrc: (firstMainImg?.currentSrc || '').split('/').pop(), activeSourceSrcset: activeSource?.getAttribute('srcset') || null, scripts: [...document.scripts].map((s) => ({ src: s.getAttribute('src'), type: s.getAttribute('type'), inline: !s.src && s.textContent.length })) };
         });
-        t.diagnostic(`${route}: eager in main ${img.eager.map((i) => `${i.src} fetchpriority=${i.priority}`).join(', ') || 'none'}; preload ${JSON.stringify(img.preload)}; scripts ${JSON.stringify(img.scripts)}`);
+        t.diagnostic(`${route}: eager in main ${img.eager.map((i) => `${i.src} fetchpriority=${i.priority}`).join(', ') || 'none'}; preloads ${JSON.stringify(img.preloads)}; scripts ${JSON.stringify(img.scripts)}`);
         assert.equal(img.eager.length, 1, 'exactly one eager image in <main> (the hero / first portrait)');
         assert.equal(img.eager[0].loading, 'eager');
         assert.equal(img.eager[0].priority, 'high');
         const lazy = img.imgs.filter((i) => i.inMain && i.loading === 'lazy');
         assert.equal(lazy.length, img.imgs.filter((i) => i.inMain).length - 1, 'every other image in <main> is lazy');
         assert.equal(img.imgs.filter((i) => !i.inMain && i.loading !== 'lazy').length, 1, 'the header logo is the only other eager image; the footer logo is lazy');
-        assert.match(html, PRELOAD, 'the first image is preloaded');
-        assert.equal(img.preload.length, 1);
-        assert.equal(img.preload[0].srcset, img.firstSourceSrcset, 'the preload matches the hero <source> srcset');
-        assert.ok(img.firstSrc.endsWith('.webp'), `the hero is served as WebP (${img.firstSrc})`);
-        assert.ok(img.scripts.every((s) => s.type === 'module'), 'no render-blocking scripts');
+        if (route === '/') {
+          const active = img.preloads.filter((p) => p.matches);
+          assert.equal(img.preloads.length, 2, 'one preload per hero crop (phones 4:5, 700px+ 3:2)');
+          assert.equal(active.length, 1, 'exactly one preload matches this viewport');
+          assert.equal(active[0].srcset, img.activeSourceSrcset, 'the matching preload equals the active hero <source> srcset');
+          assert.match(active[0].srcset, /hero-clay-45/, 'phones preload the 4:5 crop');
+        } else {
+          t.diagnostic(`${route}: preload links ${img.preloads.length} (the first portrait is eager + high priority; a preload is a nicety here, not a plan item)`);
+        }
+        assert.ok(img.firstSrc.endsWith('.webp'), `the first image is served as WebP (${img.firstSrc})`);
+        // The one-line class toggle in <head> (html.js, for the no-JS capture fallback) is inline and fetches nothing.
+        assert.ok(img.scripts.filter((s) => s.src).every((s) => s.type === 'module'), 'every external script is a module (no render-blocking script)');
+        assert.ok(img.scripts.filter((s) => !s.src).every((s) => s.inline < 200), 'inline scripts are one-liners');
         const preloadWarnings = page.consoleMessages().filter((m) => /preload/i.test(m));
         assert.deepEqual(preloadWarnings, [], 'no "preloaded but not used" warning');
         assert.deepEqual(page.errors(), []);
@@ -720,11 +748,13 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
   });
 
   describe('11. reduced motion', () => {
-    test('with prefers-reduced-motion: reduce the hero CTA lands on #trips instantly and nothing animates', async () => {
+    test('with prefers-reduced-motion: reduce the no-code link lands on #trips instantly and nothing animates', async () => {
       const page = await open({ viewport: MOBILE, reducedMotion: 'reduce' });
       await page.goto('/');
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'auto');
-      await page.click('.hero-ctas a.primary');
+      assert.equal(await page.evaluate(() => document.getAnimations().length), 0, 'no hero settle under reduced motion');
+      assert.deepEqual(await page.locator('.hero-copy > *').evaluateAll((els) => els.map((el) => getComputedStyle(el).opacity)), ['1', '1', '1', '1'], 'the hero copy is fully visible');
+      await page.click('.hero-ctas a.no-code');
       const landed = await page.evaluate(() => {
         const el = document.getElementById('trips');
         return { hash: location.hash, top: Math.round(el.getBoundingClientRect().top), margin: parseFloat(getComputedStyle(el).scrollMarginTop), animations: document.getAnimations().length };
@@ -746,46 +776,71 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
   });
 
   describe('12. brand', () => {
-    test('marketing.css uses only the style.css palette, no webfont; Georgia on every heading', async (t) => {
+    test('marketing.css adds only the approved token block, --gold-ink and the local Georgia fallback; no webfont; Georgia on every heading', async (t) => {
       const marketing = read('public/marketing.css');
       const style = read('public/style.css');
       const hex = (css) => new Set((css.match(/#[0-9a-fA-F]{3,8}\b/g) || []).map((h) => h.toLowerCase()));
-      const rootBlock = style.match(/:root\s*\{[^}]*\}/)[0];
-      const tokenHex = hex(rootBlock);
-      const marketingHex = [...hex(marketing)];
-      const notToken = marketingHex.filter((h) => !tokenHex.has(h));
-      t.diagnostic(`marketing.css hex literals: ${marketingHex.join(', ') || 'none'}; not a :root token: ${notToken.join(', ') || 'none'}; all present in style.css: ${notToken.every((h) => hex(style).has(h))}`);
-      assert.ok(marketingHex.every((h) => hex(style).has(h)), 'no colour that style.css does not already use');
-      assert.ok(!/:root/.test(marketing), 'marketing.css defines no new tokens');
+      const styleHex = hex(style);
+      // The polish pass's one token block (DESIGN.md): type and space scales, --gold-ink, --ease, --header-h, --gutter, --serif.
+      const rootBlocks = marketing.match(/:root\s*\{[^}]*\}/g) || [];
+      assert.equal(rootBlocks.length, 2, 'one :root block at the top and one --header-h override at 700px');
+      const rootHex = hex(rootBlocks.join('\n'));
+      assert.deepEqual([...rootHex], ['#7d6236', '#c9a86a'], 'the token block declares the two gold text colours, --gold-ink and --gold-bright (decision 2)');
+      const outsideRoot = marketing.replace(/:root\s*\{[^}]*\}/g, '');
+      const marketingHex = [...hex(outsideRoot)];
+      const notInStyle = marketingHex.filter((h) => !styleHex.has(h) && h !== '#7d6236' && h !== '#c9a86a');
+      t.diagnostic(`marketing.css hex literals outside :root: ${marketingHex.join(', ') || 'none'}; not in style.css (and not the gold text tokens): ${notInStyle.join(', ') || 'none'}`);
+      assert.deepEqual(notInStyle, [], 'no colour that style.css does not already use, other than the gold text tokens');
+      // Every rgba() is a brand colour at an alpha: cream, espresso, the photo shade, gold (the input focus halo) or the shadow.
       const rgba = marketing.match(/rgba?\([^)]*\)/g) || [];
       const styleRgba = new Set(style.match(/rgba?\([^)]*\)/g) || []);
       t.diagnostic(`marketing.css rgba(): ${rgba.join(', ')}; new alpha variants vs style.css: ${rgba.filter((r) => !styleRgba.has(r)).join(', ') || 'none'}`);
-      assert.ok(rgba.every((r) => /^rgba\((244,239,229|57,38,29|37,23,16),/.test(r)), 'every rgba() is cream or espresso at an alpha');
-      for (const file of ['public/marketing.css', 'public/style.css', 'public/index.html', 'public/pros.html', 'public/invite.html']) {
-        assert.doesNotMatch(read(file), /@font-face|@import|fonts\.googleapis|fonts\.gstatic|typekit|\.woff/, `${file}: no webfont`);
+      assert.ok(rgba.every((r) => /^rgba\((244,239,229|57,38,29|37,23,16|185,152,93|45,27,20),/.test(r)), 'every rgba() is a brand colour at an alpha');
+      for (const file of ['public/marketing.css', 'public/style.css', 'public/index.html', 'public/pros.html', 'public/invite.html', 'public/privacy.html', 'public/404.html']) {
+        assert.doesNotMatch(read(file), /@import|fonts\.googleapis|fonts\.gstatic|typekit|\.woff|url\([^)]*font/i, `${file}: no webfont, no @import`);
       }
-      assert.ok(!/font-family\s*:/.test(marketing), 'marketing.css sets no font-family literal');
-      const fontShorthands = marketing.match(/font:[^;}]+/g) || [];
+      // The only @font-face rules are the Georgia fallback (local() sources only, size-adjusted; DESIGN.md "Type").
+      const faces = marketing.match(/@font-face\s*\{[^}]*\}/g) || [];
+      assert.equal(faces.length, 2, 'the fallback face: upright and italic');
+      for (const face of faces) {
+        assert.match(face, /font-family:'Courtside Serif Fallback'/);
+        assert.match(face, /size-adjust:\s*\d+%/);
+        assert.match(face, /ascent-override|descent-override/);
+        assert.doesNotMatch(face, /url\(/, 'local() sources only');
+        assert.ok(/src:(local\([^)]*\),?)+;/.test(face.replace(/\s+/g, '')), `src is local() only: ${face}`);
+      }
+      assert.match(marketing, /--serif:\s*Georgia,\s*'Courtside Serif Fallback',\s*serif/, '--serif lists Georgia, then the fallback');
+      assert.doesNotMatch(style, /@font-face|Courtside Serif Fallback/, 'style.css is untouched');
+      // No font-family literal outside the token block and the @font-face rules.
+      const noTokens = marketing.replace(/:root\s*\{[^}]*\}/g, '').replace(/@font-face\s*\{[^}]*\}/g, '');
+      const families = noTokens.match(/font-family\s*:[^;}]+/g) || [];
+      assert.ok(families.every((f) => /var\(--(serif|sans)\)/.test(f)), `font-family only through tokens (${families.join(' | ')})`);
+      const fontShorthands = noTokens.match(/\bfont:[^;}]+/g) || [];
       assert.ok(fontShorthands.every((f) => /var\(--serif\)|var\(--sans\)/.test(f)), `every font: shorthand ends in a token (${fontShorthands.join(' | ')})`);
       for (const route of ['/', '/pros']) {
         const page = await open();
         await page.goto(route);
-        const fonts = await page.evaluate(() => [...document.querySelectorAll('h1, h2, h3')].map((h) => ({ tag: h.tagName, cls: h.className, family: getComputedStyle(h).fontFamily, weight: getComputedStyle(h).fontWeight })));
+        const fonts = await page.evaluate(() => [...document.querySelectorAll('h1, h2, h3, h4')].map((h) => ({ tag: h.tagName, cls: h.className, family: getComputedStyle(h).fontFamily, weight: getComputedStyle(h).fontWeight })));
         const notGeorgia = fonts.filter((f) => !/^Georgia/.test(f.family));
         t.diagnostic(`${route}: ${fonts.length} headings; not Georgia: ${notGeorgia.map((f) => `${f.tag}.${f.cls} ${f.family}`).join('; ') || 'none'}`);
         // h3.profile-label is a small-caps label in the sans stack by design (marketing.css), so it is reported, not failed.
         assert.deepEqual(notGeorgia.filter((f) => !/profile-label/.test(f.cls)), [], 'Georgia on headings');
         assert.ok(fonts.filter((f) => /^Georgia/.test(f.family)).every((f) => f.weight === '400'), 'serif headings are weight 400');
+        assert.ok(fonts.filter((f) => /^Georgia/.test(f.family)).every((f) => /Courtside Serif Fallback/.test(f.family)), 'the computed stack carries the fallback face');
         await page.close2();
       }
     });
 
-    test('site.html, style.css and gate.js are unchanged versus main; site.js differs only in the three redirect targets', (t) => {
+    test('style.css and gate.js are unchanged versus main; site.html gains one <style> line (view transitions, decision 4); site.js differs only in the three redirect targets', (t) => {
       let hasMain = true;
       try { execFileSync('git', ['rev-parse', '--verify', 'main'], { cwd: ROOT, stdio: 'pipe' }); } catch { hasMain = false; }
       if (!hasMain) { t.skip('no main branch to diff against'); return; }
-      const frozen = execFileSync('git', ['diff', 'main', '--', 'public/site.html', 'public/style.css', 'public/js/gate.js'], { cwd: ROOT, encoding: 'utf8' });
-      assert.equal(frozen, '', 'git diff main -- public/site.html public/style.css public/js/gate.js is empty');
+      const frozen = execFileSync('git', ['diff', 'main', '--', 'public/style.css', 'public/js/gate.js'], { cwd: ROOT, encoding: 'utf8' });
+      assert.equal(frozen, '', 'git diff main -- public/style.css public/js/gate.js is empty');
+      const siteHtml = execFileSync('git', ['diff', 'main', '--', 'public/site.html'], { cwd: ROOT, encoding: 'utf8' });
+      const siteLines = siteHtml.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l));
+      t.diagnostic(`site.html changed lines: ${JSON.stringify(siteLines)}`);
+      assert.deepEqual(siteLines, ['+<style>@view-transition{navigation:auto}@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}</style>'], 'exactly one added line: the view-transition opt-in');
       const siteJs = execFileSync('git', ['diff', 'main', '--', 'public/js/site.js'], { cwd: ROOT, encoding: 'utf8' });
       const changed = siteJs.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l));
       t.diagnostic(`site.js changed lines: ${changed.length}`);
@@ -797,15 +852,19 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
   });
 
   describe('13. README', () => {
-    test('documents /, /pros, /invite, the personal-link format, npm run images and the data files; every public/js file it names exists', (t) => {
+    test('documents /, /pros, /invite, /privacy, the 404, the personal-link format, npm run images, the waitlist and the data files; every public/js file it names exists', (t) => {
       const readme = read('README.md');
       assert.match(readme, /\| `\/` \| `public\/index\.html` \|/, 'pages table: /');
       assert.match(readme, /\| `\/pros` \| `public\/pros\.html` \|/, 'pages table: /pros');
       assert.match(readme, /\| `\/invite` \| `public\/invite\.html` \|/, 'pages table: /invite');
+      assert.match(readme, /`public\/404\.html`/, 'the 404 page is documented');
       assert.match(readme, /https:\/\/<domain>\/invite\?invite=CODE/, 'personal-link format');
       assert.match(readme, /npm run images/);
       assert.match(readme, /public\/js\/trips\.js/);
       assert.match(readme, /public\/js\/pros\.js/);
+      assert.match(readme, /POST \/api\/waitlist/, 'the waitlist route is documented');
+      assert.match(readme, /POST \/api\/event/, 'the event route is documented');
+      assert.match(readme, /\| Waitlist \| `timestamp, email, name, trip, source` \|/, 'the Waitlist tab columns');
       const named = [...new Set([...readme.matchAll(/public\/js\/([a-z-]+\.js)/g)].map((m) => m[1]))];
       const missing = named.filter((f) => !fs.existsSync(path.join(ROOT, 'public/js', f)));
       t.diagnostic(`README names public/js/: ${named.join(', ')}; missing on disk: ${missing.join(', ') || 'none'}`);
@@ -816,7 +875,7 @@ describe('public pages (Phase 2 Wave 3 QA)', { skip: playwright ? false : 'playw
       const widths = readme.match(/widths [^)]*\)/)?.[0] || '';
       const manifest = JSON.parse(read('public/assets/derived/manifest.json'));
       const realWidths = [...new Set(Object.values(manifest).flatMap((m) => m.variants.map((v) => v.width)))].sort((a, b) => a - b);
-      t.diagnostic(`README says "${widths}"; derived/ really holds widths ${realWidths.join(', ')} (make-images caps at the original width)`);
+      t.diagnostic(`README says "${widths}"; derived/ really holds widths ${realWidths.join(', ')} (make-images caps at the original width; crops add their own)`);
       assert.deepEqual(missing, [], 'every public/js file the README names exists');
       assert.deepEqual(wrong, [], 'README lists the fields trips.js really has');
     });

@@ -39,7 +39,7 @@ Screenshot:  The hero at 1440: the coast photo, "tennis takes you further." and 
 
 Also in use: `#d7c9b9` and `#65351f` as image placeholders behind photos (keep), the shade gradient `rgba(37,23,16,.72)` over photos, and `rgba(244,239,229,.62)` for muted text on dark bands.
 
-**Contrast correction (the only token change proposed).** Gold `#b9985d` text on cream measures 2.4:1 WCAG and about Lc 43 APCA, which fails for 11–12px bold caps. Add `--gold-ink: #8a6d3c` for gold *text* on cream and paper (4.7:1 WCAG, about Lc 64 APCA, passes for 14px bold caps) and raise eyebrow text to 14px. `--gold` stays for rules, tags on espresso and anything decorative. On dark bands gold text already passes.
+**Contrast correction (the only token change proposed).** Gold `#b9985d` text on cream measures 2.4:1 WCAG and about Lc 43 APCA, which fails for 11–12px bold caps. Add `--gold-ink: #7d6236` for gold *text* on cream and paper (measured 4.99:1 on cream and 5.40:1 on paper, about Lc 70 APCA; an earlier `#8a6d3c` measured 4.22:1 and failed) and raise eyebrow text to 14px. `--gold` stays for rules and anything decorative. Gold text on the espresso band uses `--gold-bright: #c9a86a` (5.9:1); the lighter `--gold` measured 4.44:1 there.
 
 ## Type
 
@@ -48,14 +48,14 @@ Also in use: `#d7c9b9` and `#65351f` as image placeholders behind photos (keep),
 - **Fluid scale** (Utopia method, 390px → 1440px, base 17 → 18px, ratio 1.2 → 1.333). Steps are the contract; each page uses only these.
 
 ```css
---t-5: clamp(3.5rem, 2.59rem + 3.9vw, 7rem);        /* hero H1, 56 → 112px, lh .92, ls -.045em */
---t-4: clamp(2.5rem, 1.85rem + 2.67vw, 5rem);       /* section H2, 40 → 80px, lh .96, ls -.04em */
---t-3: clamp(1.75rem, 1.56rem + .8vw, 2.5rem);      /* card / profile H3, 28 → 40px, lh 1.05, ls -.02em */
---t-2: clamp(1.375rem, 1.24rem + .53vw, 1.875rem);  /* italic sub, pull lines, 22 → 30px, lh 1.2 */
---t-1: clamp(1.125rem, 1.07rem + .22vw, 1.3125rem); /* lead paragraph, 18 → 21px, lh 1.5 */
---t-0: clamp(1.0625rem, 1.05rem + .07vw, 1.125rem); /* body, 17 → 18px, lh 1.55 */
---t--1: clamp(.9rem, .88rem + .08vw, .96875rem);    /* meta, captions, 14.4 → 15.5px, lh 1.45 */
---t--2: clamp(.875rem, .86rem + .05vw, .9rem);      /* caps and eyebrows, 14 → 14.4px, lh 1.3, ls .16em, weight 700 */
+--t-5: clamp(3.5rem, 2.2rem + 5.333vw, 7rem);        /* hero H1, 56 → 112px, lh .92, ls -.045em */
+--t-4: clamp(2.5rem, 1.571rem + 3.81vw, 5rem);       /* section H2, 40 → 80px, lh .96, ls -.04em */
+--t-3: clamp(1.75rem, 1.471rem + 1.143vw, 2.5rem);      /* card / profile H3, 28 → 40px, lh 1.05, ls -.02em */
+--t-2: clamp(1.375rem, 1.189rem + .762vw, 1.875rem);  /* italic sub, pull lines, 22 → 30px, lh 1.2 */
+--t-1: clamp(1.125rem, 1.055rem + .286vw, 1.3125rem); /* lead paragraph, 18 → 21px, lh 1.5 */
+--t-0: clamp(1.0625rem, 1.039rem + .095vw, 1.125rem); /* body, 17 → 18px, lh 1.55 */
+--t--1: clamp(.9rem, .874rem + .105vw, .96875rem);    /* meta, captions, 14.4 → 15.5px, lh 1.45 */
+--t--2: clamp(.875rem, .866rem + .038vw, .9rem);      /* caps and eyebrows, 14 → 14.4px, lh 1.3, ls .16em, weight 700 */
 ```
 
 - **Measure**: body and lead paragraphs capped at `max-width: 62ch`; intro under the hero 48ch; card copy 40ch. Display lines balanced with `text-wrap: balance`, widows avoided with a non-breaking space before the last word of each H1/H2.

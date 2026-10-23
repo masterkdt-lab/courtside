@@ -585,14 +585,17 @@ describe('browser suite', { skip: playwright ? false : 'playwright is not instal
       }
     });
 
-    test('beyond: the privacy link from the modal opens /privacy with the placeholder notice', async () => {
+    test('beyond: the privacy link from the modal opens /privacy with the muted placeholder note', async () => {
       const page = await open({ cookie: await loginToken('GUEST1') });
       await gotoSite(page, '/site#build');
       await page.click('#requestBtn');
       const [popup] = await Promise.all([page.waitForEvent('popup'), page.click('.consent a[href="/privacy"]')]);
       await popup.waitForLoadState();
       assert.match(popup.url(), /\/privacy$/);
-      assert.match(await popup.locator('.placeholder-notice').evaluate((el) => el.textContent), /^Placeholder — final wording to come from Courtside/);
+      // Polish decision 9: the red "Placeholder —" pill became a quiet one-line note until the wording arrives.
+      assert.equal(await popup.locator('.placeholder-notice').evaluate((el) => el.textContent.trim()), 'Final wording to come from Courtside Travel Co.');
+      assert.equal(await popup.locator('.placeholder-notice').evaluate((el) => getComputedStyle(el).fontStyle), 'italic', 'a muted italic note, not a pill');
+      assert.equal(await popup.locator('h1').count(), 1, '/privacy has its own h1');
       await page.close2();
     });
   });

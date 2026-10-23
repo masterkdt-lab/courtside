@@ -457,9 +457,16 @@ describe('8.13–8.14 served pages', () => {
 
   test('beyond: the public pages and /site reference only same-origin scripts and stylesheets', async () => {
     const { pair } = await login(srv.base);
-    for (const [p, cookie] of [['/', undefined], [GATE, undefined], ['/privacy', undefined], ['/site', pair]]) {
+    for (const [p, cookie] of [['/', undefined], [GATE, undefined], ['/pros', undefined], ['/privacy', undefined], ['/site', pair]]) {
       const text = (await http(srv.base, p, { cookie })).text;
-      for (const m of text.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)) assert.match(m[1], /^\//, `${p} loads ${m[1]}`);
+      for (const m of text.matchAll(/<(script|link)\b([^>]*)>/g)) {
+        const attrs = m[2];
+        const url = attrs.match(/\b(?:src|href)="([^"]+)"/)?.[1];
+        if (!url) continue;
+        // Polish plan section 7: a canonical link names the public origin by design; nothing is fetched from it.
+        if (/\brel="canonical"/.test(attrs)) { assert.match(url, /^https:\/\/courtside-ivory\.vercel\.app\//, `${p} canonical`); continue; }
+        assert.match(url, /^\//, `${p} loads ${url}`);
+      }
     }
   });
 });

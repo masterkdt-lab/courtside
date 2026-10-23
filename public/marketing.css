@@ -6,14 +6,17 @@
 /* ---- tokens (DESIGN.md "Type", "Space and rhythm", "Motion language") ---- */
 :root{
   /* fluid type, 390px → 1440px (Utopia): hero H1, section H2, card H3, italic lines, lead, body, meta, caps */
-  --t-5: clamp(3.5rem, 2.59rem + 3.9vw, 7rem);
-  --t-4: clamp(2.5rem, 1.85rem + 2.67vw, 5rem);
-  --t-3: clamp(1.75rem, 1.56rem + .8vw, 2.5rem);
-  --t-2: clamp(1.375rem, 1.24rem + .53vw, 1.875rem);
-  --t-1: clamp(1.125rem, 1.07rem + .22vw, 1.3125rem);
-  --t-0: clamp(1.0625rem, 1.05rem + .07vw, 1.125rem);
-  --t--1: clamp(.9rem, .88rem + .08vw, .96875rem);
-  --t--2: clamp(.875rem, .86rem + .05vw, .9rem);
+  /* 390px → 1440px: min at 390, max at 1440 (slope = (max-min)/1050 per px). */
+  --t-5: clamp(3.5rem, 2.2rem + 5.333vw, 7rem);
+  --t-4: clamp(2.5rem, 1.571rem + 3.81vw, 5rem);
+  --t-3: clamp(1.75rem, 1.471rem + 1.143vw, 2.5rem);
+  --t-2: clamp(1.375rem, 1.189rem + .762vw, 1.875rem);
+  --t-1: clamp(1.125rem, 1.055rem + .286vw, 1.3125rem);
+  --t-0: clamp(1.0625rem, 1.039rem + .095vw, 1.125rem);
+  --t--1: clamp(.9rem, .874rem + .105vw, .96875rem);
+  --t--2: clamp(.875rem, .866rem + .038vw, .9rem);
+  --t-pros: clamp(2.5rem, .829rem + 6.857vw, 7rem); /* the five-word /pros title: 40px at 390 so it breaks in two, 112px at 1440 like --t-5 */
+  --t-gate: clamp(3rem, 2.331rem + 2.743vw, 4.8rem); /* the gate title: 48px at 390, 76.8px at 1440 (the original 4.8rem) inside the narrow gate panel */
   /* fluid space, 390px → 1440px: 4→5, 8→9, 12→14, 16→18, 24→27, 32→36, 48→54, 64→72, 96→108, 128→144 */
   --s-3xs: clamp(.25rem, .227rem + .095vw, .3125rem);
   --s-2xs: clamp(.5rem, .477rem + .095vw, .5625rem);
@@ -26,7 +29,8 @@
   --s-3xl: clamp(6rem, 5.721rem + 1.143vw, 6.75rem);
   --s-4xl: clamp(8rem, 7.629rem + 1.524vw, 9rem);
   /* gold for text on cream and paper (APCA about Lc 64); --gold stays for rules, tags on espresso and dark bands */
-  --gold-ink: #8a6d3c;
+  --gold-ink: #7d6236;   /* gold text on cream 4.99:1, on paper 5.40:1 */
+  --gold-bright: #c9a86a; /* gold text on espresso 5.9:1 */
   /* one ease: settle like paper */
   --ease: cubic-bezier(.2,.7,.2,1);
   /* the header's height, for anchor offsets (two rows on phones) */
@@ -47,7 +51,7 @@ p{max-width:62ch}
 .eyebrow{color:var(--gold-ink);margin:0 0 var(--s-s)}
 .dark .eyebrow{color:var(--gold)}
 .path-number{font-size:var(--t--2);letter-spacing:.16em;font-weight:700;color:var(--gold-ink)}
-.dark .path-number{color:var(--gold)}
+.dark .path-number,.dark .eyebrow{color:var(--gold-bright)}
 .trip-meta,.quickfact strong,.media-card .overlay p{font-variant-numeric:tabular-nums}
 
 /* ---- accessibility: skip link, focus rings, anchor offsets ---- */
@@ -64,7 +68,8 @@ a.primary,a.secondary{text-decoration:none;text-align:center}
 .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:.6em;min-height:44px;font-size:var(--t--2);letter-spacing:.08em;line-height:1.2;transition:background-color .24s var(--ease),color .24s var(--ease),border-color .24s var(--ease),transform .24s var(--ease)}
 a.primary::after,a.secondary::after,button.waitlist-open::after,.waitlist-form .primary::after{content:"\2192";display:inline-block;font-weight:400;letter-spacing:0;transition:transform .24s var(--ease)}
 .dark .secondary{border-color:var(--cream);color:var(--cream)}
-.dark .secondary:hover,.dark .secondary:focus-visible{background:var(--cream);color:var(--espresso)}
+.dark .secondary:focus-visible{background:var(--cream);color:var(--espresso)}
+@media (hover:hover){.dark .secondary:hover{background:var(--cream);color:var(--espresso)}}
 .primary:disabled{transform:none}
 
 /* ---- public header: logo, text links, the "Enter code" pill. Two rows on phones: logo + pill, then the links. ---- */
@@ -223,7 +228,7 @@ body.has-sticky{padding-bottom:0}
 .gate-top{flex-wrap:wrap}
 .gate-back{order:3;flex-basis:100%;margin-top:2px;display:inline-flex;align-items:center;min-height:44px;color:var(--muted);text-decoration:none;font-size:var(--t--2);letter-spacing:.14em;text-transform:uppercase;font-weight:700;white-space:nowrap;transition:color .24s var(--ease)}
 .gate-back:hover,.gate-back:focus-visible{color:var(--espresso)}
-.gate-main h1{font-size:var(--t-5);line-height:.92;letter-spacing:-.045em;margin:var(--s-xs) 0 var(--s-s)}
+.gate-main h1{font-size:var(--t-gate);line-height:.92;letter-spacing:-.045em;margin:var(--s-xs) 0 var(--s-s)}
 .gate-sub{font:italic var(--t-2)/1.2 var(--serif);color:var(--brown);margin:0 0 var(--s-s)}
 .gate-main .intro{font-size:var(--t-1);line-height:1.5;max-width:48ch}
 .gate-footer{font-size:var(--t--2);letter-spacing:.14em}
@@ -345,7 +350,7 @@ body.has-sticky{padding-bottom:0}
    Rows flagged placeholder in the data are not rendered. Portrait (or monogram) above the text on phones and
    tablets, left of it from 1050px, where it stays in view while the facts, panels and trips scroll. */
 .pros-intro-grid{display:grid;gap:var(--s-xl)}
-.pros-intro h1{font:var(--t-5)/.92 var(--serif);font-weight:400;letter-spacing:-.045em;margin:0 0 var(--s-m);color:var(--espresso)}
+.pros-intro h1{font:var(--t-pros)/.92 var(--serif);font-weight:400;letter-spacing:-.045em;margin:0 0 var(--s-m);color:var(--espresso)}
 .pros-intro .intro{max-width:48ch;margin:0;color:var(--muted);font-size:var(--t-1);line-height:1.5}
 .pros-jump{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-xs);align-self:end}
 .pros-jump a{display:flex;flex-direction:column;gap:var(--s-2xs);color:var(--espresso);text-decoration:none;border-radius:18px;transition:transform .24s var(--ease)}

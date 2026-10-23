@@ -110,7 +110,7 @@ for (const opener of document.querySelectorAll('button.waitlist-open[aria-contro
     opener.setAttribute('aria-expanded', String(open));
     if (open) {
       form.querySelector('[name="email"]').focus();
-      sendEvent('trip_card_open', form.dataset.trip);
+      if (form.dataset.trip !== 'general') sendEvent('trip_card_open', form.dataset.trip);
     } else {
       opener.focus();
     }
