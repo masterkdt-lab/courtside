@@ -1,7 +1,8 @@
 // public/js/home.js — the homepage's three enhancements (polish brief, section B). The page reads without it.
 //   1. The sticky "Enter code" bar on phones, shown once the hero has scrolled out of view.
-//   2. The waitlist capture under each lineup card and at the bottom close: opener button, inline form,
-//      POST /api/waitlist, success and error states.
+//   2. The waitlist capture at the bottom close (#waitlist): opener button, inline form, POST /api/waitlist,
+//      success and error states. Redesign v2 removed the per-card captures; every "Join the waitlist" link
+//      on the page points at #waitlist, and following one opens the form so it is there on arrival.
 //   3. First-party events to POST /api/event (no_code_click, trip_card_open), fire and forget.
 // No dependencies, no loader, nothing on scroll beyond the one IntersectionObserver.
 
@@ -100,6 +101,7 @@ async function submit(form) {
   email.focus();
 }
 
+const openers = new Map();
 for (const opener of document.querySelectorAll('button.waitlist-open[aria-controls]')) {
   const panel = document.getElementById(opener.getAttribute('aria-controls'));
   const form = panel && panel.querySelector('form.waitlist-form');
@@ -116,6 +118,7 @@ for (const opener of document.querySelectorAll('button.waitlist-open[aria-contro
     }
   };
 
+  openers.set(panel.id, setOpen);
   opener.addEventListener('click', () => setOpen(opener.getAttribute('aria-expanded') !== 'true'));
   panel.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
@@ -126,4 +129,14 @@ for (const opener of document.querySelectorAll('button.waitlist-open[aria-contro
     event.preventDefault();
     submit(form);
   });
+}
+
+// Links to #waitlist (the hero's quiet link, the season section's button) land on an open form. The
+// anchor still scrolls on its own; focus moves into the email field once the panel is open.
+const openGeneral = openers.get('waitlist-general');
+if (openGeneral) {
+  for (const link of document.querySelectorAll('a[href="#waitlist"]')) {
+    link.addEventListener('click', () => openGeneral(true));
+  }
+  if (location.hash === '#waitlist') openGeneral(true);
 }
