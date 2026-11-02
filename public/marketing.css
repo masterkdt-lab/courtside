@@ -3,21 +3,11 @@
    then min-width 700px and 1050px to mirror the existing breakpoints. The :root block below is the polish pass's
    type scale, space scale, ease and the Georgia fallback; style.css itself is unchanged. */
 
-/* ---- tokens (DESIGN.md "Type", "Space and rhythm", "Motion language") ---- */
+/* ---- page-specific tokens; colours, fonts, the type scale, space, radius and motion are in style.css :root (DESIGN_v2.md) ---- */
 :root{
-  /* fluid type, 390px → 1440px (Utopia): hero H1, section H2, card H3, italic lines, lead, body, meta, caps */
-  /* 390px → 1440px: min at 390, max at 1440 (slope = (max-min)/1050 per px). */
-  --t-5: clamp(3.5rem, 2.2rem + 5.333vw, 7rem);
-  --t-4: clamp(2.5rem, 1.571rem + 3.81vw, 5rem);
-  --t-3: clamp(1.75rem, 1.471rem + 1.143vw, 2.5rem);
-  --t-2: clamp(1.375rem, 1.189rem + .762vw, 1.875rem);
-  --t-1: clamp(1.125rem, 1.055rem + .286vw, 1.3125rem);
-  --t-0: clamp(1.0625rem, 1.039rem + .095vw, 1.125rem);
-  --t--1: clamp(.9rem, .874rem + .105vw, .96875rem);
-  --t--2: clamp(.875rem, .866rem + .038vw, .9rem);
   --t-pros: clamp(2.5rem, .829rem + 6.857vw, 7rem); /* the five-word /pros title: 40px at 390 so it breaks in two, 112px at 1440 like --t-5 */
   --t-gate: clamp(3rem, 2.331rem + 2.743vw, 4.8rem); /* the gate title: 48px at 390, 76.8px at 1440 (the original 4.8rem) inside the narrow gate panel */
-  /* fluid space, 390px → 1440px: 4→5, 8→9, 12→14, 16→18, 24→27, 32→36, 48→54, 64→72, 96→108, 128→144 */
+  /* the fluid space scale the /pros, /invite, /privacy and 404 layouts were built on (polish pass). The homepage uses --s-1…--s-10. */
   --s-3xs: clamp(.25rem, .227rem + .095vw, .3125rem);
   --s-2xs: clamp(.5rem, .477rem + .095vw, .5625rem);
   --s-xs: clamp(.75rem, .704rem + .19vw, .875rem);
@@ -28,19 +18,10 @@
   --s-2xl: clamp(4rem, 3.814rem + .762vw, 4.5rem);
   --s-3xl: clamp(6rem, 5.721rem + 1.143vw, 6.75rem);
   --s-4xl: clamp(8rem, 7.629rem + 1.524vw, 9rem);
-  /* gold for text on cream and paper (APCA about Lc 64); --gold stays for rules, tags on espresso and dark bands */
-  --gold-ink: #7d6236;   /* gold text on cream 4.99:1, on paper 5.40:1 */
-  --gold-bright: #c9a86a; /* gold text on espresso 5.9:1 */
-  /* one ease: settle like paper */
-  --ease: cubic-bezier(.2,.7,.2,1);
   /* the header's height, for anchor offsets (two rows on phones) */
   --header-h: 110px;
   --gutter: clamp(20px, 6vw, 90px);
-  --serif: Georgia, 'Courtside Serif Fallback', serif;
 }
-/* Georgia is absent on Android: the local serif takes Georgia's measure and metrics so lines break the same. */
-@font-face{font-family:'Courtside Serif Fallback';src:local('Noto Serif'),local('NotoSerif-Regular'),local('Droid Serif'),local('Tinos'),local('Liberation Serif');size-adjust:94%;ascent-override:92%;descent-override:22%;line-gap-override:0%}
-@font-face{font-family:'Courtside Serif Fallback';font-style:italic;src:local('Noto Serif Italic'),local('NotoSerif-Italic'),local('Droid Serif Italic'),local('Tinos Italic'),local('Liberation Serif Italic');size-adjust:94%;ascent-override:92%;descent-override:22%;line-gap-override:0%}
 
 /* ---- base type on the public pages ---- */
 body{font-size:var(--t-0);line-height:1.55}

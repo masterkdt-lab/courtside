@@ -2,7 +2,7 @@
 // scripts/dev-server.js
 // Local server (Phase 1 plan 4.0, Phase 2 plan section 6): plain node:http on PORT or 3000.
 // Serves only the pages (/ homepage, /invite gate, /pros, /privacy), style.css, marketing.css,
-// js/, assets/ (recursively, so assets/derived/ works) and robots.txt with clean URLs, mirrors
+// js/, assets/ (recursively, so assets/derived/ works), fonts/, images/ and robots.txt with clean URLs, mirrors
 // middleware.js (the legacy /?invite=CODE redirect to /invite and the cookie guard on /site), and
 // routes /api/<name> to the Web-standard GET/POST exports in api/<name>.js. Nothing else is served
 // (lib/, api/, scripts/, tests/, .env*, package*.json, .data/, .git/, the plans, the README, and
@@ -29,7 +29,7 @@ const NOT_FOUND_PAGE = path.join(STATIC_ROOT, '404.html');
 const PAGES = Object.freeze({ '/': 'index.html', '/invite': 'invite.html', '/pros': 'pros.html', '/privacy': 'privacy.html' });
 const GUARDED = new Set(['/site', '/site.html']);
 const FILES = new Set(['/robots.txt', '/style.css', '/marketing.css', '/favicon.svg']);
-const DIRS = Object.freeze({ '/js/': 'js', '/assets/': 'assets' });
+const DIRS = Object.freeze({ '/js/': 'js', '/assets/': 'assets', '/fonts/': 'fonts', '/images/': 'images' });
 const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/; // one path segment: no slashes, no leading dot, so never ".."
 const MIME = Object.freeze({
   '.html': 'text/html; charset=utf-8',
@@ -45,6 +45,10 @@ const MIME = Object.freeze({
   '.avif': 'image/avif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.otf': 'font/otf',
+  '.ttf': 'font/ttf',
+  '.woff2': 'font/woff2',
+  '.md': 'text/markdown; charset=utf-8',
 });
 
 const contentType = (file) => MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
