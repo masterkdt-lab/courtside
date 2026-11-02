@@ -18,6 +18,18 @@
         "bytes": 71934
       },
       {
+        "file": "/images/s05/spain-1200.webp",
+        "width": 1200,
+        "height": 750,
+        "bytes": 146286
+      },
+      {
+        "file": "/images/s05/spain-1200.jpg",
+        "width": 1200,
+        "height": 750,
+        "bytes": 166319
+      },
+      {
         "file": "/images/s05/spain-1400.webp",
         "width": 1400,
         "height": 875,
@@ -48,6 +60,18 @@
         "width": 720,
         "height": 450,
         "bytes": 80750
+      },
+      {
+        "file": "/images/s05/charleston-1200.webp",
+        "width": 1200,
+        "height": 750,
+        "bytes": 208748
+      },
+      {
+        "file": "/images/s05/charleston-1200.jpg",
+        "width": 1200,
+        "height": 750,
+        "bytes": 199015
       },
       {
         "file": "/images/s05/charleston-1400.webp",
@@ -82,6 +106,18 @@
         "bytes": 39010
       },
       {
+        "file": "/images/s05/geneva-1200.webp",
+        "width": 1200,
+        "height": 900,
+        "bytes": 64732
+      },
+      {
+        "file": "/images/s05/geneva-1200.jpg",
+        "width": 1200,
+        "height": 900,
+        "bytes": 90038
+      },
+      {
         "file": "/images/s05/geneva-1400.webp",
         "width": 1400,
         "height": 1050,
@@ -112,6 +148,18 @@
         "width": 720,
         "height": 540,
         "bytes": 82025
+      },
+      {
+        "file": "/images/s05/mallorca-1200.webp",
+        "width": 1200,
+        "height": 900,
+        "bytes": 196338
+      },
+      {
+        "file": "/images/s05/mallorca-1200.jpg",
+        "width": 1200,
+        "height": 900,
+        "bytes": 204744
       },
       {
         "file": "/images/s05/mallorca-1400.webp",
@@ -146,6 +194,18 @@
         "bytes": 72606
       },
       {
+        "file": "/images/s05/newyork-1200.webp",
+        "width": 1200,
+        "height": 750,
+        "bytes": 150168
+      },
+      {
+        "file": "/images/s05/newyork-1200.jpg",
+        "width": 1200,
+        "height": 750,
+        "bytes": 169318
+      },
+      {
         "file": "/images/s05/newyork-1400.webp",
         "width": 1400,
         "height": 875,
@@ -178,6 +238,18 @@
         "bytes": 38545
       },
       {
+        "file": "/images/s05/la-1200.webp",
+        "width": 1200,
+        "height": 750,
+        "bytes": 65780
+      },
+      {
+        "file": "/images/s05/la-1200.jpg",
+        "width": 1200,
+        "height": 750,
+        "bytes": 86856
+      },
+      {
         "file": "/images/s05/la-1400.webp",
         "width": 1400,
         "height": 875,
@@ -208,6 +280,18 @@
         "width": 720,
         "height": 540,
         "bytes": 29414
+      },
+      {
+        "file": "/images/s05/clay-1200.webp",
+        "width": 1200,
+        "height": 900,
+        "bytes": 52714
+      },
+      {
+        "file": "/images/s05/clay-1200.jpg",
+        "width": 1200,
+        "height": 900,
+        "bytes": 80480
       },
       {
         "file": "/images/s05/clay-1400.webp",

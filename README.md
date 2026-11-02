@@ -6,16 +6,16 @@ Pages:
 
 | URL | File | What it is |
 | --- | --- | --- |
-| `/` | `public/index.html` | Public homepage: the featured trip, the 2027 Founding Season cards with their waitlist forms, how it works, the pros teaser. |
+| `/` | `public/index.html` | Public homepage (redesign v2, Nov 2026): hero, what Courtside is, quick facts, the featured trip, the 2027 Founding Season photo cards, how it works, the pros teaser, the one waitlist form. |
 | `/pros` | `public/pros.html` | Meet the Pros: one profile per pro from `public/js/pros.js`. |
 | `/invite` | `public/invite.html` | The invitation gate. Enters `/site` on a valid code. |
 | `/site` | `public/site.html` | The Spanish Offseason: the trip, the builder and the request modal. Needs the invite cookie. |
 | `/privacy` | `public/privacy.html` | The privacy notice. |
 | anything else | `public/404.html` | The 404 page, served with status 404 by the dev server and by Vercel. |
 
-- `public/` is everything the browser can load: the pages above, `style.css` (the brand), `marketing.css` (the public-page components), scripts, images.
+- `public/` is everything the browser can load: the pages above, `style.css` (the design-system tokens, fonts and the /site components), `marketing.css` (the public-page layout), scripts, images, fonts.
 - `api/` holds the six server routes. `lib/` holds the shared code. `middleware.js` keeps `/site` behind the invite cookie and forwards old personal links from `/` to `/invite`.
-- `scripts/dev-server.js` runs the whole thing locally with no accounts. `scripts/setup-sheet.js` prepares the Google Sheet. `scripts/make-images.js` (`npm run images`) writes the resized image variants.
+- `scripts/dev-server.js` runs the whole thing locally with no accounts. `scripts/setup-sheet.js` prepares the Google Sheet. `scripts/make-images.js` (`npm run images`) writes the resized image variants of Katie's photos; `scripts/make-season-images.js` does the same for the season card photos; `scripts/review-screenshots.js` screenshots every homepage section at 1440 and 390 into `review/` with the redesign checks.
 
 ## Run it locally
 
@@ -55,14 +55,22 @@ The homepage and the Pros page are static HTML that read their content from two 
 
 - `public/js/trips.js`: the featured trip and the 2027 Founding Season cards (`id`, `name`, `place`, `timing`, `blurb`, `status`, `price`, `photo`, `link`, `hostIds`). The homepage and the Pros page both read it, so a pro's "trips" never drift from the cards.
 - `public/js/pros.js`: one entry per pro (`id`, `name`, `role`, `base`, `portrait`, `facts`, `bio`, `onCourt`, `links`) with a commented template entry for the next one. `public/js/pros-page.js` renders `/pros` from it.
-- The homepage's waitlist forms (one under each lineup card, one general form at the bottom of the page) post to `POST /api/waitlist`; the server accepts only the trip ids in `trips.js` (it imports the file through `lib/lineup.js`) plus `general`, and writes the trip's name to the Waitlist tab.
+- The homepage's one waitlist form (at the bottom of the page; every "Join the waitlist" link lands on it and opens it) posts to `POST /api/waitlist`; the server accepts only the trip ids in `trips.js` (it imports the file through `lib/lineup.js`) plus `general`, and writes the trip's name to the Waitlist tab. The per-trip forms from the polish pass are gone from the page; the API still accepts their ids.
 - `public/404.html` is the 404 page, in the site shell with a way back. The dev server serves it with status 404 for any unknown path; on Vercel a `404.html` in the output directory is served the same way with no configuration.
 
 Both pages use the brand tokens in `style.css` plus `marketing.css`, carry `noindex,nofollow`, and make no third-party requests. Facts that Katie has not supplied are shown as marked placeholders, never invented.
 
+### Design system v2 and the fonts
+
+`DESIGN_v2.md` (from Kasey's handoff, Nov 2026) is the source of truth for colour, type, space, radius and motion; `DESIGN_v1.md` is the earlier, extracted system. The tokens live in the `:root` block at the top of `public/style.css`. Three radii only (26 cards and photos, 18 chips and inputs, 999 buttons and pills), no backdrop-filter, one caps eyebrow per section, and every transition sits inside `prefers-reduced-motion: no-preference`.
+
+**The fonts in `public/fonts/` are trial files and must not go live.** Canela (Commercial Type) and GT America (Grilli Type) are there for local preview only, with Instrument Serif/Sans as the open-source fallback for the glyphs the trials lack (accents, en dash, middot). Before deploying: buy the desktop + web licences, replace the `*-Trial.otf` files with the licensed WOFF2 files, update the `@font-face` block in `style.css`, and delete the trial files. `public/fonts/README.md` repeats this.
+
 ### Images
 
 `npm run images` runs `scripts/make-images.js`, which writes resized WebP and JPEG variants of the photos in `public/assets/` (widths 480 and 960 plus the original width, never upscaled, metadata stripped) into `public/assets/derived/` with a `manifest.json` describing each variant. The pages reference those files in `srcset`; the originals are untouched. Re-run it after adding or replacing a photo.
+
+The seven 2027 season card photos are Unsplash photos in `public/images/s05/` (credits on each card and in `public/images/s05/CREDITS.md`). `node scripts/make-season-images.js` centre-crops each to its card's aspect and writes the 720, 1200 and 1400 wide WebP + JPG variants next to the originals.
 
 ## Going live: what KC sets up
 

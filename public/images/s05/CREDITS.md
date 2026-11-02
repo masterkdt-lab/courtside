@@ -1,7 +1,7 @@
 # Season card photos — credits
 
 All seven are from Unsplash under the Unsplash License (free commercial use, no attribution required; credit given anyway,
-on the card as "Name / Unsplash" and here in full). Originals are `<name>.jpg`; the web sizes (`<name>-720` and `<name>-1400`,
+on the card as "Name / Unsplash" and here in full). Originals are `<name>.jpg`; the web sizes (`<name>-720`, `<name>-1200` and `<name>-1400`,
 WebP + JPG, centre-cropped to the card's aspect) come from `node scripts/make-season-images.js`.
 
 | File | Photographer | Source | Subject |

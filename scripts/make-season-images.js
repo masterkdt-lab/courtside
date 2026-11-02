@@ -3,15 +3,16 @@
 //   node scripts/make-season-images.js
 // Reads the Unsplash originals in public/images/s05/<name>.jpg (credits in CREDITS.md there), cuts each to
 // the aspect its card shows (centre crop, the same window object-fit: cover picks in the mockup) and writes
-// <name>-<width>.webp and .jpg at 720 and 1400 wide, metadata stripped (sharp drops EXIF/XMP by default).
-// Never wider than 1600px. Originals are left alone. Safe to run again.
+// <name>-<width>.webp and .jpg at 720, 1200 and 1400 wide, metadata stripped (sharp drops EXIF/XMP by default).
+// 720 serves 1x desktops, 1200 serves 2x and 3x phones (a 390px phone at 3x needs 1170px), 1400 serves 2x
+// desktops. Never wider than 1600px. Originals are left alone. Safe to run again.
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFileSync } from 'node:fs';
 import sharp from 'sharp';
 
 const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'images', 's05');
-const WIDTHS = [720, 1400];
+const WIDTHS = [720, 1200, 1400];
 // aspect: [w, h] of the card's photo box (s05-cards mockup: feature and 7-col cards 16/10, 5-col cards 4/3).
 const CARDS = [
   { name: 'spain', aspect: [16, 10] },
