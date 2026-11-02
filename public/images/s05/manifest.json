@@ -1,0 +1,226 @@
+{
+  "spain": {
+    "original": {
+      "width": 1400,
+      "height": 2100
+    },
+    "variants": [
+      {
+        "file": "/images/s05/spain-720.webp",
+        "width": 720,
+        "height": 450,
+        "bytes": 68580
+      },
+      {
+        "file": "/images/s05/spain-720.jpg",
+        "width": 720,
+        "height": 450,
+        "bytes": 71934
+      },
+      {
+        "file": "/images/s05/spain-1400.webp",
+        "width": 1400,
+        "height": 875,
+        "bytes": 186600
+      },
+      {
+        "file": "/images/s05/spain-1400.jpg",
+        "width": 1400,
+        "height": 875,
+        "bytes": 215134
+      }
+    ]
+  },
+  "charleston": {
+    "original": {
+      "width": 1400,
+      "height": 2100
+    },
+    "variants": [
+      {
+        "file": "/images/s05/charleston-720.webp",
+        "width": 720,
+        "height": 450,
+        "bytes": 89386
+      },
+      {
+        "file": "/images/s05/charleston-720.jpg",
+        "width": 720,
+        "height": 450,
+        "bytes": 80750
+      },
+      {
+        "file": "/images/s05/charleston-1400.webp",
+        "width": 1400,
+        "height": 875,
+        "bytes": 264126
+      },
+      {
+        "file": "/images/s05/charleston-1400.jpg",
+        "width": 1400,
+        "height": 875,
+        "bytes": 259646
+      }
+    ]
+  },
+  "geneva": {
+    "original": {
+      "width": 1400,
+      "height": 788
+    },
+    "variants": [
+      {
+        "file": "/images/s05/geneva-720.webp",
+        "width": 720,
+        "height": 540,
+        "bytes": 31114
+      },
+      {
+        "file": "/images/s05/geneva-720.jpg",
+        "width": 720,
+        "height": 540,
+        "bytes": 39010
+      },
+      {
+        "file": "/images/s05/geneva-1400.webp",
+        "width": 1400,
+        "height": 1050,
+        "bytes": 73868
+      },
+      {
+        "file": "/images/s05/geneva-1400.jpg",
+        "width": 1400,
+        "height": 1050,
+        "bytes": 113332
+      }
+    ]
+  },
+  "mallorca": {
+    "original": {
+      "width": 1400,
+      "height": 933
+    },
+    "variants": [
+      {
+        "file": "/images/s05/mallorca-720.webp",
+        "width": 720,
+        "height": 540,
+        "bytes": 80610
+      },
+      {
+        "file": "/images/s05/mallorca-720.jpg",
+        "width": 720,
+        "height": 540,
+        "bytes": 82025
+      },
+      {
+        "file": "/images/s05/mallorca-1400.webp",
+        "width": 1400,
+        "height": 1050,
+        "bytes": 231458
+      },
+      {
+        "file": "/images/s05/mallorca-1400.jpg",
+        "width": 1400,
+        "height": 1050,
+        "bytes": 257224
+      }
+    ]
+  },
+  "newyork": {
+    "original": {
+      "width": 1400,
+      "height": 933
+    },
+    "variants": [
+      {
+        "file": "/images/s05/newyork-720.webp",
+        "width": 720,
+        "height": 450,
+        "bytes": 70282
+      },
+      {
+        "file": "/images/s05/newyork-720.jpg",
+        "width": 720,
+        "height": 450,
+        "bytes": 72606
+      },
+      {
+        "file": "/images/s05/newyork-1400.webp",
+        "width": 1400,
+        "height": 875,
+        "bytes": 190530
+      },
+      {
+        "file": "/images/s05/newyork-1400.jpg",
+        "width": 1400,
+        "height": 875,
+        "bytes": 217355
+      }
+    ]
+  },
+  "la": {
+    "original": {
+      "width": 1400,
+      "height": 937
+    },
+    "variants": [
+      {
+        "file": "/images/s05/la-720.webp",
+        "width": 720,
+        "height": 450,
+        "bytes": 31970
+      },
+      {
+        "file": "/images/s05/la-720.jpg",
+        "width": 720,
+        "height": 450,
+        "bytes": 38545
+      },
+      {
+        "file": "/images/s05/la-1400.webp",
+        "width": 1400,
+        "height": 875,
+        "bytes": 83728
+      },
+      {
+        "file": "/images/s05/la-1400.jpg",
+        "width": 1400,
+        "height": 875,
+        "bytes": 113038
+      }
+    ]
+  },
+  "clay": {
+    "original": {
+      "width": 1400,
+      "height": 2100
+    },
+    "variants": [
+      {
+        "file": "/images/s05/clay-720.webp",
+        "width": 720,
+        "height": 540,
+        "bytes": 19540
+      },
+      {
+        "file": "/images/s05/clay-720.jpg",
+        "width": 720,
+        "height": 540,
+        "bytes": 29414
+      },
+      {
+        "file": "/images/s05/clay-1400.webp",
+        "width": 1400,
+        "height": 1050,
+        "bytes": 75962
+      },
+      {
+        "file": "/images/s05/clay-1400.jpg",
+        "width": 1400,
+        "height": 1050,
+        "bytes": 112517
+      }
+    ]
+  }
+}
