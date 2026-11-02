@@ -4,7 +4,7 @@
    mockups' breakpoint) and 1050px for the two-column layouts. The homepage sections s01 (header + hero), s02, s03,
    s05 and s06 match mockups/html/*.html in the courtside-handoff folder (redesign v2, Nov 2026); s04, s07, s08 and
    s09 are the polish-pass sections with the v2 tokens, fonts, radii and eyebrow rules applied. Only three radii
-   (26 / 18 / 999), no backdrop-filter anywhere, at most one caps eyebrow per section, and every non-essential
+   (26 / 18 / 999), no blur or glass anywhere, at most one caps eyebrow per section, and every non-essential
    transition or animation sits inside @media (prefers-reduced-motion: no-preference). */
 
 /* ---- page-specific tokens; colours, fonts, the type scale, space, radius and motion are in style.css :root (DESIGN_v2.md) ---- */
