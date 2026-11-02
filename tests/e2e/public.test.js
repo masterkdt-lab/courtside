@@ -1,7 +1,10 @@
 // tests/e2e/public.test.js
 // The public pages (/, /pros, /invite) against COURTSIDE_PHASE2_PLAN.md sections 3, 5, 6 and 8, with the
 // expectations the approved polish redesign changed (COURTSIDE_POLISH_BRIEF.md section 1, POLISH_PLAN.md
-// sections 1–8 and the approved decisions) rewritten; every Phase 2 check that still applies is kept.
+// sections 1–8 and the approved decisions) rewritten, and then the homepage expectations the redesign v2
+// changed (branch redesign-v2; courtside-handoff/CLAUDE_BUILD_PROMPT.md, DESIGN_v2.md, mockups/html: s01–s09,
+// Canela + GT America trial fonts, one waitlist capture, no per-card forms) rewritten again; every Phase 2 and
+// polish check that still applies is kept.
 // Playwright (library) drives headless Chromium against a dev server started in this process on a free
 // port with a temp mock file, exactly as browser.test.js does. Every request that would leave 127.0.0.1
 // is aborted and recorded, so the suite never touches the network.
@@ -161,21 +164,60 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
       assert.equal(await page.locator('h1').count(), 1);
       assert.equal(plain(await text(page, 'h1')), 'tennis takes you further.');
       const order = await page.evaluate(() => {
-        const sig = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : `.${String(el.className).trim().split(/\s+/)[0]}`}`;
+        const sig = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : [...el.classList].map((c) => `.${c}`).join('')}`;
         return { body: [...document.body.children].filter((el) => el.tagName !== 'SCRIPT').map(sig), main: [...document.querySelector('main').children].map(sig) };
       });
       // Polish: the sticky "Enter code" bar for phones sits after the footer (home.js shows it once the hero scrolls out).
       assert.deepEqual(order.body, ['a.skip-link', 'header.site-header', 'main#main', 'footer.footer', 'aside.sticky-cta'], 'header, main, footer, sticky bar (a complementary landmark so axe sees it inside a region)');
-      assert.deepEqual(order.main, ['section.hero', 'section#about', 'section.quickfacts', 'section#trips', 'section#season', 'section#how', 'section#pros', 'section#waitlist'],
-        'hero, what Courtside is + trust row, featured trip #trips, upcoming trips, how it works, pros teaser, general waitlist close');
-      assert.equal(await page.locator('#about .pillar').count(), 3, 'three columns');
-      assert.equal(await page.locator('section.quickfacts.trust .quickfact').count(), 4, 'trust row');
-      assert.deepEqual(await texts(page, 'section.quickfacts.trust .quickfact strong'), ['Katie Delich', '4–12', 'Almoradí', 'La Finca']);
-      assert.equal(await page.locator('#season .trip-card').count(), 6, 'six upcoming cards');
-      assert.equal(await page.locator('#how .path-card').count(), 3, 'three steps');
+      // Redesign v2 (CLAUDE_BUILD_PROMPT.md step 3): s01 hero, s02 what Courtside is, s03 quick facts, s04 featured trip, s05 2027 season, s06 how it works, s07 pros, s08 waitlist.
+      assert.deepEqual(order.main, ['section.hero.home-hero', 'section#about', 'section.section.qf', 'section#trips', 'section#season', 'section#how', 'section#pros', 'section#waitlist'],
+        'hero, what Courtside is, quick facts strip, featured trip #trips, 2027 season, how it works, pros teaser, general waitlist close');
+      // s02: eyebrow, h2, lead, the hairline facts list, one button, the coast photo; the three pillar columns are gone.
+      assert.deepEqual(await texts(page, '#about .eyebrow'), ['What Courtside is']);
+      assert.equal(plain(await text(page, '#about h2')), 'Not a tour that passes through. A week inside a real tennis club.');
+      assert.equal(plain(await text(page, '#about p.lead')), 'Every Courtside trip begins with a tennis pro who knows the place. The group stays small, the club is real, and the days leave room.');
+      assert.deepEqual(await page.locator('#about ul.facts li').evaluateAll((els) => els.map((li) => [li.querySelector('b').textContent.trim(), li.querySelector('span').textContent.trim()])), [
+        ['Your host', 'Katie is on court with you, not behind a desk. The tennis, the people and the week are hers.'],
+        ['4–12 players', 'Private weeks. Everyone gets a hit, a seat at the table and a say.'],
+        ['Almoradí', 'A real club, a real town, long lunches. You join a local tennis community for a week instead of touring past it.'],
+      ], 'the three facts, term in Canela + text (mockups/html/s02.html)');
+      assert.equal(await page.locator('#about .pillar').count(), 0, 'the three pillar columns are gone');
+      assert.equal(await page.locator('#about figure.about-photo img').count(), 1, 'the coast photo');
+      assert.equal(plain(await text(page, '#about figure.about-photo figcaption')), 'Katie + Eva on the Costa Blanca');
+      // s03: four values between hairlines, no boxes; the old trust row is gone.
+      assert.equal(await page.locator('section.quickfacts, .quickfact').count(), 0, 'the polish-pass trust row is gone');
+      assert.equal(await page.getAttribute('section.qf', 'aria-label'), 'Courtside at a glance');
+      assert.deepEqual(await page.locator('section.qf ul li').evaluateAll((els) => els.map((li) => [li.querySelector('strong').textContent.trim(), li.querySelector('span').textContent.replace(/\s+/g, ' ').trim()])), [['Katie Delich', 'Your host'], ['4–12', 'Players, private groups'], ['Almoradí', 'Club de Tenis · home court'], ['La Finca', 'Five-star resort · home base']], 'the four facts (mockups/html/s03.html)');
+      // s05: seven photo cards in trips.js order, one ask under the grid; the six lineup cards and their captures are gone.
+      assert.deepEqual(await page.locator('#season .season-grid article.tc').evaluateAll((els) => els.map((e) => e.id)), TRIPS.map((trip) => `trip-${trip.id}`), 'seven season cards in trips.js order');
+      assert.equal(await page.locator('#season .trip-card, #season form, #season button').count(), 0, 'no lineup cards, forms or openers in the season section');
+      assert.deepEqual(await texts(page, '#season .eyebrow'), ['2027 Founding Season']);
+      assert.equal(plain(await text(page, '#season h2')), 'Spain is set. The rest of 2027 is confirmed one week at a time.');
+      assert.equal(plain(await text(page, '#season .season-head .lead')), 'Six more trips after Spain, each hosted by a pro and kept small. What you see here is confirmed; the rest comes as Katie confirms it.');
+      assert.deepEqual(await page.locator('#season .season-ask').evaluateAll((els) => els.map((e) => [e.querySelector('a.btn').textContent.trim(), e.querySelector('a.btn').getAttribute('href'), e.querySelector('p').textContent.trim()])), [['Join the waitlist →', '#waitlist', 'Join a waitlist and invitations go out first.']], 'one button and its line');
+      // s06: the espresso band, a hairline <ol> of three steps, no cards, no button.
+      assert.equal(await page.locator('#how').evaluate((el) => `${el.classList.contains('dark')} ${getComputedStyle(el).backgroundColor}`), 'true rgb(57, 38, 29)', 'the espresso band');
+      assert.deepEqual(await texts(page, '#how .eyebrow'), ['How it works']);
+      assert.equal(plain(await text(page, '#how h2')), 'From invitation to court.');
+      assert.equal(plain(await text(page, '#how .how-head > p')), 'Courtside runs on invitations, not bookings. This is how a week comes together.');
+      assert.deepEqual(await page.locator('#how ol.how-steps li').evaluateAll((els) => els.map((li) => [li.querySelector('.n').textContent.trim(), li.querySelector('h3').textContent.replace(/\s+/g, ' ').trim(), li.querySelector('p').textContent.replace(/\s+/g, ' ').trim()])), [
+        ['1', 'Get your invitation.', 'Katie invites her community first. Have one already? Enter it here'],
+        ['2', 'Choose your week, or let Katie curate your group.', 'Bring 4–12 players for a private week, or come solo or as a couple and Katie builds the group around fit.'],
+        ['3', 'Katie confirms the details with you.', 'Rooms, court time and the rhythm of the week are confirmed personally. Then you book your flights and come play.'],
+      ], 'the three steps (mockups/html/s06.html)');
+      assert.equal(await page.locator('#how .path-card, #how button, #how .btn, #how .primary, #how .secondary').count(), 0, 'no cards, no button');
+      // s07 and s08 kept: three pro cards with sentence-case roles; the one waitlist opener on the page.
       assert.equal(await page.locator('#pros .pro-card').count(), 3, 'three pro cards');
       assert.deepEqual(await page.locator('#pros .pro-link').evaluateAll((els) => els.map((a) => a.getAttribute('href'))), ['/pros#katie', '/pros#eva', '/pros#nelson']);
+      assert.deepEqual(await texts(page, '#pros .pro-role'), ['Founder + host', 'Co-host, The Spanish Offseason', 'Courtside pro']);
+      assert.ok((await page.locator('#pros .pro-role').evaluateAll((els) => els.map((e) => getComputedStyle(e).textTransform))).every((v) => v === 'none'), 'roles in sentence case');
       assert.equal(await page.locator('#waitlist button.waitlist-open[aria-controls="waitlist-general"]').count(), 1, 'one general waitlist button at the close');
+      assert.equal(await page.locator('button.waitlist-open').count(), 1, 'the only opener on the page');
+      // Step 2: eyebrows are <p class="eyebrow">, at most one caps label per section (buttons stay caps); none in the hero or the facts strip.
+      const caps = await page.evaluate(() => [...document.querySelectorAll('main > section')].map((sec) => ({ id: sec.id || sec.className, eyebrows: [...sec.querySelectorAll('.eyebrow')].map((e) => e.tagName.toLowerCase()), caps: [...sec.querySelectorAll('*')].filter((el) => getComputedStyle(el).textTransform === 'uppercase' && !el.matches('.btn, .primary, .secondary, button, .skip-link') && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())).map((el) => `${el.tagName.toLowerCase()}.${el.className}`) })));
+      assert.ok(caps.every((s) => s.eyebrows.length <= 1 && s.eyebrows.every((tag) => tag === 'p')), `eyebrows are <p class="eyebrow">, at most one per section (${JSON.stringify(caps)})`);
+      assert.ok(caps.every((s) => s.caps.length <= 1 && s.caps.every((c) => /\.eyebrow\b/.test(c))), `the eyebrow is the only caps text in its section (${JSON.stringify(caps)})`);
+      assert.deepEqual(caps.map((s) => s.eyebrows.length), [0, 1, 0, 1, 1, 1, 1, 1], 'no eyebrow in the hero or the facts strip; one in each other section');
       assert.deepEqual(page.errors(), [], 'no console errors');
       assert.deepEqual(page.external(), [], 'no request left the origin');
       await page.close2();
@@ -332,46 +374,61 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
     });
   });
 
-  describe('5. homepage CTAs (polish brief section 1 item 1)', () => {
-    test('hero: one primary "Enter invite code" → /invite and the "Don’t have an invite code?" link scrolls to #trips without navigating; pill, featured link, teaser', async () => {
+  describe('5. homepage CTAs (polish brief section 1 item 1, redesign v2 step 2 "fewer asks")', () => {
+    test('hero: one primary "Enter invite code" → /invite and the "Don’t have an invite code? Join the waitlist" link scrolls to #waitlist without navigating and opens the form; pill, s02 and s05 buttons, step 1 link, teaser; the featured panel has no button', async () => {
       const page = await open({ viewport: DESKTOP });
       await page.goto('/');
       await settled(page);
       assert.equal(await page.locator('.hero-ctas a').count(), 2, 'one button and one text link in the hero');
-      assert.equal(await page.locator('.hero-ctas a.primary').count(), 1, 'exactly one primary');
-      assert.equal(await page.locator('.hero-ctas a.secondary').count(), 0, 'the second hero button is gone (decision 5)');
-      assert.equal(await text(page, '.hero-ctas a.primary'), 'Enter invite code');
-      assert.equal(await page.getAttribute('.hero-ctas a.primary', 'href'), '/invite');
-      assert.equal(await text(page, '.hero-ctas a.no-code'), 'Don’t have an invite code?');
-      assert.equal(await page.getAttribute('.hero-ctas a.no-code', 'href'), '#trips');
-      assert.equal(await text(page, '#trips .panel a.primary'), 'Enter with your invitation');
-      assert.equal(await page.getAttribute('#trips .panel a.primary', 'href'), '/invite');
+      assert.equal(await page.locator('.hero-ctas a.btn').count(), 1, 'exactly one primary');
+      assert.equal(await page.locator('.hero-ctas .secondary, .hero-ctas .primary, .hero-ctas button').count(), 0, 'no second hero button (decision 5, kept by v2)');
+      assert.equal(await text(page, '.hero-ctas a.btn'), 'Enter invite code');
+      assert.equal(await page.getAttribute('.hero-ctas a.btn', 'href'), '/invite');
+      assert.equal(await text(page, '.hero-ctas a.quiet.no-code'), 'Don’t have an invite code? Join the waitlist');
+      assert.equal(await page.getAttribute('.hero-ctas a.no-code', 'href'), '#waitlist');
+      assert.equal(await page.locator('#trips .panel a, #trips .panel button').count(), 0, 'the featured panel no longer carries "Enter with your invitation" (the hero and the pill own the ask)');
+      assert.equal(await text(page, '#trips .panel .tag'), 'Invitation only');
       assert.equal(await text(page, '.site-header .invite-pill'), 'Enter code');
       assert.equal(await page.getAttribute('.site-header .invite-pill', 'href'), '/invite');
       assert.deepEqual(await page.locator('.site-nav a').evaluateAll((els) => els.map((a) => [a.textContent.trim(), a.getAttribute('href')])), [['Trips', '#trips'], ['Meet the pros', '/pros']]);
-      assert.equal(await page.locator('a[href="/invite"]').count(), 6, 'invite links: header pill, hero button, featured card, step 01, footer, sticky bar');
+      assert.deepEqual(await page.locator('#about .ask a, #season .season-ask a, #how a').evaluateAll((els) => els.map((a) => [a.textContent.trim(), a.getAttribute('href')])), [['Meet the pros →', '/pros'], ['Join the waitlist →', '#waitlist'], ['Enter it here', '/invite']], 's02 button, s05 button, step 1 quiet link');
+      assert.equal(await page.locator('a[href="/invite"]').count(), 5, 'invite links: header pill, hero button, step 1 link, footer, sticky bar');
+      assert.equal(await page.locator('a[href="#waitlist"]').count(), 2, 'waitlist links: the hero quiet link and the season button');
 
       await page.evaluate(() => { window.__sameDocument = true; });
       await page.click('.hero-ctas a.no-code');
-      await page.waitForFunction(() => location.hash === '#trips');
+      await page.waitForFunction(() => location.hash === '#waitlist');
       await page.waitForFunction(() => {
-        const el = document.getElementById('trips');
+        const el = document.getElementById('waitlist');
         return Math.abs(el.getBoundingClientRect().top - parseFloat(getComputedStyle(el).scrollMarginTop)) < 4;
       }, null, { timeout: 5000 });
       assert.equal(await page.evaluate(() => window.__sameDocument), true, 'the document was not replaced');
-      assert.equal(page.url(), `${srv.base}/#trips`);
-      const trips = await page.evaluate(() => { const r = document.getElementById('trips').getBoundingClientRect(); return { top: Math.round(r.top), header: Math.round(document.querySelector('.site-header').getBoundingClientRect().bottom) }; });
-      assert.ok(trips.top >= trips.header - 1, `#trips (${trips.top}) below the sticky header (${trips.header})`);
+      assert.equal(page.url(), `${srv.base}/#waitlist`);
+      const waitlist = await page.evaluate(() => { const r = document.getElementById('waitlist').getBoundingClientRect(); return { top: Math.round(r.top), header: Math.round(document.querySelector('.site-header').getBoundingClientRect().bottom), expanded: document.querySelector('#waitlist button.waitlist-open').getAttribute('aria-expanded'), open: document.getElementById('waitlist-general').classList.contains('is-open') }; });
+      assert.ok(waitlist.top >= waitlist.header - 1, `#waitlist (${waitlist.top}) below the sticky header (${waitlist.header})`);
+      assert.deepEqual([waitlist.expanded, waitlist.open], ['true', true], 'the general form is open on arrival (home.js)');
 
-      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-      await page.click('.hero-ctas a.primary');
+      // The season button lands on the open form too (a fresh document first: / → /#waitlist is a fragment navigation).
+      await page.goto('/pros');
+      await page.goto('/');
+      await settled(page);
+      await page.click('#season .season-ask a.btn');
+      await page.waitForFunction(() => location.hash === '#waitlist');
+      assert.equal(await page.getAttribute('#waitlist button.waitlist-open', 'aria-expanded'), 'true', 'the season button opens the form');
+
+      await page.goto('/pros');
+      await page.goto('/');
+      await page.click('.hero-ctas a.btn');
       await page.waitForURL(/\/invite$/);
       await page.goto('/');
       await page.click('.site-header .invite-pill');
       await page.waitForURL(/\/invite$/);
       await page.goto('/');
-      await page.click('#trips .panel a.primary');
+      await page.click('#how a');
       await page.waitForURL(/\/invite$/);
+      await page.goto('/');
+      await page.click('#about .ask a.btn');
+      await page.waitForURL(/\/pros$/);
       await page.goto('/');
       await page.click('#pros .section-cta a.secondary');
       await page.waitForURL(/\/pros$/);
@@ -399,14 +456,15 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
         const s = h.full;
         if (h.pattern === '\\$') return /\$2,995/.test(s) && !/\$\s?[0-9]/.test(s.replaceAll('$2,995', '')) ? 'allowed: $2,995' : 'NOT ALLOWED';
         if (h.pattern === 'players') {
-          // Only "4–12 players" (prose), the trust-row pair "<strong>4–12</strong><span>players" or the approved hero sentence may remain.
-          const rest = s.replaceAll('4–12 players', '').replaceAll('4–12</strong><span>players', '').replaceAll(HERO_SENTENCE, '');
+          // Only "4–12 players" (prose), the facts pair "<strong>4–12</strong><span>Players, private groups" (mockups/html/s03.html) or the approved hero sentence may remain.
+          const rest = s.replaceAll('4–12 players', '').replaceAll('4–12</strong><span>players', '').replaceAll('<strong>4–12</strong><span>Players, private groups</span>', '').replaceAll(HERO_SENTENCE, '');
           if (/players/.test(rest)) return 'NOT ALLOWED';
           return s.includes(HERO_SENTENCE) ? 'allowed: the approved hero sentence' : 'allowed: 4–12 players';
         }
         if (h.pattern === 'star') {
           if (/pros(?:-jump)?:start|pros(?:-jump)?:end/.test(s) && !/star(?!t)/.test(s)) return 'markup noise: pros:start / pros-jump:start marker';
-          return /five-star/.test(s) && /La Finca/.test(s) && !/star(?!t)/.test(s.replaceAll('five-star', '')) ? 'allowed: five-star La Finca' : 'NOT ALLOWED';
+          // "five-star La Finca" in prose and the s03 facts label "Five-star resort · home base" (mockups/html/s03.html).
+          return /[Ff]ive-star/.test(s) && /La Finca/.test(s) && !/star(?!t)/.test(s.replace(/[Ff]ive-star/g, '')) ? 'allowed: five-star La Finca' : 'NOT ALLOWED';
         }
         return 'NOT ALLOWED';
       };
@@ -451,53 +509,77 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
       assert.equal(WAITLIST_NOTE, 'Waitlist opens soon. Invitations go out first; check back or ask Katie.');
     });
 
-    test('the hand-written homepage cards match trips.js field by field (polish: timing in the art, the city once, a capture form per card)', async (t) => {
+    test('the hand-written season cards match trips.js field by field (redesign v2 s05: seven photo cards, Spain featured with place, dates and price, tags on Spain and Charleston, "To be announced" otherwise, an Unsplash credit each, no per-card capture); the featured card keeps trips.js', async (t) => {
       const page = await open();
       await page.goto('/');
-      const cards = await page.locator('#season .trip-card').evaluateAll((els) => els.map((el) => {
-        const form = el.querySelector('form.waitlist-form');
-        const button = el.querySelector('button.waitlist-open');
+      const cards = await page.locator('#season article.tc').evaluateAll((els) => els.map((el) => {
+        const img = el.querySelector('.im img');
+        const source = el.querySelector('.im source[type="image/webp"]');
+        const widths = (srcset) => (srcset || '').split(',').map((c) => Number((c.trim().split(/\s+/)[1] || '').replace('w', ''))).filter(Boolean);
         return {
           id: el.id,
-          art: el.querySelector('.trip-art span')?.textContent.trim(),
-          tag: el.querySelector('.trip-tag')?.textContent.trim(),
-          name: el.querySelector('h3')?.textContent.trim(),
-          timing: el.querySelector('.trip-timing')?.textContent.trim(),
-          blurb: [...el.querySelectorAll('.trip-body > p:not(.trip-meta):not(.trip-tba)')].map((p) => p.textContent.trim()),
-          tba: el.querySelector('.trip-tba')?.textContent.trim() ?? null,
-          button: button?.textContent.trim(),
-          controls: button?.getAttribute('aria-controls'),
-          expanded: button?.getAttribute('aria-expanded'),
-          form: form ? { trip: form.dataset.trip, source: form.dataset.source, tripName: form.dataset.tripName, title: form.querySelector('.waitlist-title')?.textContent.trim(), id: form.closest('.waitlist-capture')?.id } : null,
-          hasImage: !!el.querySelector('img'),
-          cityMentions: (el.textContent.match(new RegExp(el.querySelector('h3')?.textContent.trim().split(' ')[0] || '§', 'g')) || []).length,
+          tag: el.querySelector('.tag')?.textContent.trim() ?? null,
+          name: el.querySelector('h3').textContent.trim(),
+          when: el.querySelector('.when').textContent.trim(),
+          line: el.querySelector('.t > p:not(.st)')?.textContent.trim() ?? null,
+          tba: el.querySelector('p.st')?.textContent.trim() ?? null,
+          chip: el.querySelector('.lbl')?.textContent.trim() ?? null,
+          controls: el.querySelectorAll('form, button, a').length,
+          cityMentions: (el.textContent.match(new RegExp(el.querySelector('h3').textContent.trim().split(/[ ,]/)[0], 'g')) || []).length,
+          credit: el.querySelector('.cr')?.textContent.trim() ?? null,
+          photo: img ? { src: img.getAttribute('src'), loading: img.getAttribute('loading'), alt: img.alt, width: img.getAttribute('width'), height: img.getAttribute('height'), jpg: widths(img.getAttribute('srcset')), webp: widths(source?.getAttribute('srcset')) } : null,
         };
       }));
-      const wanted = TRIPS.slice(1).map((trip) => ({
-        id: `trip-${trip.id}`, art: trip.timing, tag: 'Waitlist', name: trip.name, timing: trip.timing,
-        blurb: trip.blurb ? [trip.blurb.charAt(0).toUpperCase() + trip.blurb.slice(1)] : [], tba: trip.blurb ? null : 'To be announced',
-        button: 'Join the waitlist', controls: `waitlist-${trip.id}`, expanded: 'false',
-        form: { trip: trip.id, source: 'card', tripName: trip.name, title: `Join the waitlist for ${trip.name}`, id: `waitlist-${trip.id}` },
-        hasImage: false,
-        cityMentions: trip.id === 'charleston' ? 3 : 2, // the heading and the capture title; Charleston's blurb names the Charleston Open
-      }));
+      // Spain shows the place, the dates from the blurb and the week count + price in one line (mockups/html/s05-cards.html); the others their timing and blurb.
+      const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+      const wanted = TRIPS.map((trip, i) => {
+        const spain = i === 0;
+        const [weeks, ...dates] = trip.blurb.split(', ');
+        return {
+          id: `trip-${trip.id}`,
+          tag: spain ? 'Confirmed' : trip.id === 'charleston' ? 'Next after Spain' : null,
+          name: spain ? trip.place : trip.name,
+          when: spain ? dates.join(', ') : trip.timing,
+          line: spain ? `${cap(weeks)}, ${trip.price.replace(/, six nights$/, '')}.` : (trip.blurb ? cap(trip.blurb) : null),
+          tba: spain || trip.blurb ? null : 'To be announced',
+          chip: trip.place === 'To be announced' ? 'Place TBD · court texture' : null,
+          controls: 0,
+          cityMentions: trip.id === 'charleston' ? 2 : 1, // the heading; Charleston's blurb names the Charleston Open
+        };
+      });
       t.diagnostic(`city mentions per card: ${cards.map((c) => `${c.name} ${c.cityMentions}`).join(', ')}`);
-      assert.deepEqual(cards, wanted);
+      assert.deepEqual(cards.map(({ credit, photo, ...facts }) => facts), wanted);
+      // Photos: the Unsplash set in public/images/s05/, web sizes ≤ 1600 wide in WebP + JPG, lazy, width/height, alt; a credit on each card and in CREDITS.md.
+      const PHOTOS = { spain: 'spain', charleston: 'charleston', geneva: 'geneva', mallorca: 'mallorca', 'new-york': 'newyork', 'los-angeles': 'la', 'fall-residency': 'clay' };
+      const credits = read('public/images/CREDITS.md');
+      for (const card of cards) {
+        const file = PHOTOS[card.id.replace('trip-', '')];
+        assert.match(card.credit || '', /^.+ \/ Unsplash$/, `${card.id}: "Name / Unsplash" credit`);
+        assert.ok(credits.includes(card.credit.replace(' / Unsplash', '')), `${card.id}: ${card.credit} is in public/images/CREDITS.md`);
+        assert.ok(card.photo, `${card.id}: a photo`);
+        assert.match(card.photo.src, new RegExp(`^/images/s05/${file}-\\d+\\.jpg$`), `${card.id}: the ${file} photo`);
+        assert.equal(card.photo.loading, 'lazy', `${card.id}: lazy`);
+        assert.ok(card.photo.alt && card.photo.width && card.photo.height, `${card.id}: alt, width, height`);
+        assert.ok(card.photo.jpg.includes(720) && card.photo.jpg.every((w) => w <= 1600), `${card.id}: web sizes with a 720 variant, none over 1600 (${card.photo.jpg.join('/')})`);
+        assert.deepEqual(card.photo.webp, card.photo.jpg, `${card.id}: the WebP source mirrors the JPG variants`);
+      }
       const featured = await page.evaluate(() => ({
-        tag: document.querySelector('#trips .overlay .caps').textContent.trim(),
+        overlayCaps: document.querySelectorAll('#trips .overlay .caps').length,
+        tag: document.querySelector('#trips .panel .tag').textContent.trim(),
         name: document.querySelector('#trips .overlay h3').textContent.trim(),
         line: document.querySelector('#trips .overlay p').textContent.trim(),
         panel: document.querySelector('#trips .panel').textContent.replace(/\s+/g, ' ').trim(),
         alt: document.querySelector('#trips .media-card img').getAttribute('alt'),
         src: (document.querySelector('#trips .media-card img').currentSrc || '').split('/').pop(),
-        link: document.querySelector('#trips .panel a.primary').getAttribute('href'),
+        controls: document.querySelectorAll('#trips .panel a, #trips .panel button').length,
       }));
       const spain = TRIPS[0];
-      assert.equal(featured.tag, 'Invitation only');
+      assert.equal(featured.overlayCaps, 0, 'the overlay duplicate "Invitation only" is gone (v2 s04)');
+      assert.equal(featured.tag, 'Invitation only', 'the one label is the panel chip');
       assert.equal(featured.name, spain.name);
       assert.equal(featured.alt, spain.photo.alt);
       assert.match(featured.src, /^spain-card-43-/, 'the featured photo is the spain-card-43 crop');
-      assert.equal(featured.link, spain.link);
+      assert.equal(featured.controls, 0, 'no button on the panel; the hero owns "Enter invite code"');
       // Plan 4.1 fixes the overlay line as "Costa Blanca, Spain · Winter 2027 · seven Sunday–Saturday weeks · from $2,995 per
       // player, six nights"; trips.js's blurb adds the January 10 – February 27 dates, which the card's panel carries instead.
       assert.equal(featured.line, `${spain.place} · ${spain.timing} · seven Sunday–Saturday weeks · ${spain.price}`);
@@ -530,12 +612,14 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
               return true;
             };
             const scrollWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-            // Smallest font on an element that carries text of its own. .site-powered / .powered ("powered by tgl.rsvp")
-            // come from Phase 1's style.css unchanged, so they are reported separately rather than failed here.
+            // Smallest font on an element that carries text of its own. Two documented exceptions are reported separately
+            // rather than failed here: .site-powered / .powered ("powered by tgl.rsvp", Phase 1's style.css unchanged) and the
+            // s05 photo credits (.cr, "Name / Unsplash", 11px in the approved mockups/html/s05-cards.html).
             const withText = [...document.querySelectorAll('body *')].filter((el) => visible(el) && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
             const allFonts = withText.map((el) => ({ size: parseFloat(getComputedStyle(el).fontSize), tag: el.tagName.toLowerCase(), cls: String(el.className), text: el.textContent.trim().slice(0, 30) })).sort((a, b) => a.size - b.size);
             const phase1Tiny = allFonts.filter((f) => /\b(site-)?powered\b/.test(f.cls));
-            const fonts = allFonts.filter((f) => !/\b(site-)?powered\b/.test(f.cls));
+            const credits = allFonts.filter((f) => /\bcr\b/.test(f.cls));
+            const fonts = allFonts.filter((f) => !/\b(site-)?powered\b/.test(f.cls) && !/\bcr\b/.test(f.cls));
             // Images: object-fit:cover ones are cropped on purpose; the rest must keep their natural ratio.
             const images = [...document.images].filter((img) => img.naturalWidth && visible(img)).map((img) => {
               const r = img.getBoundingClientRect();
@@ -572,14 +656,15 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
               const y = Math.min(header[i].bottom, header[j].bottom) - Math.max(header[i].top, header[j].top);
               if (x > 1 && y > 1) headerCollisions.push(`${i}×${j} ${Math.round(x)}×${Math.round(y)}px`);
             }
-            return { innerWidth, scrollWidth, scrollY, pageHeight: document.documentElement.scrollHeight, smallest: fonts.slice(0, 3), phase1Tiny, images, stretched, overlaps, headerCollisions, mainTop, headerBottom };
+            return { innerWidth, scrollWidth, scrollY, pageHeight: document.documentElement.scrollHeight, smallest: fonts.slice(0, 3), phase1Tiny, credits, images, stretched, overlaps, headerCollisions, mainTop, headerBottom };
           });
           assert.equal(m.scrollY, 0, 'measured at the top of the page');
           assert.ok(m.mainTop >= m.headerBottom - 1, `main (${m.mainTop}) starts below the sticky header (${m.headerBottom})`);
-          t.diagnostic(`${route} ${viewport.width}px: scrollWidth ${m.scrollWidth}/${m.innerWidth}, page ${m.pageHeight}px tall, smallest text ${m.smallest.map((f) => `${f.size}px ${f.tag}.${f.cls}`).join('; ')}; Phase 1 "powered by" line: ${m.phase1Tiny.map((f) => `${f.size}px ${f.tag}.${f.cls}`).join('; ') || 'hidden'}; images: ${m.images.map((i) => `${i.src} ${i.fit}`).join(', ')}`);
+          t.diagnostic(`${route} ${viewport.width}px: scrollWidth ${m.scrollWidth}/${m.innerWidth}, page ${m.pageHeight}px tall, smallest text ${m.smallest.map((f) => `${f.size}px ${f.tag}.${f.cls}`).join('; ')}; Phase 1 "powered by" line: ${m.phase1Tiny.map((f) => `${f.size}px ${f.tag}.${f.cls}`).join('; ') || 'hidden'}; photo credits: ${m.credits.length ? `${m.credits.length} at ${[...new Set(m.credits.map((f) => f.size))].join('/')}px` : 'none'}; images: ${m.images.map((i) => `${i.src} ${i.fit}`).join(', ')}`);
           await shot(page, `${name}-${viewport.width}`);
           assert.ok(m.scrollWidth <= m.innerWidth, `no horizontal scroll (${m.scrollWidth} > ${m.innerWidth})`);
           assert.ok(m.smallest[0].size >= 12, `smallest text ${m.smallest[0].size}px (${m.smallest[0].tag}.${m.smallest[0].cls} "${m.smallest[0].text}")`);
+          assert.ok(m.credits.every((f) => f.size >= 11), `photo credits at their mockup size, 11px, never smaller (${m.credits.map((f) => f.size).join('/')})`);
           assert.deepEqual(m.stretched, [], 'no image drawn off its natural ratio');
           assert.deepEqual(m.overlaps, [], 'no overlapping text');
           assert.deepEqual(m.headerCollisions, [], 'header items do not collide');
@@ -640,26 +725,27 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
         assert.ok(kinds.has('a'), 'links were walked');
         if (route === '/') {
           // Polish plan section 3 and critic fix 4: the <details> summaries became <button aria-expanded> openers with a real form.
-          assert.ok(kinds.has('button'), 'the waitlist openers are in the tab order');
+          // Redesign v2 keeps one: the general capture at the close (the six card openers are gone).
+          assert.ok(kinds.has('button'), 'the waitlist opener is in the tab order');
           assert.equal(steps.filter((s) => s.tag === 'summary').length, 0, 'no <details>/<summary> left');
-          assert.equal(steps.filter((s) => s.cls.includes('waitlist-open')).length, 7, 'six card openers and the general one');
+          assert.equal(steps.filter((s) => s.cls.includes('waitlist-open')).length, 1, 'the one general opener');
           await page.evaluate(() => { window.scrollTo(0, 0); document.activeElement.blur(); });
           let info = null;
           for (let i = 0; i < 60; i += 1) { await page.keyboard.press('Tab'); info = await activeInfo(page); if (info && info.cls.includes('waitlist-open')) break; }
-          assert.ok(info.cls.includes('waitlist-open'), 'reached the first opener');
+          assert.ok(info.cls.includes('waitlist-open'), 'reached the opener');
           const state = () => page.evaluate(() => {
-            const opener = document.querySelector('#trip-charleston button.waitlist-open');
+            const opener = document.querySelector('#waitlist button.waitlist-open');
             const panel = document.getElementById(opener.getAttribute('aria-controls'));
             return { expanded: opener.getAttribute('aria-expanded'), open: panel.classList.contains('is-open'), visible: panel.getClientRects().length > 0, active: document.activeElement.id || document.activeElement.className };
           });
           assert.deepEqual(await state(), { expanded: 'false', open: false, visible: false, active: 'secondary waitlist-open' });
           await page.keyboard.press('Enter');
-          assert.deepEqual(await state(), { expanded: 'true', open: true, visible: true, active: 'wl-charleston-email' }, 'Enter opens the capture and focuses the email field');
+          assert.deepEqual(await state(), { expanded: 'true', open: true, visible: true, active: 'wl-general-email' }, 'Enter opens the capture and focuses the email field');
           await page.keyboard.press('Escape');
           assert.deepEqual(await state(), { expanded: 'false', open: false, visible: false, active: 'secondary waitlist-open' }, 'Escape closes it and returns focus to the opener');
           await page.keyboard.press('Space');
           assert.equal((await state()).expanded, 'true', 'Space opens it again');
-          const live = await page.locator('#waitlist-charleston .form-status[aria-live="polite"]').count();
+          const live = await page.locator('#waitlist-general .form-status[aria-live="polite"]').count();
           assert.equal(live, 1, 'the status line is aria-live (plan section 5)');
         }
         assert.deepEqual(page.errors(), []);
@@ -670,7 +756,7 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
 
   describe('10. performance', () => {
     for (const route of ['/', '/pros']) {
-      test(`${route} at 390px: every request same-origin, total transfer under 1 MB with images, first image eager (+ preloaded on /), the rest lazy, external scripts are modules`, async (t) => {
+      test(`${route} at 390px: every request same-origin, total transfer under 1.5 MB with images (474 KB of it is the trial OTF fonts), first image eager (+ preloaded on /), the rest lazy, external scripts are modules`, async (t) => {
         const page = await open({ viewport: MOBILE });
         const transfers = [];
         page.on('requestfinished', async (req) => {
@@ -691,20 +777,21 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
         for (const r of transfers) byType[r.type] = (byType[r.type] || 0) + r.body;
         t.diagnostic(`${route}: ${transfers.length} requests, first view ${(firstView / 1024).toFixed(0)} KB, whole page ${(total / 1024).toFixed(0)} KB (${Object.entries(byType).map(([k, v]) => `${k} ${(v / 1024).toFixed(0)} KB`).join(', ')})`);
         t.diagnostic(`${route}: images ${transfers.filter((r) => r.type === 'image').map((r) => `${r.url.split('/').pop()} ${(r.body / 1024).toFixed(0)} KB`).join(', ')}`);
-        assert.ok(total < 1024 * 1024, `whole page ${total} bytes < 1 MB`);
+        t.diagnostic(`${route}: fonts ${transfers.filter((r) => r.type === 'font').map((r) => `${r.url.split('/').pop()} ${(r.body / 1024).toFixed(0)} KB`).join(', ') || 'none'}`);
         assert.deepEqual(page.external(), [], 'no third-party request');
         assert.ok(transfers.every((r) => r.url.startsWith('/')), 'every request is same-origin');
 
         const img = await page.evaluate(() => {
           const imgs = [...document.querySelectorAll('img')].map((i) => ({ src: (i.currentSrc || i.src).split('/').pop(), loading: i.getAttribute('loading'), priority: i.getAttribute('fetchpriority'), inMain: !!i.closest('main'), alt: i.alt }));
           const eager = imgs.filter((i) => i.inMain && i.loading !== 'lazy');
-          // The hero preloads one crop per breakpoint (polish plan section 5): the link whose media matches is the one that counts.
+          // Redesign v2: one hero photo at every width, so one preload with no media query; its srcset and sizes are the hero <img>'s.
           const preloads = [...document.querySelectorAll('link[rel="preload"][as="image"]')].map((l) => ({ media: l.getAttribute('media'), srcset: l.getAttribute('imagesrcset'), sizes: l.getAttribute('imagesizes'), matches: !l.media || matchMedia(l.media).matches }));
+          const fontPreloads = [...document.querySelectorAll('link[rel="preload"][as="font"]')].map((l) => ({ href: l.getAttribute('href'), crossorigin: l.hasAttribute('crossorigin') }));
           const firstMainImg = document.querySelector('main img');
           const activeSource = firstMainImg ? [...firstMainImg.parentElement.querySelectorAll('source[type="image/webp"]')].find((s) => !s.media || matchMedia(s.media).matches) : null;
-          return { imgs, eager, preloads, firstSrc: (firstMainImg?.currentSrc || '').split('/').pop(), activeSourceSrcset: activeSource?.getAttribute('srcset') || null, scripts: [...document.scripts].map((s) => ({ src: s.getAttribute('src'), type: s.getAttribute('type'), inline: !s.src && s.textContent.length })) };
+          return { imgs, eager, preloads, fontPreloads, firstSrc: (firstMainImg?.currentSrc || '').split('/').pop(), heroSrcset: activeSource?.getAttribute('srcset') || firstMainImg?.getAttribute('srcset') || null, heroSizes: activeSource?.getAttribute('sizes') || firstMainImg?.getAttribute('sizes') || null, scripts: [...document.scripts].map((s) => ({ src: s.getAttribute('src'), type: s.getAttribute('type'), inline: !s.src && s.textContent.length })) };
         });
-        t.diagnostic(`${route}: eager in main ${img.eager.map((i) => `${i.src} fetchpriority=${i.priority}`).join(', ') || 'none'}; preloads ${JSON.stringify(img.preloads)}; scripts ${JSON.stringify(img.scripts)}`);
+        t.diagnostic(`${route}: eager in main ${img.eager.map((i) => `${i.src} fetchpriority=${i.priority}`).join(', ') || 'none'}; preloads ${JSON.stringify(img.preloads)}; font preloads ${JSON.stringify(img.fontPreloads)}; scripts ${JSON.stringify(img.scripts)}`);
         assert.equal(img.eager.length, 1, 'exactly one eager image in <main> (the hero / first portrait)');
         assert.equal(img.eager[0].loading, 'eager');
         assert.equal(img.eager[0].priority, 'high');
@@ -712,11 +799,13 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
         assert.equal(lazy.length, img.imgs.filter((i) => i.inMain).length - 1, 'every other image in <main> is lazy');
         assert.equal(img.imgs.filter((i) => !i.inMain && i.loading !== 'lazy').length, 1, 'the header logo is the only other eager image; the footer logo is lazy');
         if (route === '/') {
-          const active = img.preloads.filter((p) => p.matches);
-          assert.equal(img.preloads.length, 2, 'one preload per hero crop (phones 4:5, 700px+ 3:2)');
-          assert.equal(active.length, 1, 'exactly one preload matches this viewport');
-          assert.equal(active[0].srcset, img.activeSourceSrcset, 'the matching preload equals the active hero <source> srcset');
-          assert.match(active[0].srcset, /hero-clay-45/, 'phones preload the 4:5 crop');
+          assert.equal(img.preloads.length, 1, 'one hero preload: the same photo serves every width (redesign v2)');
+          assert.equal(img.preloads[0].media, null, 'no media query on the preload');
+          assert.equal(img.preloads[0].srcset, img.heroSrcset, 'the preload srcset equals the hero srcset');
+          assert.equal(img.preloads[0].sizes, img.heroSizes, 'the preload sizes equal the hero sizes');
+          // The two faces used above the fold (the Canela h1, the GT America body) are preloaded, with crossorigin as fonts need.
+          assert.deepEqual(img.fontPreloads.map((f) => f.href.split('/').pop()), ['Canela-Light-Trial.otf', 'GTAmerica-Regular-Trial.otf'], 'the display and body faces are preloaded');
+          assert.ok(img.fontPreloads.every((f) => f.crossorigin && f.href.startsWith('/fonts/') && read('public/style.css').includes(`url(${f.href})`)), 'each font preload is same-origin, crossorigin, and declared by an @font-face in style.css');
         } else {
           t.diagnostic(`${route}: preload links ${img.preloads.length} (the first portrait is eager + high priority; a preload is a nicety here, not a plan item)`);
         }
@@ -727,11 +816,15 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
         const preloadWarnings = page.consoleMessages().filter((m) => /preload/i.test(m));
         assert.deepEqual(preloadWarnings, [], 'no "preloaded but not used" warning');
         assert.deepEqual(page.errors(), []);
+        // The budget last, so the checks above run even while the trial OTF fonts (~480 KB, licensed WOFF2 before launch) blow it.
+        // Redesign v2 budget: the seven trial OTF fonts are 474 KB (licensed WOFF2 will be far smaller) and the Unsplash hero
+        // and season photos are intentional. Measured 1,208 KB on 2026-11-01.
+        assert.ok(total < 1.5 * 1024 * 1024, `whole page ${total} bytes < 1.5 MB`);
         await page.close2();
       });
     }
 
-    test('beyond: / at 390px on a 3× screen (iPhone-like) still fits in 1 MB', async (t) => {
+    test('beyond: / at 390px on a 3× screen (iPhone-like) still fits in 2.25 MB', async (t) => {
       const context = await browser.newContext({ baseURL: srv.base, viewport: MOBILE, deviceScaleFactor: 3, extraHTTPHeaders: { 'x-forwarded-for': freshIp() } });
       contexts.add(context);
       const page = await context.newPage();
@@ -741,33 +834,41 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
       await page.goto('/');
       await loadWholePage(page);
       t.diagnostic(`/ @390 DPR3: ${(total / 1024).toFixed(0)} KB; images ${images.join(', ')}`);
-      assert.ok(total < 1024 * 1024, `${total} bytes < 1 MB at DPR 3`);
+      // Redesign v2 budget: at 3× the season cards fetch their 1200 variants and the hero its 1400. Measured 1,887 KB on 2026-11-01.
+      assert.ok(total < 2.25 * 1024 * 1024, `${total} bytes < 2.25 MB at DPR 3`);
       await context.close();
       contexts.delete(context);
     });
   });
 
   describe('11. reduced motion', () => {
-    test('with prefers-reduced-motion: reduce the no-code link lands on #trips instantly and nothing animates', async () => {
+    test('with prefers-reduced-motion: reduce the no-code link lands on #waitlist instantly, nothing animates and nothing on the page carries a transition', async (t) => {
       const page = await open({ viewport: MOBILE, reducedMotion: 'reduce' });
       await page.goto('/');
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'auto');
-      assert.equal(await page.evaluate(() => document.getAnimations().length), 0, 'no hero settle under reduced motion');
+      assert.equal(await page.evaluate(() => document.getAnimations().length), 0, 'no hero rise under reduced motion');
       assert.deepEqual(await page.locator('.hero-copy > *').evaluateAll((els) => els.map((el) => getComputedStyle(el).opacity)), ['1', '1', '1', '1'], 'the hero copy is fully visible');
       await page.click('.hero-ctas a.no-code');
       const landed = await page.evaluate(() => {
-        const el = document.getElementById('trips');
-        return { hash: location.hash, top: Math.round(el.getBoundingClientRect().top), margin: parseFloat(getComputedStyle(el).scrollMarginTop), animations: document.getAnimations().length };
+        const el = document.getElementById('waitlist');
+        return { hash: location.hash, top: Math.round(el.getBoundingClientRect().top), margin: parseFloat(getComputedStyle(el).scrollMarginTop), animations: document.getAnimations().length, open: document.getElementById('waitlist-general').classList.contains('is-open') };
       });
-      assert.equal(landed.hash, '#trips');
-      assert.ok(Math.abs(landed.top - landed.margin) < 4, `#trips at ${landed.top}px right after the click (instant, scroll-margin ${landed.margin})`);
+      assert.equal(landed.hash, '#waitlist');
+      assert.ok(Math.abs(landed.top - landed.margin) < 4, `#waitlist at ${landed.top}px right after the click (instant, scroll-margin ${landed.margin})`);
       assert.equal(landed.animations, 0, 'no running animations');
-      await page.hover('#season .trip-card');
+      assert.equal(landed.open, true, 'the general form is open on arrival');
+      // The pro card's hover lift is a state, not a motion: under reduce it may appear, but at once (no transition, no animation).
+      await page.hover('#pros .pro-card');
       await settle(page);
-      const card = await page.evaluate(() => { const s = getComputedStyle(document.querySelector('#season .trip-card')); return { transition: s.transitionDuration, transform: s.transform, animations: document.getAnimations().length }; });
+      const card = await page.evaluate(() => { const s = getComputedStyle(document.querySelector('#pros .pro-card')); return { transition: s.transitionDuration, transform: s.transform, animations: document.getAnimations().length }; });
+      t.diagnostic(`hovered pro card under reduce: ${JSON.stringify(card)}`);
       assert.equal(card.transition, '0s', 'cards do not transition');
-      assert.equal(card.transform, 'none', 'cards do not lift on hover');
+      assert.ok(card.transform === 'none' || card.transform === 'matrix(1, 0, 0, 1, 0, -4)', `the lift, if any, is the designed end state with no motion (${card.transform})`);
       assert.equal(card.animations, 0);
+      // Step 4 checklist: reduce disables every transition and animation, the open capture and the sticky bar included.
+      const moving = await page.evaluate(() => [...document.querySelectorAll('body, body *')].filter((el) => { const s = getComputedStyle(el); return s.transitionDuration.split(',').some((d) => parseFloat(d) > 0) || s.animationName !== 'none'; }).map((el) => `${el.tagName.toLowerCase()}.${String(el.className).trim().split(/\s+/).join('.')}`));
+      t.diagnostic(`under reduce: ${moving.length ? moving.join(', ') : 'nothing moves'}`);
+      assert.deepEqual(moving, [], 'no element has a transition-duration above 0 or an animation under reduced motion');
       await loadWholePage(page);
       await shot(page, 'home-390-reduced-motion');
       assert.deepEqual(page.errors(), []);
@@ -776,67 +877,92 @@ describe('public pages (Phase 2 Wave 3 QA, polish expectations)', { skip: playwr
   });
 
   describe('12. brand', () => {
-    test('marketing.css adds only the approved token block, --gold-ink and the local Georgia fallback; no webfont; Georgia on every heading', async (t) => {
+    test('marketing.css keeps only page-specific tokens and brand colours; the faces are Canela and GT America, self-hosted from style.css with the Instrument fallbacks (no Google Fonts, no @import); Canela on every heading, GT America on the body', async (t) => {
       const marketing = read('public/marketing.css');
       const style = read('public/style.css');
       const hex = (css) => new Set((css.match(/#[0-9a-fA-F]{3,8}\b/g) || []).map((h) => h.toLowerCase()));
       const styleHex = hex(style);
-      // The polish pass's one token block (DESIGN.md): type and space scales, --gold-ink, --ease, --header-h, --gutter, --serif.
+      // Redesign v2: the design system (colours, fonts, type, space, radius, motion) is style.css :root (DESIGN_v2.md);
+      // marketing.css keeps the /pros and gate titles, the old fluid space scale, the header metrics and --cream-78.
       const rootBlocks = marketing.match(/:root\s*\{[^}]*\}/g) || [];
       assert.equal(rootBlocks.length, 2, 'one :root block at the top and one --header-h override at 700px');
-      const rootHex = hex(rootBlocks.join('\n'));
-      assert.deepEqual([...rootHex], ['#7d6236', '#c9a86a'], 'the token block declares the two gold text colours, --gold-ink and --gold-bright (decision 2)');
+      assert.deepEqual([...hex(rootBlocks.join('\n'))], [], 'the marketing token block declares no colour; --gold-ink and --gold-bright live in style.css (DESIGN_v2)');
+      assert.ok(style.includes('--gold-ink:#7d6236') && style.includes('--gold-bright:#c9a86a'), 'the two gold text colours are tokens in style.css');
       const outsideRoot = marketing.replace(/:root\s*\{[^}]*\}/g, '');
       const marketingHex = [...hex(outsideRoot)];
-      const notInStyle = marketingHex.filter((h) => !styleHex.has(h) && h !== '#7d6236' && h !== '#c9a86a');
-      t.diagnostic(`marketing.css hex literals outside :root: ${marketingHex.join(', ') || 'none'}; not in style.css (and not the gold text tokens): ${notInStyle.join(', ') || 'none'}`);
-      assert.deepEqual(notInStyle, [], 'no colour that style.css does not already use, other than the gold text tokens');
-      // Every rgba() is a brand colour at an alpha: cream, espresso, the photo shade, gold (the input focus halo) or the shadow.
+      const notInStyle = marketingHex.filter((h) => !styleHex.has(h));
+      t.diagnostic(`marketing.css hex literals outside :root: ${marketingHex.join(', ') || 'none'}; not in style.css: ${notInStyle.join(', ') || 'none'}`);
+      assert.deepEqual(notInStyle, [], 'no colour that style.css does not already declare');
+      // Every rgba() is a brand colour at an alpha: cream, espresso, the photo shade, ink (the credit chip), gold (the input focus halo) or the shadow.
       const rgba = marketing.match(/rgba?\([^)]*\)/g) || [];
       const styleRgba = new Set(style.match(/rgba?\([^)]*\)/g) || []);
       t.diagnostic(`marketing.css rgba(): ${rgba.join(', ')}; new alpha variants vs style.css: ${rgba.filter((r) => !styleRgba.has(r)).join(', ') || 'none'}`);
-      assert.ok(rgba.every((r) => /^rgba\((244,239,229|57,38,29|37,23,16|185,152,93|45,27,20),/.test(r)), 'every rgba() is a brand colour at an alpha');
+      assert.ok(rgba.every((r) => /^rgba\((244,239,229|57,38,29|37,23,16|46,33,27|185,152,93|45,27,20),/.test(r)), 'every rgba() is a brand colour at an alpha');
+      // Fonts: no font service, no @import; the files come from /fonts/ and the faces are declared in style.css only.
       for (const file of ['public/marketing.css', 'public/style.css', 'public/index.html', 'public/pros.html', 'public/invite.html', 'public/privacy.html', 'public/404.html']) {
-        assert.doesNotMatch(read(file), /@import|fonts\.googleapis|fonts\.gstatic|typekit|\.woff|url\([^)]*font/i, `${file}: no webfont, no @import`);
+        const src = read(file).replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+        assert.doesNotMatch(src, /@import|fonts\.googleapis|fonts\.gstatic|typekit/i, `${file}: no webfont service, no @import`);
+        const urls = [...new Set([...src.matchAll(/[\w./-]+\.(?:woff2?|ttf|otf)\b/g)].map((m) => m[0]))];
+        assert.ok(urls.every((u) => u.startsWith('/fonts/')), `${file}: font files only from /fonts/ (${urls.join(', ') || 'none'})`);
+        if (file !== 'public/style.css') assert.doesNotMatch(src, /@font-face/, `${file}: the faces are declared in style.css only`);
       }
-      // The only @font-face rules are the Georgia fallback (local() sources only, size-adjusted; DESIGN.md "Type").
-      const faces = marketing.match(/@font-face\s*\{[^}]*\}/g) || [];
-      assert.equal(faces.length, 2, 'the fallback face: upright and italic');
+      const faces = style.match(/@font-face\s*\{[^}]*\}/g) || [];
+      assert.equal(faces.length, 7, 'Canela upright + italic, GT America regular + italic + medium, Instrument Serif, Instrument Sans');
       for (const face of faces) {
-        assert.match(face, /font-family:'Courtside Serif Fallback'/);
-        assert.match(face, /size-adjust:\s*\d+%/);
-        assert.match(face, /ascent-override|descent-override/);
-        assert.doesNotMatch(face, /url\(/, 'local() sources only');
-        assert.ok(/src:(local\([^)]*\),?)+;/.test(face.replace(/\s+/g, '')), `src is local() only: ${face}`);
+        const file = (face.match(/src:url\((\/fonts\/[^)]+)\)/) || [])[1];
+        assert.ok(file, `self-hosted: ${face}`);
+        assert.ok(fs.existsSync(path.join(ROOT, 'public', file)), `${file} exists`);
+        assert.match(face, /font-display:swap/, 'swap, so the text shows before the face lands');
       }
-      assert.match(marketing, /--serif:\s*Georgia,\s*'Courtside Serif Fallback',\s*serif/, '--serif lists Georgia, then the fallback');
-      assert.doesNotMatch(style, /@font-face|Courtside Serif Fallback/, 'style.css is untouched');
-      // No font-family literal outside the token block and the @font-face rules.
-      const noTokens = marketing.replace(/:root\s*\{[^}]*\}/g, '').replace(/@font-face\s*\{[^}]*\}/g, '');
+      assert.match(style, /--font-display:"Canela","Instrument Serif",Georgia,serif/, 'the display stack');
+      assert.match(style, /--font-sans:"GT America","Instrument Sans",/, 'the sans stack');
+      assert.doesNotMatch(marketing, /@font-face|Courtside Serif Fallback|Georgia|Inter\b/, 'marketing.css declares no face and names no family');
+      // No font-family literal outside the token block: families and shorthands end in a token.
+      const noTokens = marketing.replace(/:root\s*\{[^}]*\}/g, '');
       const families = noTokens.match(/font-family\s*:[^;}]+/g) || [];
-      assert.ok(families.every((f) => /var\(--(serif|sans)\)/.test(f)), `font-family only through tokens (${families.join(' | ')})`);
+      assert.ok(families.every((f) => /var\(--(font-display|font-sans|serif|sans)\)/.test(f)), `font-family only through tokens (${families.join(' | ')})`);
       const fontShorthands = noTokens.match(/\bfont:[^;}]+/g) || [];
-      assert.ok(fontShorthands.every((f) => /var\(--serif\)|var\(--sans\)/.test(f)), `every font: shorthand ends in a token (${fontShorthands.join(' | ')})`);
+      assert.ok(fontShorthands.every((f) => /var\(--(font-display|font-sans|serif|sans)\)/.test(f)), `every font: shorthand ends in a token (${fontShorthands.join(' | ')})`);
       for (const route of ['/', '/pros']) {
         const page = await open();
         await page.goto(route);
-        const fonts = await page.evaluate(() => [...document.querySelectorAll('h1, h2, h3, h4')].map((h) => ({ tag: h.tagName, cls: h.className, family: getComputedStyle(h).fontFamily, weight: getComputedStyle(h).fontWeight })));
-        const notGeorgia = fonts.filter((f) => !/^Georgia/.test(f.family));
-        t.diagnostic(`${route}: ${fonts.length} headings; not Georgia: ${notGeorgia.map((f) => `${f.tag}.${f.cls} ${f.family}`).join('; ') || 'none'}`);
-        // h3.profile-label is a small-caps label in the sans stack by design (marketing.css), so it is reported, not failed.
-        assert.deepEqual(notGeorgia.filter((f) => !/profile-label/.test(f.cls)), [], 'Georgia on headings');
-        assert.ok(fonts.filter((f) => /^Georgia/.test(f.family)).every((f) => f.weight === '400'), 'serif headings are weight 400');
-        assert.ok(fonts.filter((f) => /^Georgia/.test(f.family)).every((f) => /Courtside Serif Fallback/.test(f.family)), 'the computed stack carries the fallback face');
+        await page.evaluate(() => document.fonts.ready);
+        const fonts = await page.evaluate(() => ({
+          headings: [...document.querySelectorAll('h1, h2, h3, h4')].map((h) => ({ tag: h.tagName, cls: h.className, family: getComputedStyle(h).fontFamily, weight: getComputedStyle(h).fontWeight })),
+          body: getComputedStyle(document.body).fontFamily,
+          loaded: [...new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family))],
+          resolved: { canela: document.fonts.check('16px Canela'), gt: document.fonts.check('16px "GT America"') },
+        }));
+        const notCanela = fonts.headings.filter((f) => !/^Canela\b/.test(f.family));
+        t.diagnostic(`${route}: ${fonts.headings.length} headings; not Canela: ${notCanela.map((f) => `${f.tag}.${f.cls} ${f.family}`).join('; ') || 'none'}; body ${fonts.body}; loaded faces ${fonts.loaded.join(', ')}`);
+        // h3.profile-label (/pros) is a small-caps label in the sans stack by design (marketing.css), so it is reported, not failed.
+        assert.deepEqual(notCanela.filter((f) => !/profile-label/.test(f.cls)), [], 'Canela on headings');
+        assert.ok(fonts.headings.filter((f) => /^Canela/.test(f.family)).every((f) => f.weight === '400'), 'display headings are weight 400 (the Light trial file)');
+        assert.match(fonts.body, /^"GT America", "Instrument Sans"/, 'GT America on the body, Instrument Sans behind it');
+        assert.ok(fonts.resolved.canela && fonts.resolved.gt, 'both trial faces resolve');
+        assert.ok(['Canela', 'GT America'].every((f) => fonts.loaded.includes(f)), `the self-hosted faces loaded (${fonts.loaded.join(', ')})`);
         await page.close2();
       }
     });
 
-    test('style.css and gate.js are unchanged versus main; site.html gains one <style> line (view transitions, decision 4); site.js differs only in the three redirect targets', (t) => {
+    test('gate.js is unchanged versus main; style.css carries the v2 system (the seven faces, no Georgia stack, no glass) and keeps every rule main had; site.html gains one <style> line (view transitions, decision 4); site.js differs only in the three redirect targets', (t) => {
       let hasMain = true;
       try { execFileSync('git', ['rev-parse', '--verify', 'main'], { cwd: ROOT, stdio: 'pipe' }); } catch { hasMain = false; }
       if (!hasMain) { t.skip('no main branch to diff against'); return; }
-      const frozen = execFileSync('git', ['diff', 'main', '--', 'public/style.css', 'public/js/gate.js'], { cwd: ROOT, encoding: 'utf8' });
-      assert.equal(frozen, '', 'git diff main -- public/style.css public/js/gate.js is empty');
+      const frozen = execFileSync('git', ['diff', 'main', '--', 'public/js/gate.js'], { cwd: ROOT, encoding: 'utf8' });
+      assert.equal(frozen, '', 'git diff main -- public/js/gate.js is empty');
+      const styleDiff = execFileSync('git', ['diff', 'main', '--', 'public/style.css'], { cwd: ROOT, encoding: 'utf8' });
+      const added = styleDiff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
+      const removed = styleDiff.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));
+      t.diagnostic(`style.css vs main: +${added.length} / -${removed.length} lines`);
+      assert.ok(added.length > 0, 'style.css changed on purpose (redesign v2 step 1: the design system lives here)');
+      assert.equal(added.filter((l) => /^\+@font-face\{/.test(l)).length, 7, 'the seven @font-face rules are new');
+      assert.ok(removed.some((l) => /--serif: Georgia/.test(l)) && !added.some((l) => /Georgia, 'Times New Roman'/.test(l)), 'the Georgia stack is gone');
+      assert.ok(removed.some((l) => /backdrop-filter/.test(l)) && !added.some((l) => /backdrop-filter/.test(l)), 'the header glass is gone');
+      const selectors = (css) => new Set([...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{};]+)\{/g)].map((m) => m[1].trim()).filter((s) => s && !s.startsWith('@')));
+      const lost = [...selectors(execFileSync('git', ['show', 'main:public/style.css'], { cwd: ROOT, encoding: 'utf8' }))].filter((s) => !selectors(read('public/style.css')).has(s));
+      t.diagnostic(`selectors from main's style.css missing now: ${lost.join(' | ') || 'none'}`);
+      assert.deepEqual(lost, [], 'every rule main had is still declared (the gated /site keeps its styles; values may change)');
       const siteHtml = execFileSync('git', ['diff', 'main', '--', 'public/site.html'], { cwd: ROOT, encoding: 'utf8' });
       const siteLines = siteHtml.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l));
       t.diagnostic(`site.html changed lines: ${JSON.stringify(siteLines)}`);
