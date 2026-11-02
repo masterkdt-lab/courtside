@@ -1,8 +1,18 @@
-# Season card photos — credits
+# Photo credits — public/images/
 
-All seven are from Unsplash under the Unsplash License (free commercial use, no attribution required; credit given anyway,
-on the card as "Name / Unsplash" and here in full). Originals are `<name>.jpg`; the web sizes (`<name>-720`, `<name>-1200` and `<name>-1400`,
-WebP + JPG, centre-cropped to the card's aspect) come from `node scripts/make-season-images.js`.
+All Unsplash, under the Unsplash License (free commercial use, no attribution required; credit given anyway, on the season
+cards as "Name / Unsplash" and here in full).
+
+## Hero (s01), `hero/`
+
+Photo by Moises Alex (@arnok) on Unsplash, https://unsplash.com/photos/WqI-PbYugn4, Unsplash License. A tennis player
+serving on a red clay court in warm low sun. `hero-opt-1-2000.webp` is the file from Kasey's handoff; `-1000` and `-1400`
+are resized from it (sharp, WebP quality 80) for the `srcset`.
+
+## 2027 season cards (s05), `s05/`
+
+Originals are `<name>.jpg`; the web sizes (`<name>-720`, `<name>-1200` and `<name>-1400`, WebP + JPG, centre-cropped to
+the card's aspect) come from `node scripts/make-season-images.js`.
 
 | File | Photographer | Source | Subject |
 | --- | --- | --- | --- |

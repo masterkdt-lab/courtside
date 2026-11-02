@@ -70,7 +70,7 @@ Both pages use the brand tokens in `style.css` plus `marketing.css`, carry `noin
 
 `npm run images` runs `scripts/make-images.js`, which writes resized WebP and JPEG variants of the photos in `public/assets/` (widths 480 and 960 plus the original width, never upscaled, metadata stripped) into `public/assets/derived/` with a `manifest.json` describing each variant. The pages reference those files in `srcset`; the originals are untouched. Re-run it after adding or replacing a photo.
 
-The seven 2027 season card photos are Unsplash photos in `public/images/s05/` (credits on each card and in `public/images/s05/CREDITS.md`). `node scripts/make-season-images.js` centre-crops each to its card's aspect and writes the 720, 1200 and 1400 wide WebP + JPG variants next to the originals.
+The homepage hero (`public/images/hero/`) and the seven 2027 season card photos (`public/images/s05/`) are Unsplash photos; credits are in `public/images/CREDITS.md` and on each season card. `node scripts/make-season-images.js` centre-crops each to its card's aspect and writes the 720, 1200 and 1400 wide WebP + JPG variants next to the originals.
 
 ## Going live: what KC sets up
 

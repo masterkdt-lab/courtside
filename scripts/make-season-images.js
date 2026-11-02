@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Web sizes for the 2027 season cards on the homepage (redesign v2, s05).
 //   node scripts/make-season-images.js
-// Reads the Unsplash originals in public/images/s05/<name>.jpg (credits in CREDITS.md there), cuts each to
+// Reads the Unsplash originals in public/images/s05/<name>.jpg (credits in public/images/CREDITS.md), cuts each to
 // the aspect its card shows (centre crop, the same window object-fit: cover picks in the mockup) and writes
 // <name>-<width>.webp and .jpg at 720, 1200 and 1400 wide, metadata stripped (sharp drops EXIF/XMP by default).
 // 720 serves 1x desktops, 1200 serves 2x and 3x phones (a 390px phone at 3x needs 1170px), 1400 serves 2x

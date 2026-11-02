@@ -25,7 +25,7 @@
 <link href="/style.css" rel="stylesheet"/>
 <link href="/marketing.css" rel="stylesheet"/>
 <style>@view-transition{navigation:auto}@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}</style>
-<link as="image" imagesizes="(min-width:1050px) 58vw, 100vw" imagesrcset="/assets/derived/hero-clay-45-480.webp 480w, /assets/derived/hero-clay-45-960.webp 960w" rel="preload" type="image/webp"/>
+<link as="image" imagesizes="(min-width:1050px) 58vw, 100vw" imagesrcset="/images/hero/hero-opt-1-1000.webp 1000w, /images/hero/hero-opt-1-1400.webp 1400w, /images/hero/hero-opt-1-2000.webp 2000w" rel="preload" type="image/webp"/>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -38,8 +38,10 @@
 </header>
 <main id="main" tabindex="-1">
 <!-- s01 hero: the hero owns the one ask ("Enter invite code"); the quiet link under it goes to the waitlist at the
-     foot of the page. The clay-court photo (Katie left, Eva right; public/assets/PHOTOS.md) is the 4:5 crop at every
-     width: it fills the 7/12 column from 1050px (object-position 50% 40%) and sits under the copy at 4/5 on phones. -->
+     foot of the page. The photo is an Unsplash golden-hour clay-court serve (public/images/hero/, credit in
+     public/images/CREDITS.md: Moises Alex, https://unsplash.com/photos/WqI-PbYugn4), centred (object-position 50% 50%)
+     so the player stays in the middle of the panel: it fills the 7/12 column from 1050px and sits under the copy at
+     4/5 on phones. The Katie + Eva clay crops stay in public/assets/derived/ for the share images. -->
 <section aria-labelledby="heroTitle" class="hero home-hero">
 <div class="hero-copy">
 <h1 id="heroTitle">tennis takes you <em>further.</em></h1>
@@ -48,11 +50,8 @@
 <div class="hero-ctas"><a class="btn" href="/invite">Enter invite code</a><a class="quiet no-code" href="#waitlist">Don’t have an invite code? Join the waitlist</a></div>
 </div>
 <figure class="hero-image">
-<picture>
-<source sizes="(min-width:1050px) 58vw, 100vw" srcset="/assets/derived/hero-clay-45-480.webp 480w, /assets/derived/hero-clay-45-960.webp 960w" type="image/webp"/>
-<img alt="Katie and Eva celebrating at the net on a clay court in Spain" decoding="async" fetchpriority="high" height="1200" loading="eager" sizes="(min-width:1050px) 58vw, 100vw" src="/assets/derived/hero-clay-45-960.jpg" srcset="/assets/derived/hero-clay-45-480.jpg 480w, /assets/derived/hero-clay-45-960.jpg 960w" width="960"/>
-</picture>
-<figcaption class="hero-label"><b>Katie + Eva</b>on court in Spain</figcaption>
+<img alt="A tennis player serving on a red clay court in warm low sun, with long shadows." decoding="async" fetchpriority="high" height="1333" loading="eager" sizes="(min-width:1050px) 58vw, 100vw" src="/images/hero/hero-opt-1-2000.webp" srcset="/images/hero/hero-opt-1-1000.webp 1000w, /images/hero/hero-opt-1-1400.webp 1400w, /images/hero/hero-opt-1-2000.webp 2000w" width="2000"/>
+<figcaption class="hero-label"><b>Golden hour</b>on red clay</figcaption>
 </figure>
 </section>
 <!-- s02 what Courtside is (mockups/html/s02.html): copy and a hairline list left, the coast photo right (after the copy on phones). -->
@@ -105,7 +104,7 @@
 <!-- s05 2027 season (mockups/html/s05-cards.html): TRIPS[0..6] in /js/trips.js, same order, same wording, as photo cards
      on a 12-column grid (Spain featured full width, then 7 / 5 / 5 / 7 / 7 / 5). One "Join the waitlist" ask under the
      grid; the per-card captures from the polish pass are gone. Photos: Unsplash, credits on each card and in
-     public/images/s05/CREDITS.md; web sizes from scripts/make-season-images.js.
+     public/images/CREDITS.md; web sizes from scripts/make-season-images.js.
      Credits in full (Unsplash License):
        spain.jpg       Alpha Perspective (@alphaperspective)  https://unsplash.com/photos/igs4m-LPfc0  Alicante castle archway
        charleston.jpg  Samantha Fortney (@goldencoastlife)    https://unsplash.com/photos/Okx0Nd1f-nA  moss-draped oaks, Charleston

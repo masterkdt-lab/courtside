@@ -14,7 +14,7 @@ Source of truth for every crop and alt text on the public pages. Confirmed by KC
 
 Nelson Ramos has no photo in the repo; his profile shows a monogram until KC supplies one.
 
-The 2027 season cards on the homepage (redesign v2) use seven Unsplash photos in `public/images/s05/`; see `public/images/s05/CREDITS.md` and `scripts/make-season-images.js`. The homepage hero now uses the `hero-clay-45` crop at every width (the 3:2 crop is still generated and used by the share images).
+The 2027 season cards on the homepage (redesign v2) use seven Unsplash photos in `public/images/s05/`; see `public/images/CREDITS.md` and `scripts/make-season-images.js`. The homepage hero is an Unsplash golden-hour clay-court photo in `public/images/hero/` (credit in `public/images/CREDITS.md`); the Katie + Eva clay crops below are still generated and the 3:2 one still makes the share images.
 
 ## Named crops (`scripts/make-images.js`, `CROPS`)
 
@@ -23,7 +23,7 @@ Each crop is a window cut from a source at a fixed aspect, centred on a focal po
 | Crop | Source, window | Shows | Used by |
 | --- | --- | --- | --- |
 | `hero-clay-32` | clay photo, 3:2, full width, centred on both players' faces | Katie (left) and Eva (right) from the racket to the net | The share images (`/assets/og/*.jpg`) |
-| `hero-clay-45` | clay photo, 4:5, full width | Both players, head to foot | Homepage hero at every width (preloaded) |
+| `hero-clay-45` | clay photo, 4:5, full width | Both players, head to foot | Not used since the hero swap (Nov 2026); kept in derived/ |
 | `katie-portrait-34` | clay photo, 3:4, the left 52% | Katie alone, racket raised | Katie's profile portrait on `/pros`, the `/pros` intro link, the homepage teaser |
 | `eva-portrait-34` | clay photo, 3:4, the right 42% | Eva alone, white visor | Eva's profile portrait on `/pros`, the `/pros` intro link, the homepage teaser |
 | `spain-card-43` | clay photo, 4:3, full width, faces and the net | Both players at the net | The featured Spain card on `/` and the Spain trip card on `/pros` |
