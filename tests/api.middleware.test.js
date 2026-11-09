@@ -101,3 +101,12 @@ test('middleware.js imports nothing and uses no node: modules', () => {
   assert.doesNotMatch(source, /require\(/);
   assert.deepEqual([...source.matchAll(/^import\s.*$/gm)].map((m) => m[0]), [], 'no imports at all: nothing to break on the edge runtime');
 });
+
+test('www.courtsidetravel.co → 308 to the bare domain, path and query kept; other hosts unaffected', async () => {
+  const { default: mw } = await import('../middleware.js');
+  const res = await mw(new Request('https://www.courtsidetravel.co/?invite=KC1'));
+  assert.equal(res.status, 308);
+  assert.equal(res.headers.get('location'), 'https://courtsidetravel.co/?invite=KC1');
+  const apex = await mw(new Request('https://courtsidetravel.co/'));
+  assert.equal(apex.headers.get('x-middleware-next'), '1');
+});

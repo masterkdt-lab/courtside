@@ -42,7 +42,14 @@ export function next() {
   return new Response(null, { headers: { 'x-middleware-next': '1' } });
 }
 
+// The www name sends everything to the bare domain. vercel.json does this for every path the
+// matcher above does not catch; the paths it does catch reach this function first.
+export const WWW_HOST = 'www.courtsidetravel.co';
+export const APEX_ORIGIN = 'https://courtsidetravel.co';
+
 export default async function middleware(request) {
-  const target = redirectTarget(new URL(request.url));
+  const url = new URL(request.url);
+  if (url.hostname === WWW_HOST) return Response.redirect(`${APEX_ORIGIN}${url.pathname}${url.search}`, 308);
+  const target = redirectTarget(url);
   return target ? Response.redirect(new URL(target, request.url), 302) : next();
 }
