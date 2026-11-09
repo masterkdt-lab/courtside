@@ -25,3 +25,13 @@
 .receipt-links{margin:20px 0;text-align:left}.success .receipt-links .eyebrow{margin-bottom:4px}
 .focuslayout>*{min-width:0}.ledger td{vertical-align:middle;white-space:nowrap}.ledger td .badge{white-space:nowrap}
 @media(max-width:800px){.copyrow{grid-template-columns:1fr}.copyrow .fieldhint{grid-row:auto}.copyrow button{justify-self:start}.ledger td,.ledger th{padding:12px 8px}}
+
+/* Cookie consent (public/analytics.js; shown only once a GA4 measurement ID is set). Fixed, so it never shifts the layout. */
+.consent{position:fixed;left:16px;right:16px;bottom:16px;z-index:140;max-width:560px;margin-left:auto;background:var(--paper);border:1px solid var(--line);border-radius:4px;box-shadow:0 8px 30px #0002;padding:16px 18px;display:flex;align-items:center;gap:16px;font-size:13px;line-height:1.5;animation:consent-in .25s ease-out both}.consent[hidden]{display:none}.consent p{margin:0}.consent a{text-decoration:underline}.consent-actions{display:flex;gap:8px;flex:none}.consent .mini{min-height:40px;padding:8px 16px;flex:none}
+@keyframes consent-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.linkbutton{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}.linkbutton:hover{color:var(--rust)}
+@media(max-width:600px){.consent{flex-direction:column;align-items:stretch}.consent-actions .mini{flex:1}}
+@media(prefers-reduced-motion:reduce){.consent{animation:none}}
+
+/* The privacy notice (public/privacy.html) */
+.legal{max-width:760px}.legal h1{font-size:clamp(40px,5vw,62px)}.legal h2{font-size:27px;margin-top:38px}.legal p,.legal li{color:#4d4a42}.legal ul{padding-left:20px;margin:14px 0 0}.legal li{margin-top:8px}.legal a{text-decoration:underline}.legal .draft{margin-top:22px}.legal .placeholder{background:#f2e9d9;color:#836239;padding:0 4px;border-radius:2px}.legal table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}.legal th,.legal td{text-align:left;padding:9px 10px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}

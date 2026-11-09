@@ -65,6 +65,13 @@ async function visit(page, hash, { query = '' } = {}) {
   await page.waitForFunction(() => document.querySelector('#main .route-fade') !== null);
 }
 const hashIs = (page, hash) => page.waitForFunction((h) => location.hash === h, hash, { timeout: 8000 });
+// A public page has a real address and no hash route.
+const pathIs = (page, p) => page.waitForFunction((x) => location.pathname === x && location.hash === '', p, { timeout: 8000 });
+// Load a real page address in a fresh document and wait for the SPA to render it.
+async function visitPath(page, url) {
+  await page.goto(url);
+  await page.waitForFunction(() => document.querySelector('#main .route-fade') !== null);
+}
 const mainText = (page) => page.locator('#main').evaluate((el) => el.innerText.replace(/\s+/g, ' ').trim());
 // A section of the mock store, or [] while the file does not exist yet (nothing has been written since resetMock()).
 const rows = (section) => (fs.existsSync(process.env.MOCK_DATA_PATH) ? readMock()[section] || [] : []);
@@ -158,11 +165,13 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
   test('no page errors, no console errors and no external requests on the public pages, at 390 and 1440', async () => {
     for (const viewport of [MOBILE, DESKTOP]) {
       const page = await open({ viewport });
-      for (const hash of ['#/', '#/trip', '#/host', '#/apply', '#/invite', '#/start', '#/waitlist', '#/application']) {
-        await visit(page, hash);
+      for (const url of ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/invite', '/#/start', '/#/waitlist', '/#/application']) {
+        await visitPath(page, url);
         await page.waitForTimeout(150);
-        await shot(page, `${viewport.width}-${hash.replace(/[#/]+/g, '-').replace(/^-|-$/g, '') || 'home'}`);
+        await shot(page, `${viewport.width}-${url.replace(/[#/]+/g, '-').replace(/^-|-$/g, '') || 'home'}`);
       }
+      await page.goto('/privacy');
+      await page.waitForTimeout(150);
       assert.deepEqual(page.errors(), [], `errors at ${viewport.width}`);
       assert.deepEqual(page.resourceErrors(), [], `resource errors at ${viewport.width}`);
       assert.deepEqual(page.external(), [], `external requests at ${viewport.width}`);
@@ -170,7 +179,7 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     }
   });
 
-  test('invite: GUEST1 sets the session cookie and lands on #/trip', async () => {
+  test('invite: GUEST1 sets the session cookie and lands on the trip page', async () => {
     const page = await open();
     await visit(page, '#/invite');
     const text = await mainText(page);
@@ -179,7 +188,7 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     assert.equal(await page.locator('input[name=website]').count(), 1, 'honeypot present');
     await page.fill('input[name=code]', 'guest1');
     await page.click('#main form button.btn');
-    await hashIs(page, '#/trip');
+    await pathIs(page, '/trips/spanish-offseason');
     const cookie = await sessionCookie(page);
     assert.ok(cookie, 'cs_session cookie set');
     assert.ok(cookie.httpOnly);
@@ -200,8 +209,8 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     assert.doesNotMatch(text, DEMO_WORDS);
     assert.equal(await sessionCookie(page), null);
 
-    await page.click('a[href="#/invite"]');
-    await hashIs(page, '#/invite');
+    await page.click('#main a[href="/invite"]');
+    await pathIs(page, '/invite');
     await page.fill('input[name=code]', 'PAUSED1');
     await page.click('#main form button.btn');
     await hashIs(page, '#/invite-unavailable');
@@ -211,19 +220,16 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     await page.close2();
   });
 
-  test('invite: #/invite?code=GUEST1 prefills and auto-submits; the legacy /?invite= link gets there too', async () => {
-    let page = await open();
-    await page.goto('/#/invite?code=GUEST1');
-    await hashIs(page, '#/trip');
-    assert.ok(await sessionCookie(page));
-    await page.close2();
-
-    page = await open();
-    await page.goto('/?invite=GUEST1');
-    await hashIs(page, '#/trip');
-    assert.ok(await sessionCookie(page));
-    assert.deepEqual(page.errors(), []);
-    await page.close2();
+  test('invite: #/invite?code=GUEST1 prefills and auto-submits; /invite?code=, /?invite= and /?code= get there too', async () => {
+    for (const url of ['/#/invite?code=GUEST1', '/invite?code=GUEST1', '/invite?invite=GUEST1', '/?invite=GUEST1', '/?code=GUEST1']) {
+      const page = await open();
+      await page.goto(url);
+      await pathIs(page, '/trips/spanish-offseason');
+      assert.ok(await sessionCookie(page), url);
+      assert.match(await page.title(), /^The Spanish Offseason/, url);
+      assert.deepEqual(page.errors(), [], url);
+      await page.close2();
+    }
   });
 
   test('request: a group request writes one private Requests row and shows the reference', async () => {
@@ -416,8 +422,8 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     text = await mainText(page);
     assert.match(text, /Katie and Courtside review every application and will be in touch to arrange a conversation\./);
     assert.doesNotMatch(text, DEMO_WORDS);
-    assert.equal(await page.locator('#main a[href="#/trip"]').count(), 1);
-    assert.equal(await page.locator('#main a[href="#/"]').count(), 1);
+    assert.equal(await page.locator('#main a[href="/trips/spanish-offseason"]').count(), 1);
+    assert.equal(await page.locator('#main a[href="/"]').count(), 1);
     assert.equal(await page.locator('#main a[href="#/host-desk"], #main a[href="#/operations"]').count(), 0);
 
     const apps = rows('host_applications');
@@ -468,13 +474,15 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     await page.close2();
   });
 
-  test('privacy.html and 404.html are still served and point at the SPA', async () => {
+  test('privacy.html and 404.html are still served and link the real page paths', async () => {
     const privacy = await http(srv.base, '/privacy');
     assert.equal(privacy.status, 200);
-    assert.doesNotMatch(privacy.text, /href="\/(invite|pros)"/);
+    assert.match(privacy.text, NOINDEX);
+    assert.doesNotMatch(privacy.text, /href="\/pros"|href="\/?#\/(trip|trips|host|about|apply|invite)"/);
     const missing = await http(srv.base, '/nothing-here');
     assert.equal(missing.status, 404);
-    assert.match(missing.text, /href="\/#\/invite"/);
+    assert.match(missing.text, /href="\/invite"/);
+    assert.doesNotMatch(missing.text, /href="\/#\//);
     assert.ok(fs.existsSync(path.join(ROOT, 'public', 'js', 'trips.js')), 'public/js/trips.js stays for lib/lineup.js');
   });
 });

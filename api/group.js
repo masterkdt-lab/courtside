@@ -12,7 +12,7 @@
 import * as store from '../lib/store.js';
 import { isResponse, requireMember } from '../lib/access.js';
 import { getSecret } from '../lib/env.js';
-import { FLAG, FLEXIBLE, FLEXIBLE_LABEL, publicMember, spainWeeks, weekLabels, weeksById } from '../lib/groups.js';
+import { FLAG, FLEXIBLE, FLEXIBLE_LABEL, organizerViewOfMember, publicMember, spainWeeks, weekLabels, weeksById } from '../lib/groups.js';
 import { NOT_JSON, badRequest, forbidden, json, rateLimited, readJson, serverError } from '../lib/http.js';
 import { clientIp, ipHash } from '../lib/ids.js';
 import { logEvent } from '../lib/log.js';
@@ -33,7 +33,7 @@ export async function GET(request) {
       // Only the organizer sees the organizer's email; every member gets their own full row as `me`.
       group: ctx.isOrganizer ? ctx.group : { ...ctx.group, organizerEmail: '' },
       me: { ...ctx.member, memberId: ctx.memberId, role: ctx.member.role, isOrganizer: ctx.isOrganizer },
-      members: ctx.isOrganizer ? active : active.map(publicMember),
+      members: active.map((m) => (m.memberId === ctx.memberId ? m : ctx.isOrganizer ? organizerViewOfMember(m) : publicMember(m))),
       weekLabels: weekLabels(weeks),
     });
   } catch (err) {

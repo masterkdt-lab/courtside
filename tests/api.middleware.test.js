@@ -1,8 +1,9 @@
 // tests/api.middleware.test.js
-// middleware.js (CONCEPT02_PLAN.md, Routing): the matcher, the legacy personal-link redirect from
-// / and /invite into /#/invite?code=…, the bare /invite redirect, the /site and /site.html redirect
-// into /#/trip, the pass-through for everything else, and an import graph free of node: modules so
-// it can run on Vercel's middleware runtime.
+// middleware.js (CONCEPT02_PLAN.md, Routing; real page paths 2026-11-09): the matcher, the legacy
+// personal-link redirect from / and /invite into /#/invite?code=…, the bare /invite pass-through to the
+// real /invite page, the /site and /site.html redirect to /trips/spanish-offseason, the pass-through
+// for everything else, and an import graph free of node: modules so it can run on Vercel's middleware
+// runtime.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -38,7 +39,7 @@ function expectRedirect(res, target) {
 test('config matches /, /invite, /site and /site.html only, each as an exact path', () => {
   assert.deepEqual(config, { matcher: ['/', '/invite', '/site', '/site.html'] });
   assert.equal(INVITE_ROUTE, '/#/invite');
-  assert.equal(TRIP_ROUTE, '/#/trip');
+  assert.equal(TRIP_ROUTE, '/trips/spanish-offseason');
   assert.deepEqual([...CODE_PARAMS], ['invite', 'code']);
 });
 
@@ -66,17 +67,18 @@ test('/?invite=X, /?code=X, /invite?invite=X and /invite?code=X redirect (302) t
   expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1`, await validCookie())), '/#/invite?code=GUEST1');
 });
 
-test('a bare /invite (the old gate page) redirects to /#/invite', async () => {
-  expectRedirect(await middleware(request(`${ORIGIN}/invite`)), '/#/invite');
-  expectRedirect(await middleware(request(`${ORIGIN}/invite?utm_source=x`)), '/#/invite');
+test('a bare /invite passes through to the real /invite page (no redirect)', async () => {
+  expectPassThrough(await middleware(request(`${ORIGIN}/invite`)));
+  expectPassThrough(await middleware(request(`${ORIGIN}/invite?utm_source=x`)));
+  expectPassThrough(await middleware(request(`${ORIGIN}/invite`, await validCookie())));
 });
 
-test('/site and /site.html redirect (302) to /#/trip, with or without a cookie; the cookie gates nothing now', async () => {
-  expectRedirect(await middleware(request(`${ORIGIN}/site`)), '/#/trip');
-  expectRedirect(await middleware(request(`${ORIGIN}/site.html`)), '/#/trip');
-  expectRedirect(await middleware(request(`${ORIGIN}/site?x=1`)), '/#/trip');
-  expectRedirect(await middleware(request(`${ORIGIN}/site`, 'cs_session=abc.def')), '/#/trip');
-  expectRedirect(await middleware(request(`${ORIGIN}/site`, await validCookie())), '/#/trip');
+test('/site and /site.html redirect (302) to /trips/spanish-offseason, with or without a cookie; the cookie gates nothing now', async () => {
+  expectRedirect(await middleware(request(`${ORIGIN}/site`)), '/trips/spanish-offseason');
+  expectRedirect(await middleware(request(`${ORIGIN}/site.html`)), '/trips/spanish-offseason');
+  expectRedirect(await middleware(request(`${ORIGIN}/site?x=1`)), '/trips/spanish-offseason');
+  expectRedirect(await middleware(request(`${ORIGIN}/site`, 'cs_session=abc.def')), '/trips/spanish-offseason');
+  expectRedirect(await middleware(request(`${ORIGIN}/site`, await validCookie())), '/trips/spanish-offseason');
 });
 
 test('redirectTarget (shared with the dev server) returns the target or null', () => {
@@ -85,10 +87,14 @@ test('redirectTarget (shared with the dev server) returns the target or null', (
   assert.equal(redirectTarget(url('/?x=1')), null);
   assert.equal(redirectTarget(url('/?invite=GUEST1&guest=x')), '/#/invite?code=GUEST1');
   assert.equal(redirectTarget(url('/?code=guest1')), '/#/invite?code=guest1');
-  assert.equal(redirectTarget(url('/invite')), '/#/invite');
+  assert.equal(redirectTarget(url('/invite')), null, 'the real /invite page');
+  assert.equal(redirectTarget(url('/invite?utm_source=x')), null);
+  assert.equal(redirectTarget(url('/invite?invite=GUEST1')), '/#/invite?code=GUEST1');
   assert.equal(redirectTarget(url('/invite?code=GUEST1')), '/#/invite?code=GUEST1');
-  assert.equal(redirectTarget(url('/site')), '/#/trip');
-  assert.equal(redirectTarget(url('/site.html')), '/#/trip');
+  assert.equal(redirectTarget(url('/site')), '/trips/spanish-offseason');
+  assert.equal(redirectTarget(url('/site.html')), '/trips/spanish-offseason');
+  assert.equal(redirectTarget(url('/trips/spanish-offseason')), null);
+  assert.equal(redirectTarget(url('/trips')), null);
   // Paths outside the matcher are the dev server's business; the function says "continue".
   assert.equal(redirectTarget(url('/privacy?invite=GUEST1')), null);
   assert.equal(redirectTarget(url('/pros')), null);

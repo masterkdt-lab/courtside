@@ -146,7 +146,7 @@ describe('GET /api/group', () => {
     assert.equal(res.res.headers.get('cache-control'), 'no-store');
   });
 
-  test('the organizer sees the group, me, every non-removed member with every column, and the week labels', async () => {
+  test('the organizer sees the group, me, every non-removed member (their own row in full, others without private planning), and the week labels', async () => {
     const { org, guest } = await groupWithGuest();
     await member({ action: 'add', name: 'Gone', email: 'gone@example.com', role: 'Player' }, org.cookie);
     const goneId = readMock().group_members.at(-1).member_id;
@@ -161,7 +161,8 @@ describe('GET /api/group', () => {
     assert.equal(json.me.isOrganizer, true);
     assert.ok(json.group.organizerEmail, 'the organizer sees their own email');
     assert.deepEqual(json.members.map((m) => m.memberId), [org.memberId, guest.memberId]);
-    assert.equal(Object.keys(json.members[1]).length, TAB_HEADERS.GroupMembers.length);
+    assert.equal(Object.keys(json.members[0]).length, TAB_HEADERS.GroupMembers.length, 'the organizer\'s own row in full');
+    for (const hidden of ['careNotes', 'arrivalAirport', 'arrivalFlight', 'room', 'roommate', 'level', 'interests']) assert.ok(!(hidden in json.members[1]), `${hidden} is private to the traveler`);
     assert.equal(json.members[1].email, 'sam@example.com');
     assert.equal(json.members[1].paymentStatus, 'Not due');
     assert.equal(json.weekLabels.w5, 'Feb 7–13');
@@ -175,7 +176,8 @@ describe('GET /api/group', () => {
     assert.equal(json.group.organizerEmail, '', 'members never receive the organizer email');
     assert.equal(json.me.memberId, guest.memberId);
     assert.equal(json.me.email, 'sam@example.com', 'me is the member\'s own full row');
-    for (const m of json.members) assert.deepEqual(Object.keys(m), ['memberId', 'name', 'role', 'participation', 'planningComplete']);
+    for (const m of json.members.filter((x) => x.memberId !== guest.memberId)) assert.deepEqual(Object.keys(m), ['memberId', 'name', 'role', 'participation', 'planningComplete']);
+    assert.equal(json.members.find((x) => x.memberId === guest.memberId).email, 'sam@example.com', 'their own row stays whole');
   });
 });
 

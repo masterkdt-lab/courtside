@@ -1,5 +1,6 @@
 // tests/api.dev-server.test.js
-// scripts/dev-server.js on port 0 (CONCEPT02_PLAN.md, Routing): the SPA at /, /privacy, the static
+// scripts/dev-server.js on port 0 (CONCEPT02_PLAN.md, Routing): the SPA at /, the public pages at their
+// real paths (/trips, /trips/spanish-offseason, /hosts/katie, /about, /apply, /invite), /privacy, the static
 // allow-list (files, assets/, fonts/, js/), the legacy redirects shared with middleware.js, the
 // dynamic /api/<name> dispatch (lineup, inquiry, application, waitlist, code, …), cookies, and the
 // 404 page. The frontend agent owns public/, so checks on individual files follow the file's
@@ -67,14 +68,27 @@ const expectRedirect = async (from, to) => {
   assert.equal(res.headers.get('cache-control'), 'no-store', from);
 };
 
-test('the allow-list is the plan\'s: two pages, eight files, three directories, four redirect paths', () => {
-  assert.deepEqual(PAGES, { '/': 'index.html', '/privacy': 'privacy.html' });
-  assert.deepEqual([...FILES], ['/styles.css', '/v2.css', '/pages.js', '/app.js', '/style.css', '/marketing.css', '/robots.txt', '/sitemap.xml', '/favicon.svg']);
+test('the allow-list: eight pages, ten files, three directories, four redirect paths', () => {
+  assert.deepEqual(PAGES, {
+    '/': 'index.html',
+    '/trips': 'trips.html',
+    '/trips/spanish-offseason': 'trips/spanish-offseason.html',
+    '/hosts/katie': 'hosts/katie.html',
+    '/about': 'about.html',
+    '/apply': 'apply.html',
+    '/invite': 'invite.html',
+    '/privacy': 'privacy.html',
+  });
+  assert.deepEqual([...FILES], ['/styles.css', '/v2.css', '/analytics.js', '/pages.js', '/app.js', '/style.css', '/marketing.css', '/robots.txt', '/sitemap.xml', '/favicon.svg']);
   assert.deepEqual(DIRS, { '/assets/': 'assets', '/fonts/': 'fonts', '/js/': 'js' });
   assert.deepEqual([...REDIRECT_PATHS], ['/', '/invite', '/site', '/site.html']);
   const under = (...parts) => path.join('public', ...parts);
   assert.ok(resolveStatic('/').endsWith(under('index.html')));
   assert.ok(resolveStatic('/privacy').endsWith(under('privacy.html')));
+  assert.ok(resolveStatic('/trips').endsWith(under('trips.html')));
+  assert.ok(resolveStatic('/trips/spanish-offseason').endsWith(under('trips', 'spanish-offseason.html')));
+  assert.ok(resolveStatic('/hosts/katie').endsWith(under('hosts', 'katie.html')));
+  assert.ok(resolveStatic('/invite').endsWith(under('invite.html')));
   for (const file of FILES) assert.ok(resolveStatic(file).endsWith(under(file.slice(1))), file);
   assert.ok(resolveStatic('/assets/hero.webp').endsWith(under('assets', 'hero.webp')));
   assert.ok(resolveStatic('/assets/og/home.jpg').endsWith(under('assets', 'og', 'home.jpg')), 'nested asset folders');
@@ -83,7 +97,7 @@ test('the allow-list is the plan\'s: two pages, eight files, three directories, 
   assert.ok(resolveStatic('/fonts/fonts.css').endsWith(under('fonts', 'fonts.css')));
   assert.ok(resolveStatic('/js/trips.js').endsWith(under('js', 'trips.js')));
   // No longer pages or files.
-  for (const p of ['/invite', '/pros', '/site', '/site.html', '/index.html', '/privacy.html', '/404.html', '/invite.html', '/pros.html', '/images/hero/hero.jpg', '/fonts.css']) {
+  for (const p of ['/pros', '/site', '/site.html', '/index.html', '/privacy.html', '/404.html', '/invite.html', '/trips.html', '/trips/spanish-offseason.html', '/hosts', '/hosts/katie.html', '/trips/mallorca', '/pros.html', '/images/hero/hero.jpg', '/fonts.css']) {
     assert.equal(resolveStatic(p), null, p);
   }
 });
@@ -111,7 +125,22 @@ test('/privacy serves public/privacy.html as HTML; /privacy?invite=X is not redi
   assert.equal((await get('/privacy.html')).status, 404, 'clean URLs only');
 });
 
-test('legacy personal links and the old page URLs redirect (302) into the SPA, exactly like middleware.js', async () => {
+test('the public pages are served at their real paths as HTML, each the generated file verbatim', async () => {
+  for (const [p, file] of Object.entries(PAGES)) {
+    const res = await get(p);
+    assert.equal(res.status, 200, p);
+    assert.equal(res.headers.get('content-type'), 'text/html; charset=utf-8', p);
+    assert.equal(await res.text(), fs.readFileSync(path.join(PUBLIC, file), 'utf8'), p);
+  }
+  assert.equal((await get('/invite?utm_source=x')).status, 200, 'a bare /invite is the page, not a redirect');
+  assert.equal((await get('/trips/spanish-offseason/')).status, 308);
+  assert.equal((await get('/trips/spanish-offseason/')).headers.get('location'), '/trips/spanish-offseason');
+  const sitemap = await get('/sitemap.xml');
+  assert.equal(sitemap.status, 200);
+  assert.equal(sitemap.headers.get('content-type'), 'application/xml; charset=utf-8');
+});
+
+test('legacy personal links and the old page URLs redirect (302), exactly like middleware.js', async () => {
   await expectRedirect('/?invite=GUEST1', '/#/invite?code=GUEST1');
   await expectRedirect('/?code=guest1', '/#/invite?code=guest1');
   await expectRedirect('/?invite=GUEST1&guest=Mallory', '/#/invite?code=GUEST1');
@@ -119,14 +148,13 @@ test('legacy personal links and the old page URLs redirect (302) into the SPA, e
   await expectRedirect('/?invite=a%26b', '/#/invite?code=a%26b');
   await expectRedirect('/invite?invite=GUEST1', '/#/invite?code=GUEST1');
   await expectRedirect('/invite?code=GUEST1', '/#/invite?code=GUEST1');
-  await expectRedirect('/invite', '/#/invite');
-  await expectRedirect('/site', '/#/trip');
-  await expectRedirect('/site.html', '/#/trip');
-  await expectRedirect('/site?x=1', '/#/trip');
+  await expectRedirect('/site', '/trips/spanish-offseason');
+  await expectRedirect('/site.html', '/trips/spanish-offseason');
+  await expectRedirect('/site?x=1', '/trips/spanish-offseason');
   const { cookie } = await login('GUEST1');
   const withCookie = await get('/site', { headers: { cookie } });
   assert.equal(withCookie.status, 302, 'the cookie no longer opens /site; the SPA trip page is public');
-  assert.equal(withCookie.headers.get('location'), '/#/trip');
+  assert.equal(withCookie.headers.get('location'), '/trips/spanish-offseason');
   // /pros is neither a page nor a redirect any more.
   assert.equal((await get('/pros')).status, 404);
 });
@@ -161,6 +189,7 @@ test('static files are served with the right type when present; resolveStatic ne
     ['/robots.txt', 'text/plain; charset=utf-8'], ['/favicon.svg', 'image/svg+xml'],
     ['/styles.css', 'text/css; charset=utf-8'], ['/v2.css', 'text/css; charset=utf-8'],
     ['/pages.js', 'text/javascript; charset=utf-8'], ['/app.js', 'text/javascript; charset=utf-8'],
+    ['/analytics.js', 'text/javascript; charset=utf-8'],
     ['/style.css', 'text/css; charset=utf-8'], ['/marketing.css', 'text/css; charset=utf-8'],
     ['/js/trips.js', 'text/javascript; charset=utf-8'],
     ['/fonts/fonts.css', 'text/css; charset=utf-8'], ['/fonts/f0.woff2', 'font/woff2'],
@@ -268,7 +297,7 @@ test('POST /api/inquiry end to end: no cookie, JSON in, JSON out, one Requests r
   assert.equal(row.invite_code, '');
   const log = readMock().log.find((r) => r.result === json.requestId);
   assert.equal(log.code, 'inquiry_submit');
-  assert.equal(sentLog.length, 1);
+  assert.equal(sentLog.length, 2, 'team notification + guest confirmation');
 
   const { cookie } = await login('GUEST1');
   const withCookie = await postJson('/api/inquiry', { ...body, email: 'two@example.com' }, { cookie, 'x-forwarded-for': '198.51.100.40' });
@@ -327,7 +356,7 @@ test('POST /api/code end to end: JSON body in, JSON + Set-Cookie out; the retire
   const { res, setCookie, cookie } = await login('GUEST1');
   assert.equal(res.headers.get('content-type'), 'application/json');
   assert.deepEqual(await res.json(), { ok: true, invitedBy: 'Katie', issuedTo: 'Ana Guest' });
-  assert.match(setCookie, /^cs_session=[A-Za-z0-9_.-]+; Path=\/; HttpOnly; SameSite=Lax; Max-Age=2592000$/);
+  assert.match(setCookie, /^cs_session=[A-Za-z0-9_.-]+; Path=\/; HttpOnly; SameSite=Lax; Max-Age=34560000$/);
   const bad = await postJson('/api/code', { code: 'NOPE' });
   assert.equal(bad.status, 401);
   assert.deepEqual(await bad.json(), { ok: false, reason: 'invalid' });

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // scripts/dev-server.js
 // Local server (Phase 1 plan 4.0; CONCEPT02_PLAN.md, Routing): plain node:http on PORT or 3000.
-// Serves the Concept 02 SPA (/ → public/index.html) and the privacy page (/privacy), the SPA's
-// files (styles.css, v2.css, pages.js, app.js), the privacy page's files (style.css, marketing.css),
-// robots.txt and favicon.svg, and the assets/, fonts/ and js/ folders (recursively, so assets/og/
-// and assets/derived/ work), with clean URLs. It mirrors middleware.js (the legacy /?invite=CODE,
-// /invite and /site redirects into the SPA's hash routes) and routes /api/<name> to the
+// Serves the Concept 02 SPA (/ → public/index.html), its public pages at their real paths (/trips,
+// /trips/spanish-offseason, /hosts/katie, /about, /apply, /invite → the files scripts/make-pages.js
+// writes), the privacy page (/privacy), the SPA's files (styles.css, v2.css, analytics.js, pages.js,
+// app.js), the 404 page's files (style.css, marketing.css), robots.txt, sitemap.xml and favicon.svg,
+// and the assets/, fonts/ and js/ folders (recursively, so assets/og/ and assets/derived/ work), with
+// clean URLs. It mirrors middleware.js (the legacy /?invite=CODE and /invite?code=CODE links into the
+// gate's hash route, /site to the trip page) and routes /api/<name> to the
 // Web-standard GET/POST exports of api/<name>.js, for any file that exists there, so a new route
 // needs no registration. Nothing else is served (lib/, api/, scripts/, tests/, .env*, package*.json,
 // .data/, .git/, the plans, the README, and no *.html by file name). Any other path is a 404:
@@ -28,11 +30,20 @@ const API_DIR = path.join(ROOT, 'api');
 const API_NAME = /^[a-z][a-z0-9-]*$/;
 // The designed 404 page. Read on every miss, so changing the file needs no restart.
 const NOT_FOUND_PAGE = path.join(STATIC_ROOT, '404.html');
-// Clean URLs only: /privacy serves privacy.html, /privacy.html is a 404.
-export const PAGES = Object.freeze({ '/': 'index.html', '/privacy': 'privacy.html' });
+// Clean URLs only (vercel.json cleanUrls): /privacy serves privacy.html, /privacy.html is a 404.
+export const PAGES = Object.freeze({
+  '/': 'index.html',
+  '/trips': 'trips.html',
+  '/trips/spanish-offseason': 'trips/spanish-offseason.html',
+  '/hosts/katie': 'hosts/katie.html',
+  '/about': 'about.html',
+  '/apply': 'apply.html',
+  '/invite': 'invite.html',
+  '/privacy': 'privacy.html',
+});
 export const FILES = Object.freeze([
-  '/styles.css', '/v2.css', '/pages.js', '/app.js', // the Concept 02 SPA
-  '/style.css', '/marketing.css', // privacy.html
+  '/styles.css', '/v2.css', '/analytics.js', '/pages.js', '/app.js', // the Concept 02 SPA and its pages
+  '/style.css', '/marketing.css', // 404.html
   '/robots.txt', '/sitemap.xml', '/favicon.svg',
 ]);
 export const DIRS = Object.freeze({ '/assets/': 'assets', '/fonts/': 'fonts', '/js/': 'js' });
@@ -184,7 +195,7 @@ async function handle(req, res) {
   if (pathname.startsWith('/api/')) return handleApi(req, res, pathname.slice('/api/'.length));
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed', { Allow: 'GET, HEAD' });
 
-  // Same as middleware.js: legacy personal links and the old page URLs go into the SPA's hash routes.
+  // Same as middleware.js: legacy personal links go to the gate's hash route, /site to the trip page.
   if (REDIRECT_PATHS.includes(pathname)) {
     const target = redirectTarget(url);
     if (target) return send(res, 302, '', { Location: target, 'Cache-Control': 'no-store' });
