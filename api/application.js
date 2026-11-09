@@ -13,6 +13,7 @@
 // nothing (double submit), so a double click never files two applications.
 
 import * as store from '../lib/store.js';
+import { notifyApplication, sendEmail } from '../lib/email.js';
 import { getSecret } from '../lib/env.js';
 import { json, readJson } from '../lib/http.js';
 import { clientIp, ipHash } from '../lib/ids.js';
@@ -48,7 +49,14 @@ export function buildRow(value, now = new Date()) {
 }
 
 async function save({ value, hash }) {
-  await store.appendHostApplication(buildRow(value));
+  const row = buildRow(value);
+  await store.appendHostApplication(row);
+  // Team notification, best effort: a failed email never fails the sign-up (the row is saved).
+  const notifyTo = String(process.env.NOTIFY_EMAILS ?? '').trim();
+  if (notifyTo) {
+    const sent = await sendEmail({ to: notifyTo, ...notifyApplication(row, { sheetUrl: String(process.env.SHEET_URL ?? '').trim() }) });
+    if (!sent.ok) console.error(`[api/application] notification email failed: ${sent.error}`);
+  }
   try {
     await store.logAttempt({ code: LOG_CODE, result: 'ok', ipHash: hash });
   } catch (err) {

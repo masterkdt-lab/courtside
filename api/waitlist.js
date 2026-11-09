@@ -17,6 +17,7 @@
 // email + trip within 60 seconds returns 200 again and writes nothing (double submit, plan 4.0).
 
 import * as store from '../lib/store.js';
+import { notifyWaitlist, sendEmail } from '../lib/email.js';
 import { getSecret } from '../lib/env.js';
 import { json, readJson } from '../lib/http.js';
 import { clientIp, ipHash } from '../lib/ids.js';
@@ -55,7 +56,14 @@ export function buildRow(value, now = new Date()) {
 }
 
 async function save({ value, hash }) {
-  await store.appendWaitlist(buildRow(value));
+  const row = buildRow(value);
+  await store.appendWaitlist(row);
+  // Team notification, best effort: a failed email never fails the sign-up (the row is saved).
+  const notifyTo = String(process.env.NOTIFY_EMAILS ?? '').trim();
+  if (notifyTo) {
+    const sent = await sendEmail({ to: notifyTo, ...notifyWaitlist(row, { sheetUrl: String(process.env.SHEET_URL ?? '').trim() }) });
+    if (!sent.ok) console.error(`[api/waitlist] notification email failed: ${sent.error}`);
+  }
   try {
     await store.logAttempt({ code: LOG_CODE, result: tripKey(value), ipHash: hash });
   } catch (err) {

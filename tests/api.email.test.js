@@ -4,7 +4,7 @@
 import { test, describe, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  RESEND_URL, _resetSentLog, confirmGuest, emailMode, notifyInquiry, notifyKatie, sendEmail, sentLog, toRecipients,
+  GMAIL_SEND_URL, RESEND_URL, _resetSentLog, confirmGuest, emailMode, notifyApplication, notifyInquiry, notifyKatie, notifyWaitlist, sendEmail, sentLog, toRecipients,
 } from '../lib/email.js';
 
 const row = {
@@ -156,5 +156,46 @@ describe('templates', () => {
     assert.ok(text.includes('Katie reviews each request personally'));
     assert.ok(text.includes(row.brief));
     assert.ok(confirmGuest({ ...row, guestName: '' }).text.includes('Your request CS-ABCDEFGH'));
+  });
+});
+
+describe('EMAIL_MODE=gmail', () => {
+  const env = { EMAIL_MODE: 'gmail', FROM_EMAIL: 'team@courtsidetravel.co', GOOGLE_SERVICE_ACCOUNT_EMAIL: 'sa@x.iam.gserviceaccount.com', GOOGLE_PRIVATE_KEY: 'k' };
+
+  test('posts a base64url RFC 2822 message to the Gmail API as FROM_EMAIL, with encoded non-ASCII headers', async () => {
+    const calls = [];
+    const fetch = async (url, init) => { calls.push({ url, init }); return new Response(JSON.stringify({ id: 'g-1' }), { status: 200 }); };
+    const res = await sendEmail({ to: 'a@example.com, b@example.com', subject: 'Waitlist · Spain – TEST', text: 'Hello ’there’', replyTo: 'guest@example.com' }, env, { fetch, getToken: async () => 'tok' });
+    assert.deepEqual(res, { ok: true, id: 'g-1' });
+    assert.equal(calls[0].url, GMAIL_SEND_URL);
+    assert.equal(calls[0].init.headers.Authorization, 'Bearer tok');
+    const raw = JSON.parse(calls[0].init.body).raw;
+    assert.doesNotMatch(raw, /[+/=]/, 'base64url, unpadded');
+    const mime = Buffer.from(raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    assert.match(mime, /^From: Courtside Travel Co\. <team@courtsidetravel\.co>\r\n/);
+    assert.match(mime, /\r\nTo: a@example\.com, b@example\.com\r\n/);
+    assert.match(mime, /\r\nReply-To: guest@example\.com\r\n/);
+    assert.match(mime, /\r\nSubject: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?=\r\n/);
+    const body = mime.split('\r\n\r\n')[1].replace(/\r\n/g, '');
+    assert.equal(Buffer.from(body, 'base64').toString('utf8'), 'Hello ’there’');
+  });
+
+  test('missing config, no recipients and a Gmail error are reported, never thrown', async () => {
+    assert.match((await sendEmail({ to: 'a@example.com', subject: 's', text: 't' }, { EMAIL_MODE: 'gmail' })).error, /FROM_EMAIL/);
+    assert.equal((await sendEmail({ to: '', subject: 's', text: 't' }, env, { getToken: async () => 't' })).error, 'no recipients');
+    const fetch = async () => new Response(JSON.stringify({ error: { message: 'Precondition check failed.' } }), { status: 400 });
+    assert.deepEqual(await sendEmail({ to: 'a@example.com', subject: 's', text: 't' }, env, { fetch, getToken: async () => 't' }), { ok: false, error: 'Precondition check failed.' });
+    const broken = await sendEmail({ to: 'a@example.com', subject: 's', text: 't' }, env, { getToken: async () => { throw new Error('unauthorized_client'); } });
+    assert.deepEqual(broken, { ok: false, error: 'unauthorized_client' });
+  });
+
+  test('emailMode recognises gmail; the waitlist and application templates carry a reply-to', () => {
+    assert.equal(emailMode({ EMAIL_MODE: 'Gmail' }), 'gmail');
+    const w = notifyWaitlist({ email: 'g@example.com', name: '', trip: 'Geneva', source: 'concept02-waitlist' });
+    assert.equal(w.subject, 'Waitlist · Geneva · g@example.com');
+    assert.equal(w.replyTo, 'g@example.com');
+    const a = notifyApplication({ name: 'Pat Pro', email: 'p@example.com', club: 'Club X', referral: '', destination: 'Mallorca', background: 'b', community: 'c' });
+    assert.equal(a.subject, 'Host application · Pat Pro · Club X');
+    assert.match(a.text, /Would love to take them to: Mallorca/);
   });
 });
