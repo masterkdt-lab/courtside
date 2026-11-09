@@ -9,7 +9,7 @@ import path from 'node:path';
 import * as store from '../lib/store.js';
 import * as mock from '../lib/store.mock.js';
 
-const INTERFACE = ['findInvite', 'recordInviteUse', 'logAttempt', 'listTrips', 'listWeeks', 'appendRequest', 'appendWaitlist'];
+const INTERFACE = ['findInvite', 'recordInviteUse', 'logAttempt', 'listTrips', 'listWeeks', 'appendRequest', 'appendWaitlist', 'appendHostApplication'];
 const GOOGLE_ENV = ['SHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_PRIVATE_KEY'];
 
 let dir;
@@ -21,7 +21,7 @@ before(() => {
 });
 after(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
-test('exposes exactly the 4.1 interface plus appendWaitlist as functions', () => {
+test('exposes exactly the 4.1 interface plus appendWaitlist and appendHostApplication as functions', () => {
   for (const name of INTERFACE) assert.equal(typeof store[name], 'function', name);
   for (const name of INTERFACE) assert.equal(typeof mock[name], 'function', `mock.${name}`);
 });
@@ -83,4 +83,16 @@ test('the mock backend round-trips a waitlist row through the shared interface',
   const saved = mock.readMockData().waitlist.find((r) => r.email === 'ana.guest@example.com');
   assert.equal(saved.trip, 'General');
   assert.equal(saved.source, 'footer');
+});
+
+test('the mock backend round-trips a host application through the shared interface', async () => {
+  const result = await store.appendHostApplication({
+    timestamp: new Date().toISOString(), name: 'Sam Pro', email: 'sam.pro@example.com', club: 'Club de Tenis, Alicante, Spain',
+    referral: '', background: 'Twenty years of coaching.', community: 'A club of 200 members.', destination: 'Mallorca',
+  });
+  assert.deepEqual(result, { email: 'sam.pro@example.com' });
+  const saved = mock.readMockData().host_applications.find((r) => r.email === 'sam.pro@example.com');
+  assert.equal(saved.club, 'Club de Tenis, Alicante, Spain');
+  assert.equal(saved.referral, '');
+  assert.equal(saved.destination, 'Mallorca');
 });

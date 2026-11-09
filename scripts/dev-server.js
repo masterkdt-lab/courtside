@@ -1,35 +1,44 @@
 #!/usr/bin/env node
 // scripts/dev-server.js
-// Local server (Phase 1 plan 4.0, Phase 2 plan section 6): plain node:http on PORT or 3000.
-// Serves only the pages (/ homepage, /invite gate, /pros, /privacy), style.css, marketing.css,
-// js/, assets/ (recursively, so assets/derived/ works), fonts/, images/ and robots.txt with clean URLs, mirrors
-// middleware.js (the legacy /?invite=CODE redirect to /invite and the cookie guard on /site), and
-// routes /api/<name> to the Web-standard GET/POST exports in api/<name>.js. Nothing else is served
-// (lib/, api/, scripts/, tests/, .env*, package*.json, .data/, .git/, the plans, the README, and
-// no *.html by file name). Any other path is a 404: public/404.html with status 404 when that file
-// exists (as Vercel serves a 404.html from the output directory), the plain text "Not found"
-// otherwise; unknown /api/<name> paths stay JSON. Not `vercel dev`: no accounts, no keys.
+// Local server (Phase 1 plan 4.0; CONCEPT02_PLAN.md, Routing): plain node:http on PORT or 3000.
+// Serves the Concept 02 SPA (/ → public/index.html) and the privacy page (/privacy), the SPA's
+// files (styles.css, v2.css, pages.js, app.js), the privacy page's files (style.css, marketing.css),
+// robots.txt and favicon.svg, and the assets/, fonts/ and js/ folders (recursively, so assets/og/
+// and assets/derived/ work), with clean URLs. It mirrors middleware.js (the legacy /?invite=CODE,
+// /invite and /site redirects into the SPA's hash routes) and routes /api/<name> to the
+// Web-standard GET/POST exports of api/<name>.js, for any file that exists there, so a new route
+// needs no registration. Nothing else is served (lib/, api/, scripts/, tests/, .env*, package*.json,
+// .data/, .git/, the plans, the README, and no *.html by file name). Any other path is a 404:
+// public/404.html with status 404 when that file exists (as Vercel serves a 404.html from the output
+// directory), the plain text "Not found" otherwise; unknown /api/<name> paths stay JSON. Not
+// `vercel dev`: no accounts, no keys.
 
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT, getSecret, loadEnv } from '../lib/env.js';
-import { isAllowed } from '../lib/guard.js';
-import { GATE_PATH, legacyInviteRedirect } from '../middleware.js';
+import { ROOT, loadEnv } from '../lib/env.js';
+import { redirectTarget } from '../middleware.js';
 
-// Static files live at the repo root today. If they are moved into public/ (what Vercel's "Other"
-// preset serves when that folder exists, instead of the whole root), the server follows.
+// Static files live in public/ (what Vercel's "Other" preset serves when that folder exists).
 const STATIC_ROOT = fs.existsSync(path.join(ROOT, 'public')) ? path.join(ROOT, 'public') : ROOT;
-const API_ROUTES = new Set(['code', 'session', 'trips', 'request', 'waitlist', 'event']);
-// The designed 404 page (polish plan section 7). Read on every miss, so adding the file needs no restart.
+const API_DIR = path.join(ROOT, 'api');
+// /api/<name>: one lower-case segment that names an existing api/<name>.js (checked on every call,
+// so adding a route needs no restart).
+const API_NAME = /^[a-z][a-z0-9-]*$/;
+// The designed 404 page. Read on every miss, so changing the file needs no restart.
 const NOT_FOUND_PAGE = path.join(STATIC_ROOT, '404.html');
-// Clean URLs only: /invite serves invite.html, /invite.html is a 404. A page whose file does not
-// exist yet (Wave 2 adds pros.html) is a plain 404 from sendFile.
-const PAGES = Object.freeze({ '/': 'index.html', '/invite': 'invite.html', '/pros': 'pros.html', '/privacy': 'privacy.html' });
-const GUARDED = new Set(['/site', '/site.html']);
-const FILES = new Set(['/robots.txt', '/style.css', '/marketing.css', '/favicon.svg']);
-const DIRS = Object.freeze({ '/js/': 'js', '/assets/': 'assets', '/fonts/': 'fonts', '/images/': 'images' });
+// Clean URLs only: /privacy serves privacy.html, /privacy.html is a 404.
+export const PAGES = Object.freeze({ '/': 'index.html', '/privacy': 'privacy.html' });
+export const FILES = Object.freeze([
+  '/styles.css', '/v2.css', '/pages.js', '/app.js', // the Concept 02 SPA
+  '/style.css', '/marketing.css', // privacy.html
+  '/robots.txt', '/favicon.svg',
+]);
+export const DIRS = Object.freeze({ '/assets/': 'assets', '/fonts/': 'fonts', '/js/': 'js' });
+// The paths middleware.js runs on; the same redirects apply here.
+export const REDIRECT_PATHS = Object.freeze(['/', '/invite', '/site', '/site.html']);
+const FILE_SET = new Set(FILES);
 const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/; // one path segment: no slashes, no leading dot, so never ".."
 const MIME = Object.freeze({
   '.html': 'text/html; charset=utf-8',
@@ -47,6 +56,7 @@ const MIME = Object.freeze({
   '.ico': 'image/x-icon',
   '.otf': 'font/otf',
   '.ttf': 'font/ttf',
+  '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.md': 'text/markdown; charset=utf-8',
 });
@@ -75,13 +85,13 @@ async function sendNotFound(req, res) {
   return res.end(req.method === 'HEAD' ? undefined : page);
 }
 
-// Resolve a request path to a file under ROOT, or null. Only the allow-listed pages, files and
-// directories. Inside a directory the path may nest (assets/derived/<file>), but every segment
-// must be a safe name (no "..", no dotfiles, no empty segment) and the resolved path must stay
-// inside its folder.
+// Resolve a request path to a file under public/, or null. Only the allow-listed pages, files and
+// directories. Inside a directory the path may nest (assets/og/<file>), but every segment must be
+// a safe name (no "..", no dotfiles, no empty segment) and the resolved path must stay inside its
+// folder.
 export function resolveStatic(pathname) {
   if (PAGES[pathname]) return path.join(STATIC_ROOT, PAGES[pathname]);
-  if (FILES.has(pathname)) return path.join(STATIC_ROOT, pathname.slice(1));
+  if (FILE_SET.has(pathname)) return path.join(STATIC_ROOT, pathname.slice(1));
   for (const [prefix, dir] of Object.entries(DIRS)) {
     if (!pathname.startsWith(prefix)) continue;
     const segments = pathname.slice(prefix.length).split('/');
@@ -91,6 +101,13 @@ export function resolveStatic(pathname) {
     return file.startsWith(base + path.sep) ? file : null;
   }
   return null;
+}
+
+// -> the api/<name>.js file for an /api/<name> path, or null when the name is unsafe or no such file exists.
+export function resolveApi(name) {
+  if (!API_NAME.test(name)) return null;
+  const file = path.join(API_DIR, `${name}.js`);
+  return fs.existsSync(file) ? file : null;
 }
 
 async function sendFile(req, res, file) {
@@ -137,7 +154,8 @@ async function writeWebResponse(res, response) {
 }
 
 async function handleApi(req, res, name) {
-  if (!API_ROUTES.has(name)) return sendJson(res, 404, { ok: false, reason: 'not_found' });
+  const file = resolveApi(name);
+  if (!file) return sendJson(res, 404, { ok: false, reason: 'not_found' });
   const mod = await import(new URL(`../api/${name}.js`, import.meta.url));
   const handler = mod[req.method];
   if (typeof handler !== 'function') {
@@ -157,7 +175,7 @@ async function handle(req, res) {
   } catch {
     return send(res, 400, 'Bad request');
   }
-  // trailingSlash: false in vercel.json: /site/ redirects to /site, keeping the query string.
+  // trailingSlash: false in vercel.json: /privacy/ redirects to /privacy, keeping the query string.
   if (pathname.length > 1 && pathname.endsWith('/')) {
     return send(res, 308, '', { Location: `${url.pathname.replace(/\/+$/, '')}${url.search}` });
   }
@@ -165,17 +183,10 @@ async function handle(req, res) {
   if (pathname.startsWith('/api/')) return handleApi(req, res, pathname.slice('/api/'.length));
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed', { Allow: 'GET, HEAD' });
 
-  // Same as middleware.js: a pre-Phase-2 personal link (/?invite=CODE or /?code=CODE) goes to the
-  // gate with its query string intact; a plain / is the homepage.
-  if (pathname === '/') {
-    const target = legacyInviteRedirect(url);
+  // Same as middleware.js: legacy personal links and the old page URLs go into the SPA's hash routes.
+  if (REDIRECT_PATHS.includes(pathname)) {
+    const target = redirectTarget(url);
     if (target) return send(res, 302, '', { Location: target, 'Cache-Control': 'no-store' });
-  }
-
-  if (GUARDED.has(pathname)) {
-    const allowed = await isAllowed(await toWebRequest(req), getSecret());
-    if (!allowed) return send(res, 302, '', { Location: GATE_PATH, 'Cache-Control': 'no-store' });
-    return sendFile(req, res, path.join(STATIC_ROOT, 'site.html'));
   }
 
   const file = resolveStatic(pathname);

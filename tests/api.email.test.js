@@ -4,7 +4,7 @@
 import { test, describe, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  RESEND_URL, _resetSentLog, confirmGuest, emailMode, notifyKatie, sendEmail, sentLog, toRecipients,
+  RESEND_URL, _resetSentLog, confirmGuest, emailMode, notifyInquiry, notifyKatie, sendEmail, sentLog, toRecipients,
 } from '../lib/email.js';
 
 const row = {
@@ -124,6 +124,28 @@ describe('templates', () => {
     assert.ok(text.includes('Email: no guest email on this invite'));
     assert.ok(text.includes('Mobile: —'));
     assert.ok(text.includes('Sheet: (SHEET_URL is not set)'));
+  });
+
+  test('notifyInquiry names the Concept 02 path, the guest, the invite (or its absence), the brief and the Sheet link', () => {
+    const inquiry = {
+      requestId: 'CS-ABCDEFGH', requestType: 'private', weeks: 'Feb 7–13', guestName: 'Ana Guest', guestEmail: 'ana.guest@example.com',
+      guestMobile: '', inviteCode: '', invitedBy: '', brief: 'CONCEPT 02 REQUEST · Private group\nTrip: The Spanish Offseason (Spain with Katie + Eva)',
+    };
+    const { subject, text } = notifyInquiry(inquiry, { sheetUrl: 'https://docs.google.com/spreadsheets/d/abc' });
+    assert.equal(subject, 'New request CS-ABCDEFGH · Private group · Feb 7–13');
+    for (const line of [
+      'New Concept 02 request for The Spanish Offseason', 'Request ID: CS-ABCDEFGH', 'Type: Private group', 'Weeks: Feb 7–13', 'Name: Ana Guest',
+      'Email: ana.guest@example.com', 'Invite code: none (public trip page)', inquiry.brief, 'Sheet: https://docs.google.com/spreadsheets/d/abc',
+    ]) assert.ok(text.includes(line), line);
+    assert.ok(text.indexOf('Invite code') < text.indexOf(inquiry.brief), 'brief comes after the header lines');
+    assert.ok(text.indexOf(inquiry.brief) < text.indexOf('Sheet:'), 'sheet link comes last');
+
+    const match = notifyInquiry({ ...inquiry, requestType: 'vetted', weeks: 'Flexible', inviteCode: 'GUEST1', invitedBy: 'Katie' });
+    assert.equal(match.subject, 'New request CS-ABCDEFGH · Group match · Flexible');
+    assert.ok(match.text.includes('Type: Group match'));
+    assert.ok(match.text.includes('Invite code: GUEST1 (invited by Katie)'));
+    assert.ok(match.text.includes('Sheet: (SHEET_URL is not set)'));
+    assert.ok(notifyInquiry({ ...inquiry, inviteCode: 'COURTSIDE', invitedBy: '' }).text.includes('Invite code: COURTSIDE (invited by —)'));
   });
 
   test("confirmGuest starts with \"You're on our list.\" and carries the request ID and brief", () => {

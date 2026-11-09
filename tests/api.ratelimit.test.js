@@ -19,6 +19,7 @@ describe('ratelimit', () => {
       code: { limit: 10, windowMs: 600_000 },
       request: { limit: 5, windowMs: 600_000 },
       waitlist: { limit: 5, windowMs: 600_000 },
+      application: { limit: 3, windowMs: 600_000 },
       event: { limit: 60, windowMs: 600_000 },
     });
   });

@@ -1,22 +1,26 @@
-// api/waitlist.js — POST /api/waitlist (polish brief section 3; no cookie required)
+// api/waitlist.js — POST /api/waitlist (polish brief section 3; Concept 02 sources from CONCEPT02_PLAN.md; no cookie)
 //   body { email, name?, tripId, source: "card" | "footer", consent: true, website: "" }
+//     or { email, name?, interest, source: "concept02-waitlist" | "concept02-home", consent: true, website: "" }
 //   200 { ok:true }
 //   400 { ok:false, errors:{ field: message } }
 //   429 { ok:false, reason:"rate_limited" }
 //   500 { ok:false, reason:"server_error" }
 // Order, as in /api/request: rate limit (bucket "waitlist", 5 per 10 minutes per IP hash), then the
 // honeypot (a filled `website` looks like success and writes nothing), then validation
-// (lib/validate.js validateWaitlist). tripId is an id from public/js/trips.js or "general"
-// (lib/lineup.js). A valid submission appends one Waitlist row { timestamp, email, name, trip (the
-// trip's display name, or "General"), source } and one Log row { time, code:"waitlist_submit",
-// result:<tripId>, ip_hash }; the Log write is best effort, the Waitlist write is not. The same
-// email + tripId within 60 seconds returns 200 again and writes nothing (double submit, plan 4.0).
+// (lib/validate.js validateWaitlist). For card/footer, tripId is an id from public/js/trips.js or
+// "general" (lib/lineup.js) and the row's trip is that trip's display name (or "General"). For the
+// two Concept 02 sources, `interest` is one of the SPA's five options and tripId is ignored: Spain,
+// Mallorca and Charleston interests write that trip's name from trips.js, the other two write the
+// interest text itself. A valid submission appends one Waitlist row { timestamp, email, name, trip,
+// source } and one Log row { time, code:"waitlist_submit", result:<tripId, or the interest text when
+// it names no trip>, ip_hash }; the Log write is best effort, the Waitlist write is not. The same
+// email + trip within 60 seconds returns 200 again and writes nothing (double submit, plan 4.0).
 
 import * as store from '../lib/store.js';
 import { getSecret } from '../lib/env.js';
 import { json, readJson } from '../lib/http.js';
 import { clientIp, ipHash } from '../lib/ids.js';
-import { tripName } from '../lib/lineup.js';
+import { interestTripName, tripName } from '../lib/lineup.js';
 import { check } from '../lib/ratelimit.js';
 import { isHoneypotFilled, validateWaitlist } from '../lib/validate.js';
 
@@ -33,13 +37,19 @@ function pruneRecent(now) {
   for (const [key, entry] of recent) if (now - entry.at >= DOUBLE_SUBMIT_TTL_MS) recent.delete(key);
 }
 
+// What the Log row's result and the double-submit key hold: the trip id, or the interest text for
+// an interest that names no trip.
+export function tripKey(value) {
+  return value.tripId || value.interest || '';
+}
+
 // The Waitlist row (camelCase keys for the store): the trip column holds the display name.
 export function buildRow(value, now = new Date()) {
   return {
     timestamp: now.toISOString(),
     email: value.email,
     name: value.name,
-    trip: tripName(value.tripId),
+    trip: value.interest ? interestTripName(value.interest) : tripName(value.tripId),
     source: value.source,
   };
 }
@@ -47,7 +57,7 @@ export function buildRow(value, now = new Date()) {
 async function save({ value, hash }) {
   await store.appendWaitlist(buildRow(value));
   try {
-    await store.logAttempt({ code: LOG_CODE, result: value.tripId, ipHash: hash });
+    await store.logAttempt({ code: LOG_CODE, result: tripKey(value), ipHash: hash });
   } catch (err) {
     console.error('[api/waitlist] logAttempt failed', err);
   }
@@ -71,7 +81,7 @@ export async function POST(request) {
   try {
     const now = Date.now();
     pruneRecent(now);
-    const key = `${value.email}|${value.tripId}`;
+    const key = `${value.email}|${tripKey(value)}`;
     let entry = recent.get(key);
     if (!entry) {
       entry = { at: now, result: save({ value, hash }) };

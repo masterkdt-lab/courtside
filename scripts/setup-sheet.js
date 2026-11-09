@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 // scripts/setup-sheet.js
-// Prepares Katie's Google Sheet (plan 4.2; polish brief section 3 adds the Waitlist tab).
-// Idempotent: run it as often as needed, including on a Sheet set up before the Waitlist tab existed.
+// Prepares Katie's Google Sheet (plan 4.2; polish brief section 3 adds the Waitlist tab;
+// CONCEPT02_PLAN.md adds the HostApplications tab). Idempotent: run it as often as needed, including
+// on a Sheet set up before the Waitlist or HostApplications tab existed; it adds the missing tab
+// with its headers and changes nothing else.
 //
-//   1. adds any missing tabs: Trips, Weeks, Requests, Invites, Log, Waitlist
+//   1. adds any missing tabs: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications
 //   2. writes the exact header row (row 1) on each tab
 //   3. sets dropdown validation (strict, one of list) on Trips.status, Weeks.status,
-//      Requests.status, Requests.request_type and Invites.status (none on Waitlist)
+//      Requests.status, Requests.request_type and Invites.status (none on Waitlist or HostApplications)
 //   4. seeds Trips and Weeks from tests/fixtures/seed.json, only when those tabs have no data rows
 //   5. never seeds Invites; prints an example Invites row for Katie instead
-//   6. never seeds Waitlist; the public homepage fills it through POST /api/waitlist
+//   6. never seeds Waitlist; the site fills it through POST /api/waitlist
+//   7. never seeds HostApplications; the #/application form fills it through POST /api/application
 //
 // Needs SHEET_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY, from .env or the shell,
 // and the Sheet shared with the service account as Editor.
@@ -138,8 +141,12 @@ export async function runSetup({ client, seed, log = console.log }) {
 
   // 6. the Waitlist tab
   log('');
-  log(`Waitlist (${TAB_HEADERS.Waitlist.join(', ')}) is filled by the homepage's waitlist forms; headers only, nothing to seed, no dropdowns.`);
-  log('trip is the trip name from public/js/trips.js or "General"; source is card or footer.');
+  log(`Waitlist (${TAB_HEADERS.Waitlist.join(', ')}) is filled by the site's waitlist forms; headers only, nothing to seed, no dropdowns.`);
+  log('trip is the trip name from public/js/trips.js, "General", or the interest text; source is card, footer, concept02-waitlist or concept02-home.');
+
+  // 7. the HostApplications tab
+  log('');
+  log(`HostApplications (${TAB_HEADERS.HostApplications.join(', ')}) is filled by the #/application host form; headers only, nothing to seed, no dropdowns.`);
 }
 
 async function main() {

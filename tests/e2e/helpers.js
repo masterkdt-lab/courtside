@@ -14,8 +14,8 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SEED_CODES = ['GUEST1', 'COURTSIDE', 'PAUSED1', 'ONCE1'];
-// The gate's path since Phase 2 (public/invite.html). The homepage is /.
-export const GATE = '/invite';
+// The gate is a hash route of the Concept 02 SPA (CONCEPT02_PLAN.md); the old /invite page redirects here.
+export const GATE = '/#/invite';
 // <meta name="robots" content="noindex,nofollow"> in either attribute order, with or without "/>".
 export const NOINDEX = /<meta\b(?=[^>]*\bname="robots")(?=[^>]*\bcontent="noindex,nofollow")[^>]*>/;
 export const WEEK_LABELS = {
@@ -55,18 +55,21 @@ export async function startServer() {
   };
 }
 
-// Clears everything the server keeps in memory: rate-limit buckets, both double-submit maps
-// (/api/request and /api/waitlist), the trips cache and the email log. Equivalent to a server
-// restart for the API modules.
+// Clears everything the server keeps in memory: rate-limit buckets, the four double-submit maps
+// (/api/request, /api/waitlist, /api/inquiry, /api/application), the trips and lineup caches and
+// the email log. Equivalent to a server restart for the API modules.
 export async function resetServerState() {
-  const [ratelimit, request, waitlist, trips, email] = await Promise.all([
-    import('../../lib/ratelimit.js'), import('../../api/request.js'), import('../../api/waitlist.js'), import('../../api/trips.js'),
-    import('../../lib/email.js'),
+  const [ratelimit, request, waitlist, inquiry, application, trips, lineup, email] = await Promise.all([
+    import('../../lib/ratelimit.js'), import('../../api/request.js'), import('../../api/waitlist.js'), import('../../api/inquiry.js'),
+    import('../../api/application.js'), import('../../api/trips.js'), import('../../api/lineup.js'), import('../../lib/email.js'),
   ]);
   ratelimit._reset();
   request._resetDoubleSubmit();
   waitlist._resetDoubleSubmit();
+  inquiry._resetDoubleSubmit();
+  application._resetDoubleSubmit();
   trips._resetTripsCache();
+  lineup._resetLineupCache();
   email._resetSentLog();
 }
 
@@ -79,15 +82,16 @@ export function readMock() {
   return JSON.parse(fs.readFileSync(process.env.MOCK_DATA_PATH, 'utf8'));
 }
 
-// Edit the mock file in place (seeding it first) and drop the /api/trips cache, which is what a
-// Sheet edit plus the 60 s TTL (or a dev-server restart) would do.
+// Edit the mock file in place (seeding it first) and drop the /api/trips and /api/lineup caches,
+// which is what a Sheet edit plus the 60 s TTL (or a dev-server restart) would do.
 export async function editMock(mutate) {
   const { readMockData } = await import('../../lib/store.mock.js');
   const data = readMockData();
   mutate(data);
   fs.writeFileSync(process.env.MOCK_DATA_PATH, `${JSON.stringify(data, null, 2)}\n`);
-  const { _resetTripsCache } = await import('../../api/trips.js');
+  const [{ _resetTripsCache }, { _resetLineupCache }] = await Promise.all([import('../../api/trips.js'), import('../../api/lineup.js')]);
   _resetTripsCache();
+  _resetLineupCache();
 }
 
 export async function resetMock() {

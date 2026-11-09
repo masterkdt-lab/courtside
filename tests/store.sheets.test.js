@@ -8,7 +8,9 @@ import {
   createSheetsClient, normalizePrivateKey, columnLetter, cellRange, tabRange, valuesUrl,
   readConfig, missingEnv, SHEETS_API,
 } from '../lib/store.sheets.client.js';
-import { parseSheetValues, requestRowToValues, waitlistRowToValues, recordToValues, toInvite, TAB_HEADERS } from '../lib/store.columns.js';
+import {
+  parseSheetValues, requestRowToValues, waitlistRowToValues, hostApplicationRowToValues, recordToValues, toInvite, TAB_HEADERS,
+} from '../lib/store.columns.js';
 
 const BASE = `${SHEETS_API}/SHEET123`;
 const NOW = '2026-10-05T12:00:00.000Z';
@@ -62,6 +64,7 @@ function tabOf(call) {
 function valuesFor(tab) {
   return {
     Invites: INVITES, Trips: TRIPS, Weeks: WEEKS, Requests: [[...TAB_HEADERS.Requests]], Log: [[...TAB_HEADERS.Log]], Waitlist: [[...TAB_HEADERS.Waitlist]],
+    HostApplications: [[...TAB_HEADERS.HostApplications]],
   }[tab];
 }
 
@@ -154,6 +157,19 @@ describe('pure helpers', () => {
     );
     assert.deepEqual(waitlistRowToValues({ email: 'x@example.com', trip: 'General', bogus: 1 }), ['', 'x@example.com', '', 'General', '']);
     assert.deepEqual(waitlistRowToValues({}), ['', '', '', '', '']);
+  });
+
+  test('hostApplicationRowToValues follows the HostApplications header order', () => {
+    assert.deepEqual(TAB_HEADERS.HostApplications, ['timestamp', 'name', 'email', 'club', 'referral', 'background', 'community', 'destination']);
+    assert.deepEqual(
+      hostApplicationRowToValues({
+        timestamp: NOW, name: 'Sam Pro', email: 'sam.pro@example.com', club: 'Club de Tenis, Alicante, Spain', referral: 'Katie',
+        background: 'Twenty years of coaching.', community: 'A club of 200 members.', destination: 'Mallorca',
+      }),
+      [NOW, 'Sam Pro', 'sam.pro@example.com', 'Club de Tenis, Alicante, Spain', 'Katie', 'Twenty years of coaching.', 'A club of 200 members.', 'Mallorca'],
+    );
+    assert.deepEqual(hostApplicationRowToValues({ email: 'x@example.com', destination: 'Geneva', bogus: 1 }), ['', '', 'x@example.com', '', '', '', '', 'Geneva']);
+    assert.deepEqual(hostApplicationRowToValues({}), new Array(8).fill(''));
   });
 
   test('toInvite: blank max_uses is null, numbers come through as numbers', () => {
@@ -276,6 +292,25 @@ describe('createSheetsStore with a stubbed fetch', () => {
 
     await assert.rejects(store.appendWaitlist({ timestamp: NOW, trip: 'General' }), /email/);
     assert.equal(calls.length, 2, 'nothing is written without an email');
+  });
+
+  test('appendHostApplication appends one row in HostApplications header order with RAW + INSERT_ROWS and returns the email', async () => {
+    const { store, calls } = makeStore();
+    const row = {
+      timestamp: NOW, name: 'Sam Pro', email: 'sam.pro@example.com', club: 'Club de Tenis, Alicante, Spain', referral: '',
+      background: 'Twenty years of coaching.', community: 'A club of 200 members.', destination: 'Mallorca',
+    };
+    assert.deepEqual(await store.appendHostApplication(row), { email: 'sam.pro@example.com' });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, 'POST');
+    assert.equal(calls[0].url, `${BASE}/values/'HostApplications'!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`);
+    assert.equal(calls[0].headers['Content-Type'], 'application/json');
+    assert.deepEqual(calls[0].body, { values: [[
+      NOW, 'Sam Pro', 'sam.pro@example.com', 'Club de Tenis, Alicante, Spain', '', 'Twenty years of coaching.', 'A club of 200 members.', 'Mallorca',
+    ]] });
+
+    await assert.rejects(store.appendHostApplication({ timestamp: NOW, name: 'Sam' }), /email/);
+    assert.equal(calls.length, 1, 'nothing is written without an email');
   });
 
   test('logAttempt appends time, code, result, ip_hash to Log', async () => {

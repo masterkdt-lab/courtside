@@ -29,8 +29,9 @@ test('seeds the data file from tests/fixtures/seed.json on first use', async () 
   assert.equal(trips.length, 1);
   assert.equal(fs.existsSync(process.env.MOCK_DATA_PATH), true);
   const data = readFile();
-  assert.deepEqual(Object.keys(data), ['trips', 'weeks', 'invites', 'requests', 'log', 'waitlist']);
+  assert.deepEqual(Object.keys(data), ['trips', 'weeks', 'invites', 'requests', 'log', 'waitlist', 'host_applications']);
   assert.deepEqual(data.waitlist, []);
+  assert.deepEqual(data.host_applications, []);
   assert.deepEqual(data, SEED);
   assert.equal(data.invites.length, 4);
   assert.deepEqual(data.invites.map((r) => r.code), ['COURTSIDE', 'GUEST1', 'PAUSED1', 'ONCE1']);
@@ -294,6 +295,47 @@ describe('appendWaitlist', () => {
     assert.equal((await mock.listTrips()).length, 1);
     await mock.appendWaitlist(row);
     assert.deepEqual(readFile().waitlist.map((r) => r.email), ['ana.guest@example.com']);
+  });
+});
+
+describe('appendHostApplication', () => {
+  const row = {
+    timestamp: '2026-11-08T12:00:00.000Z', name: 'Sam Pro', email: 'sam.pro@example.com', club: 'Club de Tenis, Alicante, Spain',
+    referral: 'Katie', background: 'Twenty years of coaching.', community: 'A club of 200 members.', destination: 'Mallorca',
+  };
+
+  test('writes the eight HostApplications columns in order, "" for missing keys, and returns the email', async () => {
+    assert.deepEqual(TAB_HEADERS.HostApplications, ['timestamp', 'name', 'email', 'club', 'referral', 'background', 'community', 'destination']);
+    assert.deepEqual(await mock.appendHostApplication(row), { email: 'sam.pro@example.com' });
+    assert.deepEqual(await mock.appendHostApplication({ timestamp: '2026-11-08T12:01:00.000Z', name: 'B', email: 'b@example.com', bogus: 'ignored' }), { email: 'b@example.com' });
+    const { host_applications: rows } = readFile();
+    assert.equal(rows.length, 2);
+    assert.deepEqual(Object.keys(rows[0]), [...TAB_HEADERS.HostApplications]);
+    assert.deepEqual(rows[0], row);
+    assert.deepEqual(rows[1], {
+      timestamp: '2026-11-08T12:01:00.000Z', name: 'B', email: 'b@example.com', club: '', referral: '', background: '', community: '', destination: '',
+    });
+    assert.equal('bogus' in rows[1], false);
+    assert.equal(readFile().requests.length, 0, 'Requests is untouched');
+    assert.equal(readFile().waitlist.length, 0, 'Waitlist is untouched');
+    assert.equal(readFile().log.length, 0, 'Log is untouched; the API route writes its own Log row');
+  });
+
+  test('requires email and writes nothing without it', async () => {
+    await mock.listTrips();
+    await assert.rejects(mock.appendHostApplication({ timestamp: row.timestamp, name: 'Sam' }), /email/);
+    await assert.rejects(mock.appendHostApplication({ ...row, email: '   ' }), /email/);
+    assert.equal(readFile().host_applications.length, 0);
+  });
+
+  test('a mock file written before the HostApplications tab existed gains an empty host_applications section', async () => {
+    const legacy = { ...SEED };
+    delete legacy.host_applications;
+    fs.writeFileSync(process.env.MOCK_DATA_PATH, JSON.stringify(legacy));
+    assert.equal((await mock.listTrips()).length, 1);
+    await mock.appendHostApplication(row);
+    assert.deepEqual(readFile().host_applications.map((r) => r.email), ['sam.pro@example.com']);
+    assert.deepEqual(readFile().waitlist, []);
   });
 });
 

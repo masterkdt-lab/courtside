@@ -1,0 +1,17 @@
+# What the CLI uploads for a deploy. Vercel serves only public/ as static files; api/ and lib/ run as functions.
+node_modules
+.git
+.env
+.env.*
+.data
+.jury
+review
+.claude
+concept02
+courtside-handoff.zip
+tests
+*.md
+/*.jpg
+/*.jpeg
+/*.webp
+/*.png

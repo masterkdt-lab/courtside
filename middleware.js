@@ -1,32 +1,38 @@
-// middleware.js — Vercel Routing Middleware (Phase 1 plan 4.0; Phase 2 plan section 6).
-// Three paths, nothing else (config.matcher below):
-//   /                    the public homepage. A personal link from before Phase 2 (/?invite=CODE,
-//                        alias /?code=CODE) is sent on to the gate at /invite with the query string
-//                        kept as is; every other request to / continues to the page.
-//   /site, /site.html    require a valid cs_session cookie; anyone else is sent to the gate at /invite.
-// The cookie decision itself lives in lib/guard.js and is shared with scripts/dev-server.js, which
-// also imports legacyInviteRedirect() from here so both servers redirect the same way. Nothing in
-// this file's import graph (lib/guard.js, lib/cookie.js) uses node: modules, so it runs on either
-// middleware runtime. (Vercel's current docs default Routing Middleware to the Node.js runtime. No
-// `runtime` is set here, so the platform default applies.)
+// middleware.js — Vercel Routing Middleware (CONCEPT02_PLAN.md, Routing).
+// The Concept 02 SPA at public/index.html is hash-routed, so the old page URLs become redirects into
+// it. Four paths, nothing else (config.matcher below):
+//   /, /invite           a personal link from before Concept 02 (/?invite=CODE, /?code=CODE,
+//                        /invite?invite=CODE, /invite?code=CODE) → 302 /#/invite?code=CODE, where
+//                        the SPA prefills the gate and submits it. A bare /invite → 302 /#/invite
+//                        (the old gate page is gone). A plain / continues to the SPA.
+//   /site, /site.html    the old guarded trip page → 302 /#/trip. The SPA's trip page is public;
+//                        the cookie no longer gates anything, so no cookie check runs here.
+// scripts/dev-server.js imports redirectTarget() so both servers redirect the same way. Nothing in
+// this file imports anything, so it runs on either middleware runtime. (Vercel's current docs
+// default Routing Middleware to the Node.js runtime. No `runtime` is set here, so the platform
+// default applies.)
 //
 // Matcher entries are path-to-regexp patterns (Vercel docs, "Path matching"): '/' matches the root
-// only; a prefix would need '/:path*'. So '/' here never catches /site, /invite or /pros.
+// only; a prefix would need '/:path*'. So nothing here catches /privacy, /api/* or the static files.
 
-import { isAllowed, secretFromEnv } from './lib/guard.js';
+export const config = { matcher: ['/', '/invite', '/site', '/site.html'] };
 
-export const config = { matcher: ['/', '/site', '/site.html'] };
+// Where the SPA's gate and trip pages live.
+export const INVITE_ROUTE = '/#/invite';
+export const TRIP_ROUTE = '/#/trip';
+// The query parameters a legacy personal link carried (the two names the old gate read).
+export const CODE_PARAMS = Object.freeze(['invite', 'code']);
 
-// Where the invite gate lives (public/invite.html). The dev server and site.js use the same path.
-export const GATE_PATH = '/invite';
-
-// The legacy personal-link redirect, shared with scripts/dev-server.js. `url` is the request URL
-// (a URL instance). -> '/invite?<the original query string, verbatim>' when the query has an
-// `invite` or `code` parameter (the two names public/js/gate.js reads), otherwise null.
-export function legacyInviteRedirect(url) {
-  const params = url.searchParams;
-  if (!params.has('invite') && !params.has('code')) return null;
-  return `${GATE_PATH}${url.search}`;
+// -> the redirect target (a same-origin path, hash included) for a request URL (a URL instance),
+// or null when the request should continue to the page. Shared with scripts/dev-server.js.
+export function redirectTarget(url) {
+  const { pathname, searchParams } = url;
+  if (pathname === '/site' || pathname === '/site.html') return TRIP_ROUTE;
+  if (pathname !== '/' && pathname !== '/invite') return null;
+  for (const name of CODE_PARAMS) {
+    if (searchParams.has(name)) return `${INVITE_ROUTE}?code=${encodeURIComponent(searchParams.get(name))}`;
+  }
+  return pathname === '/invite' ? INVITE_ROUTE : null;
 }
 
 // The same response next() from @vercel/functions builds (packages/functions/src/middleware.ts):
@@ -37,11 +43,6 @@ export function next() {
 }
 
 export default async function middleware(request) {
-  const url = new URL(request.url);
-  if (url.pathname === '/') {
-    const target = legacyInviteRedirect(url);
-    return target ? Response.redirect(new URL(target, request.url), 302) : next();
-  }
-  if (await isAllowed(request, secretFromEnv(globalThis.process?.env))) return next();
-  return Response.redirect(new URL(GATE_PATH, request.url), 302);
+  const target = redirectTarget(new URL(request.url));
+  return target ? Response.redirect(new URL(target, request.url), 302) : next();
 }

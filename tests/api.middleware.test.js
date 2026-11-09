@@ -1,6 +1,7 @@
 // tests/api.middleware.test.js
-// middleware.js: matcher, the legacy /?invite=CODE redirect on /, the /site guard (redirect to
-// /invite without a cookie, pass-through with one), and an import graph free of node: modules so
+// middleware.js (CONCEPT02_PLAN.md, Routing): the matcher, the legacy personal-link redirect from
+// / and /invite into /#/invite?code=…, the bare /invite redirect, the /site and /site.html redirect
+// into /#/trip, the pass-through for everything else, and an import graph free of node: modules so
 // it can run on Vercel's middleware runtime.
 
 import { test } from 'node:test';
@@ -8,14 +9,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import middleware, { GATE_PATH, config, legacyInviteRedirect } from '../middleware.js';
+import middleware, { CODE_PARAMS, INVITE_ROUTE, TRIP_ROUTE, config, redirectTarget } from '../middleware.js';
 import { sign } from '../lib/cookie.js';
 import { DEV_COOKIE_SECRET } from '../lib/guard.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const ORIGIN = 'https://courtside.example';
 const request = (url, cookie) => new Request(url, { headers: cookie ? { cookie } : {} });
-const validCookie = async (secret = DEV_COOKIE_SECRET) => `cs_session=${await sign({ code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana', exp: Date.now() + 60_000 }, secret)}`;
+const validCookie = async () => `cs_session=${await sign({ code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana', exp: Date.now() + 60_000 }, DEV_COOKIE_SECRET)}`;
 
 function expectPassThrough(res) {
   assert.ok(res instanceof Response);
@@ -25,79 +26,78 @@ function expectPassThrough(res) {
   assert.equal(res.body, null);
 }
 
-// -> the Location header as a same-origin path + query ("/invite?invite=X").
-function expectRedirect(res, pathAndQuery) {
+// -> the Location header as a same-origin path + query + hash ("/#/invite?code=X").
+function expectRedirect(res, target) {
   assert.ok(res instanceof Response);
   assert.equal(res.status, 302);
   const location = new URL(res.headers.get('location'));
   assert.equal(location.origin, ORIGIN, 'redirects stay on the request origin');
-  assert.equal(location.pathname + location.search, pathAndQuery);
+  assert.equal(location.pathname + location.search + location.hash, target);
 }
 
-test('config matches /, /site and /site.html only, each as an exact path', () => {
-  assert.deepEqual(config, { matcher: ['/', '/site', '/site.html'] });
-  assert.equal(GATE_PATH, '/invite');
+test('config matches /, /invite, /site and /site.html only, each as an exact path', () => {
+  assert.deepEqual(config, { matcher: ['/', '/invite', '/site', '/site.html'] });
+  assert.equal(INVITE_ROUTE, '/#/invite');
+  assert.equal(TRIP_ROUTE, '/#/trip');
+  assert.deepEqual([...CODE_PARAMS], ['invite', 'code']);
 });
 
-test('/ without an invite query passes through to the homepage', async () => {
+test('/ without an invite query passes through to the SPA, cookie or not', async () => {
   expectPassThrough(await middleware(request(`${ORIGIN}/`)));
   expectPassThrough(await middleware(request(`${ORIGIN}/?utm_source=x`)));
   expectPassThrough(await middleware(request(`${ORIGIN}/?guest=Ana`)));
-  // A cookie makes no difference on the homepage.
   expectPassThrough(await middleware(request(`${ORIGIN}/`, await validCookie())));
+  expectPassThrough(await middleware(request(`${ORIGIN}/#/trip`)), 'a hash never reaches the server anyway');
 });
 
-test('/?invite=X and /?code=X redirect (302) to /invite with the query string kept verbatim', async () => {
-  expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1`)), '/invite?invite=GUEST1');
-  expectRedirect(await middleware(request(`${ORIGIN}/?code=GUEST1`)), '/invite?code=GUEST1');
-  expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1&guest=x`)), '/invite?invite=GUEST1&guest=x');
-  expectRedirect(await middleware(request(`${ORIGIN}/?guest=x&code=guest1`)), '/invite?guest=x&code=guest1');
-  expectRedirect(await middleware(request(`${ORIGIN}/?invite=`)), '/invite?invite=');
+test('/?invite=X, /?code=X, /invite?invite=X and /invite?code=X redirect (302) to /#/invite?code=X', async () => {
+  expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1`)), '/#/invite?code=GUEST1');
+  expectRedirect(await middleware(request(`${ORIGIN}/?code=GUEST1`)), '/#/invite?code=GUEST1');
+  expectRedirect(await middleware(request(`${ORIGIN}/invite?invite=GUEST1`)), '/#/invite?code=GUEST1');
+  expectRedirect(await middleware(request(`${ORIGIN}/invite?code=guest1`)), '/#/invite?code=guest1');
+  // Only the code travels; other parameters are dropped, and the value is URL-encoded.
+  expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1&guest=Mallory`)), '/#/invite?code=GUEST1');
+  expectRedirect(await middleware(request(`${ORIGIN}/?guest=x&code=GUEST1`)), '/#/invite?code=GUEST1');
+  expectRedirect(await middleware(request(`${ORIGIN}/?invite=a%26b%3Dc`)), '/#/invite?code=a%26b%3Dc');
+  expectRedirect(await middleware(request(`${ORIGIN}/?invite=`)), '/#/invite?code=');
+  // `invite` wins when both are present.
+  expectRedirect(await middleware(request(`${ORIGIN}/?code=B&invite=A`)), '/#/invite?code=A');
   // Also with a valid cookie: the link still lands on the gate, which re-enters with the code.
-  expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1`, await validCookie())), '/invite?invite=GUEST1');
+  expectRedirect(await middleware(request(`${ORIGIN}/?invite=GUEST1`, await validCookie())), '/#/invite?code=GUEST1');
 });
 
-test('legacyInviteRedirect (shared with the dev server) returns the target or null', () => {
-  assert.equal(legacyInviteRedirect(new URL('http://localhost:3000/')), null);
-  assert.equal(legacyInviteRedirect(new URL('http://localhost:3000/?x=1')), null);
-  assert.equal(legacyInviteRedirect(new URL('http://localhost:3000/?invite=GUEST1&guest=x')), '/invite?invite=GUEST1&guest=x');
-  assert.equal(legacyInviteRedirect(new URL('http://localhost:3000/?code=guest1')), '/invite?code=guest1');
+test('a bare /invite (the old gate page) redirects to /#/invite', async () => {
+  expectRedirect(await middleware(request(`${ORIGIN}/invite`)), '/#/invite');
+  expectRedirect(await middleware(request(`${ORIGIN}/invite?utm_source=x`)), '/#/invite');
 });
 
-test('/site and /site.html redirect to /invite (302) without a valid cookie', async () => {
-  expectRedirect(await middleware(request(`${ORIGIN}/site`)), '/invite');
-  expectRedirect(await middleware(request(`${ORIGIN}/site.html`)), '/invite');
-  expectRedirect(await middleware(request(`${ORIGIN}/site.html`, 'cs_session=abc.def')), '/invite');
-  const expired = await sign({ code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana', exp: Date.now() - 1 }, DEV_COOKIE_SECRET);
-  expectRedirect(await middleware(request(`${ORIGIN}/site`, `cs_session=${expired}`)), '/invite');
+test('/site and /site.html redirect (302) to /#/trip, with or without a cookie; the cookie gates nothing now', async () => {
+  expectRedirect(await middleware(request(`${ORIGIN}/site`)), '/#/trip');
+  expectRedirect(await middleware(request(`${ORIGIN}/site.html`)), '/#/trip');
+  expectRedirect(await middleware(request(`${ORIGIN}/site?x=1`)), '/#/trip');
+  expectRedirect(await middleware(request(`${ORIGIN}/site`, 'cs_session=abc.def')), '/#/trip');
+  expectRedirect(await middleware(request(`${ORIGIN}/site`, await validCookie())), '/#/trip');
 });
 
-test('lets a valid cookie through with the x-middleware-next pass-through response', async () => {
-  const cookie = await validCookie();
-  expectPassThrough(await middleware(request(`${ORIGIN}/site`, cookie)));
-  expectPassThrough(await middleware(request(`${ORIGIN}/site.html`, cookie)));
+test('redirectTarget (shared with the dev server) returns the target or null', () => {
+  const url = (s) => new URL(s, 'http://localhost:3000');
+  assert.equal(redirectTarget(url('/')), null);
+  assert.equal(redirectTarget(url('/?x=1')), null);
+  assert.equal(redirectTarget(url('/?invite=GUEST1&guest=x')), '/#/invite?code=GUEST1');
+  assert.equal(redirectTarget(url('/?code=guest1')), '/#/invite?code=guest1');
+  assert.equal(redirectTarget(url('/invite')), '/#/invite');
+  assert.equal(redirectTarget(url('/invite?code=GUEST1')), '/#/invite?code=GUEST1');
+  assert.equal(redirectTarget(url('/site')), '/#/trip');
+  assert.equal(redirectTarget(url('/site.html')), '/#/trip');
+  // Paths outside the matcher are the dev server's business; the function says "continue".
+  assert.equal(redirectTarget(url('/privacy?invite=GUEST1')), null);
+  assert.equal(redirectTarget(url('/pros')), null);
+  assert.equal(redirectTarget(url('/api/code')), null);
 });
 
-test('honours COOKIE_SECRET from the environment', async () => {
-  process.env.COOKIE_SECRET = 'prod-secret';
-  try {
-    assert.equal((await middleware(request(`${ORIGIN}/site`, await validCookie('prod-secret')))).status, 200);
-    assert.equal((await middleware(request(`${ORIGIN}/site`, await validCookie(DEV_COOKIE_SECRET)))).status, 302);
-  } finally {
-    delete process.env.COOKIE_SECRET;
-  }
-});
-
-test('middleware.js and everything it imports avoid node: modules and the store', () => {
-  const seen = new Set();
-  const visit = (file) => {
-    if (seen.has(file)) return;
-    seen.add(file);
-    const source = fs.readFileSync(file, 'utf8');
-    assert.doesNotMatch(source, /from\s+['"]node:/, `${path.relative(ROOT, file)} imports a node: module`);
-    assert.doesNotMatch(source, /require\(/, `${path.relative(ROOT, file)} uses require`);
-    for (const m of source.matchAll(/from\s+['"](\.[^'"]+)['"]/g)) visit(path.resolve(path.dirname(file), m[1]));
-  };
-  visit(path.join(ROOT, 'middleware.js'));
-  assert.deepEqual([...seen].map((f) => path.relative(ROOT, f)).sort(), ['lib/cookie.js', 'lib/guard.js', 'middleware.js']);
+test('middleware.js imports nothing and uses no node: modules', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'middleware.js'), 'utf8');
+  assert.doesNotMatch(source, /from\s+['"]node:/);
+  assert.doesNotMatch(source, /require\(/);
+  assert.deepEqual([...source.matchAll(/^import\s.*$/gm)].map((m) => m[0]), [], 'no imports at all: nothing to break on the edge runtime');
 });

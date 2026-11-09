@@ -1,17 +1,20 @@
 // tests/api.waitlist.test.js
-// POST /api/waitlist (polish brief section 3) against the mock store: every validation rule, the
-// honeypot, the rate limit, the double-submit guard, the Waitlist row (with the trip's display
-// name) and the Log row. No cookie is ever sent.
+// POST /api/waitlist (polish brief section 3; Concept 02 sources from CONCEPT02_PLAN.md) against the
+// mock store: every validation rule, the honeypot, the rate limit, the double-submit guard, the
+// Waitlist row (with the trip's display name, or the interest text) and the Log row. No cookie is
+// ever sent.
 
 import { test, describe, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { DOUBLE_SUBMIT_TTL_MS, LOG_CODE, POST, _resetDoubleSubmit, buildRow } from '../api/waitlist.js';
-import { GENERAL_TRIP_ID, GENERAL_TRIP_NAME, WAITLIST_TRIP_IDS, tripName } from '../lib/lineup.js';
+import { DOUBLE_SUBMIT_TTL_MS, LOG_CODE, POST, _resetDoubleSubmit, buildRow, tripKey } from '../api/waitlist.js';
+import {
+  GENERAL_TRIP_ID, GENERAL_TRIP_NAME, INTERESTS, WAITLIST_TRIP_IDS, interestTripId, interestTripName, normalizeInterest, tripName,
+} from '../lib/lineup.js';
 import { LIMITS, _reset as resetRateLimit } from '../lib/ratelimit.js';
 import { TAB_HEADERS } from '../lib/store.columns.js';
 import { readMockData } from '../lib/store.mock.js';
-import { EMAIL_SHAPE, WAITLIST_LIMITS, WAITLIST_SOURCES } from '../lib/validate.js';
+import { CONCEPT02_WAITLIST_SOURCES, EMAIL_SHAPE, WAITLIST_LIMITS, WAITLIST_SOURCES, validateWaitlist } from '../lib/validate.js';
 import { TRIPS } from '../public/js/trips.js';
 import { freshMockPath, jsonRequest, readMock, tempDir, useMockEnv } from './api.helpers.js';
 
@@ -102,7 +105,8 @@ describe('a valid submission', () => {
     const [row] = readMock().waitlist;
     assert.equal(row.name, '');
     assert.equal(row.source, 'footer');
-    assert.deepEqual([...WAITLIST_SOURCES], ['card', 'footer']);
+    assert.deepEqual([...WAITLIST_SOURCES], ['card', 'footer', 'concept02-waitlist', 'concept02-home']);
+    assert.deepEqual([...CONCEPT02_WAITLIST_SOURCES], ['concept02-waitlist', 'concept02-home']);
   });
 
   test('buildRow maps the validated value to the Waitlist columns', () => {
@@ -155,8 +159,8 @@ describe('validation (400 with complete-sentence messages; nothing written)', ()
     nothingWritten();
   });
 
-  test('source: card or footer only', async () => {
-    for (const bad of [undefined, '', 'nav', 'Card', 'FOOTER', 1, ['card']]) {
+  test('source: card, footer, concept02-waitlist or concept02-home only', async () => {
+    for (const bad of [undefined, '', 'nav', 'Card', 'FOOTER', 'concept02', 'concept02-trip', 1, ['card']]) {
       const body = good();
       if (bad === undefined) delete body.source; else body.source = bad;
       assert.equal((await errorsOf(body)).source, 'Reload the page and try again.', JSON.stringify(bad));
@@ -190,6 +194,105 @@ describe('validation (400 with complete-sentence messages; nothing written)', ()
       assert.deepEqual(json, { ok: false, errors: { body: 'Send the request as a JSON object.' } }, bad);
     }
     nothingWritten();
+  });
+});
+
+describe('Concept 02 sources (concept02-waitlist, concept02-home): interest instead of tripId', () => {
+  const concept = (overrides = {}) => ({
+    email: 'Sam.Pro@Example.com', name: 'Sam', interest: 'Spain with Katie + Eva', source: 'concept02-waitlist', consent: true, website: '', ...overrides,
+  });
+
+  test('the five interests are the SPA\'s; three map to a trips.js trip, two to nothing', () => {
+    assert.deepEqual([...INTERESTS], ['Spain with Katie + Eva', 'Katie’s future trips', 'Future Courtside experiences', 'Mallorca · future idea', 'Charleston · future idea']);
+    assert.equal(INTERESTS[1].charCodeAt(5), 0x2019, 'the curly apostrophe, as in the SPA');
+    assert.deepEqual(INTERESTS.map(interestTripId), ['spain', '', '', 'mallorca', 'charleston']);
+    assert.deepEqual(INTERESTS.map(interestTripName), ['The Spanish Offseason', 'Katie’s future trips', 'Future Courtside experiences', 'Mallorca', 'Charleston']);
+    assert.equal(normalizeInterest("Katie's future trips"), 'Katie’s future trips');
+    assert.equal(normalizeInterest('Spain with Katie + Eva'), 'Spain with Katie + Eva');
+  });
+
+  test('Spain → the Spain trip name and a Log result of spain; the row keeps the source; tripId is optional', async () => {
+    assert.deepEqual(await expectJson(await post(concept()), 200), { ok: true });
+    const { waitlist, log } = readMock();
+    assert.deepEqual({ ...waitlist[0], timestamp: 'ISO' }, { timestamp: 'ISO', email: 'sam.pro@example.com', name: 'Sam', trip: 'The Spanish Offseason', source: 'concept02-waitlist' });
+    assert.match(waitlist[0].timestamp, ISO);
+    assert.equal(log[0].code, 'waitlist_submit');
+    assert.equal(log[0].result, 'spain');
+  });
+
+  test('every interest writes the derived trip, from either Concept 02 source; the Log result is the trip id or the interest text', async () => {
+    const sources = ['concept02-waitlist', 'concept02-home'];
+    for (const [i, interest] of INTERESTS.entries()) {
+      resetRateLimit();
+      await expectJson(await post(concept({ email: `guest${i}@example.com`, interest, source: sources[i % 2] })), 200);
+    }
+    const { waitlist, log } = readMock();
+    assert.deepEqual(waitlist.map((r) => r.trip), ['The Spanish Offseason', 'Katie’s future trips', 'Future Courtside experiences', 'Mallorca', 'Charleston']);
+    assert.deepEqual(waitlist.map((r) => r.source), ['concept02-waitlist', 'concept02-home', 'concept02-waitlist', 'concept02-home', 'concept02-waitlist']);
+    assert.deepEqual(log.map((r) => r.result), ['spain', 'Katie’s future trips', 'Future Courtside experiences', 'mallorca', 'charleston']);
+  });
+
+  test('the home form: no name, interest "Future Courtside experiences", source concept02-home', async () => {
+    await expectJson(await post({ email: 'home@example.com', interest: 'Future Courtside experiences', source: 'concept02-home', consent: true, website: '' }), 200);
+    assert.deepEqual({ ...readMock().waitlist[0], timestamp: 'ISO' }, {
+      timestamp: 'ISO', email: 'home@example.com', name: '', trip: 'Future Courtside experiences', source: 'concept02-home',
+    });
+  });
+
+  test('interest: required and one of the five; a straight apostrophe is accepted and stored curly', async () => {
+    for (const bad of [undefined, '', 'Spain', 'spain', 'Geneva · future idea', 'Spain with Katie and Eva', 1, ['Spain with Katie + Eva']]) {
+      const body = concept();
+      if (bad === undefined) delete body.interest; else body.interest = bad;
+      assert.equal((await errorsOf(body)).interest, 'Choose what you are interested in.', JSON.stringify(bad));
+    }
+    nothingWritten();
+    await expectJson(await post(concept({ interest: "Katie's future trips" })), 200);
+    assert.equal(readMock().waitlist[0].trip, 'Katie’s future trips');
+    assert.equal(readMock().log[0].result, 'Katie’s future trips');
+  });
+
+  test('tripId is ignored for the Concept 02 sources (absent, blank or even unknown); interest is ignored for card/footer', async () => {
+    await expectJson(await post(concept({ tripId: 'nowhere' })), 200);
+    await expectJson(await post(concept({ email: 'two@example.com', tripId: '', interest: 'Mallorca · future idea' })), 200);
+    await expectJson(await post(concept({ email: 'three@example.com', tripId: 'geneva', interest: 'Charleston · future idea' })), 200);
+    assert.deepEqual(readMock().waitlist.map((r) => r.trip), ['The Spanish Offseason', 'Mallorca', 'Charleston'], 'the interest decides, not tripId');
+    await expectJson(await post(good({ interest: 'bogus' })), 200);
+    assert.equal(readMock().waitlist.at(-1).trip, 'Charleston');
+    const noTrip = good({ interest: 'Spain with Katie + Eva' });
+    delete noTrip.tripId;
+    assert.equal((await errorsOf(noTrip)).tripId, 'Choose a trip from the lineup.', 'card still needs tripId');
+  });
+
+  test('the other rules apply unchanged: email, name, consent, honeypot', async () => {
+    assert.equal((await errorsOf(concept({ email: 'nope' }))).email, EMAIL_ERROR);
+    assert.equal((await errorsOf(concept({ name: 'x'.repeat(121) }))).name, 'Keep your name under 120 characters.');
+    assert.equal((await errorsOf(concept({ consent: false }))).consent, CONSENT_ERROR);
+    assert.deepEqual(await expectJson(await post(concept({ website: 'spam', interest: 'nope' })), 200), { ok: true });
+    nothingWritten();
+  });
+
+  test('double submit keys on email + the derived trip, so a Concept 02 Spain sign-up and a card Spain sign-up are one row', async () => {
+    await expectJson(await post(concept()), 200);
+    await expectJson(await post(concept({ source: 'concept02-home' })), 200);
+    await expectJson(await post(good({ email: 'sam.pro@example.com', tripId: 'spain' })), 200);
+    assert.equal(readMock().waitlist.length, 1);
+    await expectJson(await post(concept({ interest: 'Katie’s future trips' })), 200);
+    await expectJson(await post(concept({ interest: 'Katie’s future trips', name: 'Sam P.' })), 200);
+    assert.deepEqual(readMock().waitlist.map((r) => r.trip), ['The Spanish Offseason', 'Katie’s future trips']);
+  });
+
+  test('validateWaitlist, buildRow and tripKey expose the derivation', () => {
+    const result = validateWaitlist(concept({ interest: 'Mallorca · future idea' }));
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.value, { email: 'sam.pro@example.com', name: 'Sam', source: 'concept02-waitlist', interest: 'Mallorca · future idea', tripId: 'mallorca', consent: true });
+    const none = validateWaitlist(concept({ interest: 'Katie’s future trips' })).value;
+    assert.deepEqual([none.tripId, none.interest], ['', 'Katie’s future trips']);
+    assert.equal(tripKey(result.value), 'mallorca');
+    assert.equal(tripKey(none), 'Katie’s future trips');
+    assert.equal(tripKey({ tripId: 'general' }), 'general');
+    const now = new Date('2026-11-08T12:00:00.000Z');
+    assert.deepEqual(buildRow(result.value, now), { timestamp: '2026-11-08T12:00:00.000Z', email: 'sam.pro@example.com', name: 'Sam', trip: 'Mallorca', source: 'concept02-waitlist' });
+    assert.equal(buildRow(none, now).trip, 'Katie’s future trips');
   });
 });
 
