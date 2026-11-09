@@ -127,11 +127,11 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.close2();
   });
 
-  test('the sitemap lists the six indexable paths', async () => {
+  test('the sitemap lists the six indexable paths and /privacy', async () => {
     const res = await http(srv.base, '/sitemap.xml');
     assert.equal(res.status, 200);
     const locs = [...res.text.matchAll(/<loc>https:\/\/courtsidetravel\.co([^<]*)<\/loc>/g)].map((m) => m[1]);
-    assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply']);
+    assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/privacy']);
   });
 
   test('old /#/trip-style links land on the new path (the address is replaced, not pushed)', async () => {

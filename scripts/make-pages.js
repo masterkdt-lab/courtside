@@ -139,7 +139,7 @@ export const PRIVACY = Object.freeze({
   title: 'Privacy notice — Courtside Travel Co.',
   description: 'What Courtside Travel Co. collects through this site, why, who helps us run it, and the choices you have.',
   image: 'home.jpg',
-  robots: NOINDEX,
+  robots: INDEXABLE, // approved by KC on 2026-11-09
 });
 
 const attr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -477,7 +477,7 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
   test('privacy.html and 404.html are still served and link the real page paths', async () => {
     const privacy = await http(srv.base, '/privacy');
     assert.equal(privacy.status, 200);
-    assert.match(privacy.text, NOINDEX);
+    assert.doesNotMatch(privacy.text, NOINDEX, 'the approved privacy notice is indexable');
     assert.doesNotMatch(privacy.text, /href="\/pros"|href="\/?#\/(trip|trips|host|about|apply|invite)"/);
     const missing = await http(srv.base, '/nothing-here');
     assert.equal(missing.status, 404);

@@ -91,9 +91,9 @@ test('structured data: the homepage keeps its graph; the trip page has a Tourist
   assert.deepEqual(jsonld(read('privacy.html')), []);
 });
 
-test('the sitemap lists the six indexable paths, not /invite or the draft /privacy', () => {
+test('the sitemap lists the six indexable paths and /privacy, not /invite', () => {
   const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
-  assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply'].map((p) => `${SITE}${p}`));
+  assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/privacy'].map((p) => `${SITE}${p}`));
   assert.match(read('robots.txt'), /^Sitemap: https:\/\/courtsidetravel\.co\/sitemap\.xml$/m);
 });
 
@@ -104,15 +104,17 @@ test('internal links to public pages use real paths in the shell, the views and 
   assert.doesNotMatch(read('app.js'), /href="#\/(trip|trips|host|about|apply|invite)?"/);
 });
 
-test('the privacy draft: noindex, the SPA look, the draft line, the operator, no placeholders and the real cookie names', () => {
+test('the privacy notice (approved): indexable, the SPA look, last-updated line, the operator, no placeholders and the real cookie names', () => {
   const html = read('privacy.html');
-  assert.equal(meta(html, 'robots'), 'noindex,nofollow');
+  assert.notEqual(meta(html, 'robots'), 'noindex,nofollow');
   assert.equal(one(html, /<link rel="canonical" href="([^"]*)">/, 'canonical'), `${SITE}${PRIVACY.path}`);
   assert.match(html, /<link rel="stylesheet" href="\/v2\.css">/);
   assert.match(html, /<script src="\/analytics\.js"><\/script>/);
   assert.doesNotMatch(html, /<script src="\/app\.js">/);
-  assert.match(html, /Draft for review — last updated/);
-  assert.match(html, /Courtside Travel Co\. is operated by Nextwave\.bet LLC/);
+  assert.doesNotMatch(html, /Draft for review/);
+  assert.match(html, /Last updated 9 November 2026\./);
+  assert.match(html, /Courtside Travel Co\. is operated by Nextwave Bet LLC/);
+  assert.doesNotMatch(html, /Nextwave\.bet/);
   assert.doesNotMatch(html.split('<main')[1].replace(/<[^>]+>/g, ''), /\[/, 'no bracketed placeholders left');
   assert.doesNotMatch(html, /30 days|90 days|2 years/);
   assert.match(html, /until you clear them in your browser/);
