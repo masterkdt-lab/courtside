@@ -7,3 +7,15 @@
 .hp{position:absolute!important;left:-9999px!important;top:auto!important;width:1px!important;height:1px!important;padding:0!important;border:0!important;margin:0!important;opacity:0;pointer-events:none}
 .form-status{font-size:11px;color:var(--muted);margin:10px 0 0;line-height:1.6}.form-status.error{color:#a34e39}.form-status:empty{display:none}
 .option a,.consent-row a{text-decoration:underline;text-underline-offset:3px}
+
+/* Trip mosaic fix (2026-11-08). The mosaic is a fixed-height grid, but its rows were `auto`, so the
+   cover-fitted photos grew to their natural height (the portrait coast photo to ~830px) and spilled
+   over the text below. Definite rows let `height:100%` resolve. The side column stacks its two
+   landscape photos instead of slicing them into tall slivers. Focal points keep faces in frame. */
+.mosaic{grid-template-rows:minmax(0,1fr);overflow:hidden}
+.mosaic>img,.mosaic .side{min-height:0;height:100%}
+.mosaic .side{grid-template-columns:1fr;grid-template-rows:repeat(2,minmax(0,1fr))}
+.mosaic .side img{min-height:0;height:100%}
+.mosaic>img{object-position:50% 58%}
+.mosaic .side img:first-child{object-position:50% 42%}
+.mosaic .side img:last-child{object-position:50% 45%}
