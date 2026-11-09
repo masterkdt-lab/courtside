@@ -55,20 +55,18 @@ export async function startServer() {
   };
 }
 
-// Clears everything the server keeps in memory: rate-limit buckets, the four double-submit maps
-// (/api/request, /api/waitlist, /api/inquiry, /api/application), the trips and lineup caches and
+// Clears everything the server keeps in memory: rate-limit buckets, the three double-submit maps
+// (/api/waitlist, /api/inquiry, /api/application), the lineup cache and
 // the email log. Equivalent to a server restart for the API modules.
 export async function resetServerState() {
-  const [ratelimit, request, waitlist, inquiry, application, trips, lineup, email] = await Promise.all([
-    import('../../lib/ratelimit.js'), import('../../api/request.js'), import('../../api/waitlist.js'), import('../../api/inquiry.js'),
-    import('../../api/application.js'), import('../../api/trips.js'), import('../../api/lineup.js'), import('../../lib/email.js'),
+  const [ratelimit, waitlist, inquiry, application, lineup, email] = await Promise.all([
+    import('../../lib/ratelimit.js'), import('../../api/waitlist.js'), import('../../api/inquiry.js'),
+    import('../../api/application.js'), import('../../api/lineup.js'), import('../../lib/email.js'),
   ]);
   ratelimit._reset();
-  request._resetDoubleSubmit();
   waitlist._resetDoubleSubmit();
   inquiry._resetDoubleSubmit();
   application._resetDoubleSubmit();
-  trips._resetTripsCache();
   lineup._resetLineupCache();
   email._resetSentLog();
 }
@@ -89,8 +87,7 @@ export async function editMock(mutate) {
   const data = readMockData();
   mutate(data);
   fs.writeFileSync(process.env.MOCK_DATA_PATH, `${JSON.stringify(data, null, 2)}\n`);
-  const [{ _resetTripsCache }, { _resetLineupCache }] = await Promise.all([import('../../api/trips.js'), import('../../api/lineup.js')]);
-  _resetTripsCache();
+  const { _resetLineupCache } = await import('../../api/lineup.js');
   _resetLineupCache();
 }
 

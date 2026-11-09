@@ -1,12 +1,22 @@
 // tests/api.code.test.js
-// POST /api/code and GET /api/session against the mock store, one mock file per test.
+// POST /api/code and the cs_session invite cookie against the mock store, one mock file per test.
 
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { POST } from '../api/code.js';
-import { GET as session } from '../api/session.js';
+import { getSecret } from '../lib/env.js';
+import { sessionFromRequest } from '../lib/guard.js';
+import { json } from '../lib/http.js';
+
+// The invite cookie check that /api/inquiry relies on (the standalone /api/session route was
+// retired with the old pages); same shape as that route so the assertions below still read cleanly.
+async function session(request) {
+  const s = await sessionFromRequest(request, getSecret());
+  if (!s) return json(401, { ok: false });
+  return json(200, { ok: true, code: s.code, invitedBy: s.invitedBy || '', issuedTo: s.issuedTo || '' });
+}
 import { COOKIE_MAX_AGE, sign, verify } from '../lib/cookie.js';
 import { DEV_COOKIE_SECRET } from '../lib/guard.js';
 import { _reset as resetRateLimit } from '../lib/ratelimit.js';
@@ -118,7 +128,7 @@ describe('POST /api/code', () => {
   });
 });
 
-describe('GET /api/session', () => {
+describe('the cs_session invite cookie', () => {
   test('200 with the cookie payload', async () => {
     const cookie = await loginCookie('GUEST1');
     const res = await session(getRequest('/api/session', { cookie }));

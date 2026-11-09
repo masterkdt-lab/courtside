@@ -226,10 +226,10 @@ test('trailing slashes redirect to the clean path, like trailingSlash:false on V
 });
 
 test('/api/<name> dispatches to any api/<name>.js that exists; nothing else', () => {
-  for (const name of ['code', 'session', 'trips', 'request', 'waitlist', 'event', 'lineup', 'inquiry', 'application']) {
+  for (const name of ['code', 'waitlist', 'lineup', 'inquiry', 'application', 'group', 'member', 'concierge', 'proposal', 'payments']) {
     assert.ok(resolveApi(name)?.endsWith(path.join('api', `${name}.js`)), name);
   }
-  for (const name of ['nope', 'Code', 'code.js', '../lib/store', '..', '', 'code/x', 'store.columns']) assert.equal(resolveApi(name), null, name);
+  for (const name of ['session', 'trips', 'request', 'event', 'nope', 'Code', 'code.js', '../lib/store', '..', '', 'code/x', 'store.columns']) assert.equal(resolveApi(name), null, name);
 });
 
 test('GET /api/lineup end to end: public JSON { trip, weeks }', async () => {
@@ -323,19 +323,7 @@ test('POST /api/waitlist end to end for both the old and the Concept 02 bodies',
   assert.equal((await get('/api/waitlist')).status, 405);
 });
 
-test('POST /api/event end to end: a text/plain beacon body, 204 with no body, one Log row', async () => {
-  const before = readMock().log.length;
-  const res = await fetch(`${base}/api/event`, {
-    method: 'POST', redirect: 'manual', headers: { 'content-type': 'text/plain;charset=UTF-8', 'x-forwarded-for': '198.51.100.41' },
-    body: JSON.stringify({ name: 'trip_card_open', detail: 'geneva' }),
-  });
-  assert.equal(res.status, 204);
-  assert.equal(await res.text(), '');
-  assert.equal(readMock().log.length, before + 1);
-  assert.equal((await get('/api/event')).status, 405);
-});
-
-test('POST /api/code end to end: JSON body in, JSON + Set-Cookie out; /api/session and /api/trips still need the cookie', async () => {
+test('POST /api/code end to end: JSON body in, JSON + Set-Cookie out; the retired routes are gone', async () => {
   const { res, setCookie, cookie } = await login('GUEST1');
   assert.equal(res.headers.get('content-type'), 'application/json');
   assert.deepEqual(await res.json(), { ok: true, invitedBy: 'Katie', issuedTo: 'Ana Guest' });
@@ -346,12 +334,8 @@ test('POST /api/code end to end: JSON body in, JSON + Set-Cookie out; /api/sessi
   assert.equal((await fetch(`${base}/api/code`, { method: 'POST' })).status, 400);
   assert.deepEqual(readMock().log.slice(-3).map((r) => r.result), ['ok', 'invalid', 'missing_code']);
 
-  assert.equal((await get('/api/session')).status, 401);
-  const ok = await get('/api/session', { headers: { cookie } });
-  assert.equal(ok.status, 200);
-  assert.deepEqual(await ok.json(), { ok: true, code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana Guest' });
-  assert.equal((await get('/api/trips')).status, 401);
-  assert.equal((await get('/api/trips', { headers: { cookie } })).status, 200);
+  assert.ok(cookie);
+  for (const gone of ['/api/session', '/api/trips', '/api/request', '/api/event']) assert.equal((await get(gone)).status, 404, gone);
 });
 
 test('wrong methods and unknown API names', async () => {
@@ -359,7 +343,7 @@ test('wrong methods and unknown API names', async () => {
   assert.equal(wrong.status, 405);
   assert.equal(wrong.headers.get('allow'), 'POST');
   assert.deepEqual(await wrong.json(), { ok: false, reason: 'method_not_allowed' });
-  assert.equal((await fetch(`${base}/api/session`, { method: 'POST' })).status, 405);
+  assert.equal((await fetch(`${base}/api/lineup`, { method: 'POST' })).status, 405);
   assert.equal((await get('/api/nope')).status, 404);
   assert.equal((await get('/api/')).status, 308);
   assert.equal((await get('/api/../lib/store.js')).status, 404);
