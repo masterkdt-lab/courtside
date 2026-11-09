@@ -47,9 +47,9 @@ async function groupWithGuest(role = 'Player') {
 describe('lib/access.js (cs_member)', () => {
   test('the cookie: name, 90 days, HttpOnly, SameSite=Lax, Secure only when asked', () => {
     assert.equal(MEMBER_COOKIE_NAME, 'cs_member');
-    assert.equal(MEMBER_COOKIE_MAX_AGE, 7_776_000);
-    assert.equal(buildMemberCookie('t'), 'cs_member=t; Path=/; HttpOnly; SameSite=Lax; Max-Age=7776000');
-    assert.equal(buildMemberCookie('t', { secure: true }), 'cs_member=t; Path=/; HttpOnly; SameSite=Lax; Max-Age=7776000; Secure');
+    assert.equal(MEMBER_COOKIE_MAX_AGE, 34_560_000);
+    assert.equal(buildMemberCookie('t'), 'cs_member=t; Path=/; HttpOnly; SameSite=Lax; Max-Age=34560000');
+    assert.equal(buildMemberCookie('t', { secure: true }), 'cs_member=t; Path=/; HttpOnly; SameSite=Lax; Max-Age=34560000; Secure');
   });
 
   test('round trip, and anything else is null: wrong scope, wrong secret, expired, missing ids, the invite cookie', async () => {
@@ -266,7 +266,7 @@ describe('POST /api/member', () => {
     const res = await member({ action: 'open', memberId: guest.memberId });
     assert.equal(res.status, 200);
     assert.match(memberCookieOf(res.res), /^cs_member=/);
-    assert.match(res.res.headers.get('set-cookie'), /HttpOnly; SameSite=Lax; Max-Age=7776000$/, 'no Secure on http://localhost');
+    assert.match(res.res.headers.get('set-cookie'), /HttpOnly; SameSite=Lax; Max-Age=34560000$/, 'no Secure on http://localhost');
     assert.deepEqual(Object.keys(res.json), ['ok', 'group', 'member', 'isOrganizer']);
     assert.deepEqual(res.json.group, { groupId: org.groupId, name: 'Ana’s Spain group', organizerName: 'Ana Guest', chosenWeek: 'w5', weekLabel: 'Feb 7–13', tennis: 'Daily tennis', stage: 'Inquiry' });
     assert.equal(res.json.member.memberId, guest.memberId);

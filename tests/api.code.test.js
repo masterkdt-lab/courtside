@@ -78,7 +78,7 @@ describe('POST /api/code', () => {
     const res = await post({ code: 'GUEST1' });
     await expectJson(res, 200, { ok: true, invitedBy: 'Katie', issuedTo: 'Ana Guest' });
     const setCookie = res.headers.get('set-cookie');
-    assert.match(setCookie, /^cs_session=[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+; Path=\/; HttpOnly; SameSite=Lax; Max-Age=2592000$/);
+    assert.match(setCookie, /^cs_session=[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+; Path=\/; HttpOnly; SameSite=Lax; Max-Age=34560000$/);
     assert.equal(setCookie.includes('Secure'), false, 'no Secure on http://localhost');
     const token = setCookie.split(';')[0].slice('cs_session='.length);
     const payload = await verify(token, DEV_COOKIE_SECRET);

@@ -157,8 +157,14 @@ describe('a valid group request', () => {
     assert.equal(log[0].result, json.requestId);
     assert.match(log[0].ip_hash, /^[0-9a-f]{16}$/);
 
-    assert.equal(sentLog.length, 1, 'Katie\'s notification only; no guest email');
-    const [katie] = sentLog;
+    assert.equal(sentLog.length, 2, 'Katie\'s notification, then the guest\'s confirmation');
+    const [katie, guest] = sentLog;
+    assert.deepEqual(guest.to, ['ana.guest@example.com']);
+    assert.equal(guest.subject, 'Your Spanish Offseason request is in');
+    assert.match(guest.html, /Katie is so excited to get back to you/);
+    assert.match(guest.html, /Feb 7–13, 2027/);
+    assert.match(guest.html, /hero-1200x600\.jpg/);
+    assert.match(guest.text, /Reference: CS-/);
     assert.deepEqual(katie.to, ['notify@example.com'], 'the log-mode fallback when NOTIFY_EMAILS is unset');
     assert.equal(katie.subject, `New request ${json.requestId} · Private group · Feb 7–13`);
     for (const line of ['Type: Private group', 'Name: Ana Guest', 'Email: ana.guest@example.com', 'Invite code: none (public trip page)', brief, 'Sheet: https://docs.google.com/spreadsheets/d/abc']) {
@@ -283,7 +289,7 @@ describe('invite columns', () => {
     assert.equal(withCookie.invite_code, 'GUEST1');
     assert.equal(withCookie.invited_by, 'Katie');
     assert.equal(withCookie.guest_name, 'Ana Guest', 'identity still comes from the form, not the invite row');
-    assert.ok(sentLog.at(-1).text.includes('Invite code: GUEST1 (invited by Katie)'));
+    assert.ok(sentLog.at(-2).text.includes('Invite code: GUEST1 (invited by Katie)'), 'the team notification (the guest confirmation follows it)');
 
     const garbage = await expectJson(await post(groupBody({ email: 'two@example.com' }), { cookie: 'cs_session=abc.def' }), 200);
     const bad = readMock().requests.find((r) => r.request_id === garbage.requestId);
@@ -515,7 +521,7 @@ describe('rate limit (bucket "request", 5 per 10 minutes per IP hash, shared wit
     assert.deepEqual(sixth, { ok: false, reason: 'rate_limited' });
     assert.equal(readMock().requests.length, 5, 'the sixth wrote nothing');
     assert.equal(readMock().log.filter((l) => l.code === LOG_CODE).length, 5, 'a 429 is not logged');
-    assert.equal(sentLog.length, 5);
+    assert.equal(sentLog.length, 10, 'two emails per accepted request');
 
     assert.equal((await post(groupBody({ email: 'other@example.com' }), { 'x-forwarded-for': '198.51.100.51' })).status, 200);
 
@@ -592,7 +598,7 @@ describe('double submit (same email + weeks within 60 seconds)', () => {
     assert.equal(data.requests.length, 1);
     assert.equal(data.log.filter((l) => l.code === LOG_CODE).length, 1);
     assert.equal(data.groups.length, 1, 'one group for the repeated submit');
-    assert.equal(sentLog.length, 1);
+    assert.equal(sentLog.length, 2, 'one notification + one confirmation for the repeated submit');
 
     const other = await expectJson(await post(groupBody({ weeks: ['w6'] })), 200);
     assert.notEqual(other.requestId, first.requestId);

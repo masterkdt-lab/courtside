@@ -74,10 +74,10 @@ describe('sign / verify', () => {
 
 describe('buildSetCookie / readCookie', () => {
   test('builds the cs_session attributes, Secure only when asked', () => {
-    assert.equal(buildSetCookie('tok'), 'cs_session=tok; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000');
-    assert.equal(buildSetCookie('tok', { secure: false }), 'cs_session=tok; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000');
-    assert.equal(buildSetCookie('tok', { secure: true }), 'cs_session=tok; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure');
-    assert.equal(COOKIE_MAX_AGE, 30 * 24 * 60 * 60);
+    assert.equal(buildSetCookie('tok'), 'cs_session=tok; Path=/; HttpOnly; SameSite=Lax; Max-Age=34560000');
+    assert.equal(buildSetCookie('tok', { secure: false }), 'cs_session=tok; Path=/; HttpOnly; SameSite=Lax; Max-Age=34560000');
+    assert.equal(buildSetCookie('tok', { secure: true }), 'cs_session=tok; Path=/; HttpOnly; SameSite=Lax; Max-Age=34560000; Secure');
+    assert.equal(COOKIE_MAX_AGE, 400 * 24 * 60 * 60);
   });
 
   test('reads one cookie out of many, quoted or encoded, and returns null when absent', () => {

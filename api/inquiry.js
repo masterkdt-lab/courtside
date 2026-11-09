@@ -21,6 +21,8 @@
 
 import * as store from '../lib/store.js';
 import { memberCookie } from '../lib/access.js';
+import { SITE, confirmInquiry } from '../lib/email-confirm.js';
+import { memberLink } from '../lib/groups.js';
 import { emailMode, notifyInquiry, sendEmail } from '../lib/email.js';
 import { getSecret } from '../lib/env.js';
 import { FLEXIBLE, ROLES, newGroupRow, newMemberRow } from '../lib/groups.js';
@@ -214,6 +216,13 @@ async function save({ value, weeksById, session, hash, request }) {
   const notifyTo = String(env.NOTIFY_EMAILS ?? '').trim() || (emailMode(env) === 'log' ? LOG_MODE_NOTIFY_FALLBACK : '');
   const notify = await sendEmail({ to: notifyTo, ...notifyInquiry(row, { sheetUrl: String(env.SHEET_URL ?? '').trim() }) });
   if (!notify.ok) console.error(`[api/inquiry] notification email for ${id} failed: ${notify.error}`);
+
+  // The guest's confirmation (lib/email-confirm.js), best effort: the request is already saved.
+  if (row.guestEmail) {
+    const groupUrl = body.memberId ? `${SITE}${memberLink(body.memberId)}` : '';
+    const confirm = await sendEmail({ to: row.guestEmail, replyTo: String(env.NOTIFY_EMAILS ?? '').split(',')[0].trim(), ...confirmInquiry(row, { groupUrl }) });
+    if (!confirm.ok) console.error(`[api/inquiry] confirmation email for ${id} failed: ${confirm.error}`);
+  }
 
   return { status: 200, body, headers };
 }
