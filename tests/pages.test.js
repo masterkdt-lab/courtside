@@ -122,8 +122,8 @@ test('the privacy draft: noindex, the SPA look, the draft line, the operator, no
   assert.match(html, /No card or bank details are collected on this site/);
 });
 
-test('analytics.js ships with an empty measurement ID (nothing loads, no banner)', () => {
-  assert.match(read('analytics.js'), /^ {2}const GA_MEASUREMENT_ID = '';$/m);
+test('analytics.js carries Courtside\'s GA4 measurement ID (KC, 2026-11-09)', () => {
+  assert.match(read('analytics.js'), /^ {2}const GA_MEASUREMENT_ID = 'G-E7TV4W9JDN';$/m);
 });
 
 test('public copy: no concept, prototype or verification wording on the public views', () => {

@@ -43,7 +43,7 @@ async function open({ viewport = DESKTOP, ip = freshIp(), gaId = '' } = {}) {
       return route.fulfill({ status: 200, contentType: 'text/javascript', body: 'window.__gtagStub=(window.__gtagStub||0)+1;' });
     });
     await context.route(`${srv.base}/analytics.js`, (route) => route.fulfill({
-      status: 200, contentType: 'text/javascript; charset=utf-8', body: ANALYTICS.replace("const GA_MEASUREMENT_ID = '';", `const GA_MEASUREMENT_ID = '${gaId}';`),
+      status: 200, contentType: 'text/javascript; charset=utf-8', body: ANALYTICS.replace(/const GA_MEASUREMENT_ID = '[^']*';/, `const GA_MEASUREMENT_ID = '${gaId}';`),
     }));
   }
   const page = await context.newPage();
@@ -116,9 +116,14 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     assert.match(await mainText(page), /More journeys coming soon\./);
     assert.equal(await page.locator('#main .image-tag', { hasText: 'COMING SOON' }).count(), 2);
     assert.deepEqual(page.errors(), []);
-    assert.deepEqual(page.external(), [], 'no external requests with the measurement ID empty');
-    assert.equal(await page.locator('#cs-consent, #cs-cookie-settings').count(), 0, 'no banner and no Cookie settings without an ID');
-    assert.equal(await page.evaluate(() => typeof window.dataLayer), 'undefined');
+    // The real ID is configured (KC, 2026-11-09): the banner and Cookie settings are present, and still
+    // nothing is requested from Google until the visitor clicks Allow.
+    assert.deepEqual(page.external(), [], 'no external requests before consent');
+    assert.equal(await page.locator('#cs-consent').count(), 1, 'the consent banner is present');
+    assert.equal(await page.locator('#cs-cookie-settings').count(), 1, 'Cookie settings is in the footer');
+    assert.equal(await page.evaluate(() => document.querySelectorAll('script[src*="googletagmanager"]').length), 0, 'gtag.js is not loaded before Allow');
+    const consentDefault = await page.evaluate(() => (window.dataLayer || []).map((e) => Array.from(e)).find((e) => e[0] === 'consent' && e[1] === 'default'));
+    assert.equal(consentDefault?.[2]?.analytics_storage, 'denied', 'Consent Mode defaults to denied');
     await page.close2();
   });
 

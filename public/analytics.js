@@ -11,7 +11,7 @@
 //   - lead(type) sends generate_lead with { lead_type } and nothing personal.
 (function () {
   'use strict';
-  const GA_MEASUREMENT_ID = '';
+  const GA_MEASUREMENT_ID = 'G-E7TV4W9JDN';
 
   const KEY = 'courtside-consent';
   const api = { pageView() {}, lead() {}, openSettings() {} };
