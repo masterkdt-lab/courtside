@@ -137,12 +137,12 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     assert.match(html, /<title>Courtside — Travel together<\/title>/);
     assert.match(html, /<link rel="icon" href="\/favicon\.svg"/);
     assert.match(html, /<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/);
-    assert.match(html, /<link rel="canonical" href="https:\/\/courtside-ivory\.vercel\.app\/">/);
-    assert.match(html, /property="og:image" content="https:\/\/courtside-ivory\.vercel\.app\/assets\/og\/home\.jpg"/);
+    assert.match(html, /<link rel="canonical" href="https:\/\/courtsidetravel\.co\/">/);
+    assert.match(html, /property="og:image" content="https:\/\/courtsidetravel\.co\/assets\/og\/home\.jpg"/);
     assert.match(html, /<link rel="stylesheet" href="\/styles\.css">/);
     assert.match(html, /<script src="\/app\.js">/);
     assert.doesNotMatch(html, /prototypebar|data-view=|#\/guide|#\/host-desk|#\/operations/);
-    assert.doesNotMatch(html, /https?:\/\/(?!courtside-ivory\.vercel\.app)/, 'no external URLs in the shell');
+    assert.doesNotMatch(html, /https?:\/\/(?!courtsidetravel\.co)/, 'no external URLs in the shell');
 
     const page = await open();
     await visit(page, '#/');

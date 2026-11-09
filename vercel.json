@@ -1,4 +1,12 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.courtsidetravel.co" }],
+      "destination": "https://courtsidetravel.co/:path*",
+      "permanent": true
+    }
+  ]
 }
