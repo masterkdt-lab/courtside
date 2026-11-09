@@ -92,3 +92,40 @@ export const vettedBody = (overrides = {}) => ({
   website: '',
   ...overrides,
 });
+
+// Wave 2 (CONCEPT02_WAVE2_PLAN.md) --------------------------------------------------------
+
+// The "cs_member=..." pair from a response's Set-Cookie, or null.
+export function memberCookieOf(res) {
+  const header = res.headers.get('set-cookie') || '';
+  const match = /(?:^|,\s*)(cs_member=[^;]+)/.exec(header);
+  return match ? match[1] : null;
+}
+
+let groupIp = 0;
+export const freshGroupIp = () => `198.18.${Math.floor(groupIp / 250) % 250}.${(groupIp++ % 250) + 1}`;
+
+// A group request through POST /api/inquiry: -> { groupId, memberId, requestId, cookie } for the organizer.
+export async function createGroup(overrides = {}) {
+  const { POST } = await import('../api/inquiry.js');
+  const body = {
+    path: 'group', weeks: ['w5'], players: '6', partners: '2', tennis: 'Daily tennis',
+    name: 'Ana Guest', email: `ana.${++counter}@example.com`, notes: 'A birthday week.', consent: true, website: '', ...overrides,
+  };
+  const res = await POST(jsonRequest('/api/inquiry', body, { headers: { 'x-forwarded-for': freshGroupIp() } }));
+  assert.equal(res.status, 200, await res.clone().text());
+  const json = await res.json();
+  return { ...json, cookie: memberCookieOf(res) };
+}
+
+// Call a Wave 2 route: POST with a JSON body, or GET when body is undefined.
+export async function callRoute(name, { body, cookie, ip = freshGroupIp(), method } = {}) {
+  const mod = await import(`../api/${name}.js`);
+  const headers = { 'x-forwarded-for': ip };
+  if (cookie) headers.cookie = cookie;
+  const verb = method || (body === undefined ? 'GET' : 'POST');
+  const req = verb === 'GET' ? getRequest(`/api/${name}`, headers) : jsonRequest(`/api/${name}`, body, { headers });
+  const res = await mod[verb](req);
+  const text = await res.text();
+  return { status: res.status, json: text ? JSON.parse(text) : null, res };
+}

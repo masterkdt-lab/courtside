@@ -88,11 +88,13 @@ describe('a valid group request', () => {
     process.env.SHEET_URL = 'https://docs.google.com/spreadsheets/d/abc';
     const started = Date.now();
     const json = await expectJson(await post(groupBody()), 200);
-    assert.deepEqual(Object.keys(json), ['ok', 'requestId']);
+    assert.deepEqual(Object.keys(json), ['ok', 'requestId', 'groupId', 'memberId'], 'the group path adds the Wave 2 ids');
     assert.equal(json.ok, true);
     assert.match(json.requestId, ID);
 
-    const { requests, log, waitlist } = readMock();
+    const { requests, log: allLog, waitlist } = readMock();
+    const log = allLog.filter((l) => l.code === LOG_CODE);
+    assert.deepEqual(allLog.map((l) => l.code), ['inquiry_submit', 'group_create', 'member_add']);
     assert.equal(requests.length, 1);
     const row = requests[0];
     assert.deepEqual(Object.keys(row), [...TAB_HEADERS.Requests]);
@@ -512,7 +514,7 @@ describe('rate limit (bucket "request", 5 per 10 minutes per IP hash, shared wit
     const sixth = await expectJson(await post(groupBody({ email: 'guest6@example.com' }), h), 429);
     assert.deepEqual(sixth, { ok: false, reason: 'rate_limited' });
     assert.equal(readMock().requests.length, 5, 'the sixth wrote nothing');
-    assert.equal(readMock().log.length, 5, 'a 429 is not logged');
+    assert.equal(readMock().log.filter((l) => l.code === LOG_CODE).length, 5, 'a 429 is not logged');
     assert.equal(sentLog.length, 5);
 
     assert.equal((await post(groupBody({ email: 'other@example.com' }), { 'x-forwarded-for': '198.51.100.51' })).status, 200);
@@ -588,7 +590,8 @@ describe('double submit (same email + weeks within 60 seconds)', () => {
     assert.deepEqual(upper, first, 'the key is the normalised email, from any IP');
     let data = readMock();
     assert.equal(data.requests.length, 1);
-    assert.equal(data.log.length, 1);
+    assert.equal(data.log.filter((l) => l.code === LOG_CODE).length, 1);
+    assert.equal(data.groups.length, 1, 'one group for the repeated submit');
     assert.equal(sentLog.length, 1);
 
     const other = await expectJson(await post(groupBody({ weeks: ['w6'] })), 200);
@@ -599,7 +602,7 @@ describe('double submit (same email + weeks within 60 seconds)', () => {
     assert.deepEqual(data.requests.map((r) => [r.guest_email, r.weeks]), [
       ['ana.guest@example.com', 'Feb 7–13'], ['ana.guest@example.com', 'Feb 14–20'], ['friend@example.com', 'Feb 7–13'],
     ]);
-    assert.equal(data.log.length, 3);
+    assert.equal(data.log.filter((l) => l.code === LOG_CODE).length, 3);
   });
 
   test('concurrent identical posts share one write; _resetDoubleSubmit allows the row again', async () => {

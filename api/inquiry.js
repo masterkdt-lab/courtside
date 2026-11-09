@@ -1,7 +1,10 @@
 // api/inquiry.js — POST /api/inquiry (CONCEPT02_PLAN.md; the #/request final step; no cookie required)
 //   body { path: "group"|"match", weeks: [weekId, ...] | ["flexible"], players, partners, party, level,
 //          tennis, name, email, notes, consent: true, website: "" }
-//   200 { ok:true, requestId }
+//   200 { ok:true, requestId }                          (match path)
+//   200 { ok:true, requestId, groupId, memberId } + Set-Cookie cs_member   (group path, CONCEPT02_WAVE2_PLAN.md:
+//       the Groups row and the organizer's GroupMembers row are created after the Requests row; Log
+//       group_create and member_add)
 //   400 { ok:false, errors:{ field: message } }
 //   409 { ok:false, reason:"trip_closed", message } | { ok:false, reason:"week_closed", weeks:[weekId,...], message }
 //   429 { ok:false, reason:"rate_limited" }
@@ -17,17 +20,22 @@
 // one is present, invite_code and invited_by are filled from it, otherwise they are "".
 
 import * as store from '../lib/store.js';
+import { memberCookie } from '../lib/access.js';
 import { emailMode, notifyInquiry, sendEmail } from '../lib/email.js';
 import { getSecret } from '../lib/env.js';
+import { FLEXIBLE, ROLES, newGroupRow, newMemberRow } from '../lib/groups.js';
 import { sessionFromRequest } from '../lib/guard.js';
 import { json, readJson } from '../lib/http.js';
-import { clientIp, ipHash, requestId } from '../lib/ids.js';
+import { clientIp, groupId as newGroupId, ipHash, memberId as newMemberId, requestId } from '../lib/ids.js';
+import { logEvent } from '../lib/log.js';
 import { check } from '../lib/ratelimit.js';
 import { isHoneypotFilled, validateInquiry } from '../lib/validate.js';
 import { LINEUP_TRIP_ID, readLineup } from './lineup.js';
 
 export const DOUBLE_SUBMIT_TTL_MS = 60 * 1000;
 export const LOG_CODE = 'inquiry_submit';
+export const LOG_GROUP_CREATE = 'group_create';
+export const LOG_MEMBER_ADD = 'member_add';
 export const RATE_LIMIT_BUCKET = 'request';
 // Concept 02 path -> the existing request_type dropdown value, and the label in the brief.
 export const REQUEST_TYPE_BY_PATH = Object.freeze({ group: 'private', match: 'vetted' });
@@ -130,7 +138,57 @@ export function weekClosedMessage(closedWeeks) {
   return `Requests for ${listLabels(closedWeeks.map((w) => w.label || w.weekId))} are closed.`;
 }
 
-async function save({ value, weeksById, session, hash }) {
+// The Wave 2 group path (CONCEPT02_WAVE2_PLAN.md section 6): after the Requests row, the Groups row
+// and the organizer's GroupMembers row, linked by request_id. Returns the two rows and the Set-Cookie
+// header for cs_member. Best effort around the request itself: when this fails the request is still
+// filed and the response carries no group (the console says why), rather than a 500 that would make
+// the guest resubmit and file the request twice.
+export function buildGroupRows({ id, row, value, now = new Date() }) {
+  const iso = now.toISOString();
+  const group = newGroupRow({
+    groupId: newGroupId(),
+    requestId: id,
+    organizerName: value.name,
+    organizerEmail: value.email,
+    weeks: row.weeks,
+    chosenWeek: value.flexible ? FLEXIBLE : value.weeks[0],
+    players: value.players,
+    partners: value.partners,
+    tennis: value.tennis,
+    notes: value.notes,
+    now: iso,
+  });
+  const member = newMemberRow({
+    memberId: newMemberId(),
+    groupId: group.groupId,
+    name: value.name,
+    email: value.email,
+    role: ROLES.organizerPlayer,
+    inviteStatus: 'Responded',
+    participation: 'Interested',
+    tennis: value.tennis,
+    joinedAt: iso,
+    now: iso,
+  });
+  return { group, member };
+}
+
+async function createGroup({ id, row, value, hash, request }) {
+  try {
+    const { group, member } = buildGroupRows({ id, row, value });
+    await store.appendGroup(group);
+    await logEvent(LOG_GROUP_CREATE, group.groupId, hash, 'api/inquiry');
+    await store.appendMember(member);
+    await logEvent(LOG_MEMBER_ADD, member.memberId, hash, 'api/inquiry');
+    const headers = await memberCookie(request, { groupId: group.groupId, memberId: member.memberId });
+    return { groupId: group.groupId, memberId: member.memberId, headers };
+  } catch (err) {
+    console.error(`[api/inquiry] group rows for ${id} failed`, err);
+    return null;
+  }
+}
+
+async function save({ value, weeksById, session, hash, request }) {
   const id = requestId();
   const row = buildRow({ id, value, weeksById, session });
   await store.appendRequest(row);
@@ -141,12 +199,23 @@ async function save({ value, weeksById, session, hash }) {
     console.error('[api/inquiry] logAttempt failed', err);
   }
 
+  const body = { ok: true, requestId: id };
+  let headers = {};
+  if (value.path === 'group') {
+    const created = await createGroup({ id, row, value, hash, request });
+    if (created) {
+      body.groupId = created.groupId;
+      body.memberId = created.memberId;
+      headers = created.headers;
+    }
+  }
+
   const env = process.env;
   const notifyTo = String(env.NOTIFY_EMAILS ?? '').trim() || (emailMode(env) === 'log' ? LOG_MODE_NOTIFY_FALLBACK : '');
   const notify = await sendEmail({ to: notifyTo, ...notifyInquiry(row, { sheetUrl: String(env.SHEET_URL ?? '').trim() }) });
   if (!notify.ok) console.error(`[api/inquiry] notification email for ${id} failed: ${notify.error}`);
 
-  return { status: 200, body: { ok: true, requestId: id } };
+  return { status: 200, body, headers };
 }
 
 export async function POST(request) {
@@ -193,12 +262,12 @@ export async function POST(request) {
     const key = `${value.email}|${value.weeks.join(',')}`;
     let entry = recent.get(key);
     if (!entry) {
-      entry = { at: now, result: save({ value, weeksById, session, hash }) };
+      entry = { at: now, result: save({ value, weeksById, session, hash, request }) };
       recent.set(key, entry);
       entry.result.catch(() => recent.delete(key));
     }
     const outcome = await entry.result;
-    return json(outcome.status, outcome.body);
+    return json(outcome.status, outcome.body, outcome.headers || {});
   } catch (err) {
     console.error('[api/inquiry]', err);
     return json(500, { ok: false, reason: 'server_error' });

@@ -258,7 +258,9 @@ test('POST /api/inquiry end to end: no cookie, JSON in, JSON out, one Requests r
   assert.equal(res.headers.get('cache-control'), 'no-store');
   const json = await res.json();
   assert.match(json.requestId, ID);
-  assert.deepEqual(json, { ok: true, requestId: json.requestId });
+  assert.deepEqual(json, { ok: true, requestId: json.requestId, groupId: json.groupId, memberId: json.memberId });
+  assert.match(json.groupId, /^CSG-/);
+  assert.match(res.headers.get('set-cookie'), /^cs_member=/);
   const row = readMock().requests.find((r) => r.request_id === json.requestId);
   assert.equal(row.request_type, 'private');
   assert.equal(row.weeks, 'Jan 24–30');

@@ -19,3 +19,9 @@
 .mosaic>img{object-position:50% 58%}
 .mosaic .side img:first-child{object-position:50% 42%}
 .mosaic .side img:last-child{object-position:50% 45%}
+
+/* Concept 02 Wave 2: copyable links (receipt, group page, invitation) and the payments ledger (CONCEPT02_WAVE2_PLAN.md) */
+.copyrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line);text-align:left}.copyrow:last-child{border:0}.copyrow label{margin:0;min-width:0}.copyrow input{font-size:12px;padding:10px;width:100%;min-width:0;text-overflow:ellipsis}.copyrow .fieldhint{grid-column:1/-1;grid-row:2;margin:0}.copyrow button{white-space:nowrap}
+.receipt-links{margin:20px 0;text-align:left}.success .receipt-links .eyebrow{margin-bottom:4px}
+.focuslayout>*{min-width:0}.ledger td{vertical-align:middle;white-space:nowrap}.ledger td .badge{white-space:nowrap}
+@media(max-width:800px){.copyrow{grid-template-columns:1fr}.copyrow .fieldhint{grid-row:auto}.copyrow button{justify-self:start}.ledger td,.ledger th{padding:12px 8px}}

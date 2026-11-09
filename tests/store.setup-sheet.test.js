@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { runSetup, loadDotEnv, EXAMPLE_INVITE } from '../scripts/setup-sheet.js';
 import { createSheetsClient, SHEETS_API } from '../lib/store.sheets.client.js';
-import { TAB_HEADERS, TAB_NAMES, DROPDOWNS } from '../lib/store.columns.js';
+import { TAB_HEADERS, TAB_NAMES, DROPDOWNS, WAVE2_TABS } from '../lib/store.columns.js';
 
 const SEED = JSON.parse(fs.readFileSync(new URL('./fixtures/seed.json', import.meta.url), 'utf8'));
 const BASE = `${SHEETS_API}/SHEET123`;
@@ -77,7 +77,7 @@ function run(sheet) {
 }
 
 describe('runSetup on a fresh spreadsheet', () => {
-  test('adds the six tabs, writes exact headers, sets dropdowns, seeds Trips and Weeks only', async () => {
+  test('adds the six tabs, writes exact headers, sets dropdowns, seeds Trips, Weeks and Settings only', async () => {
     const sheet = fakeSpreadsheet();
     const lines = await run(sheet);
 
@@ -115,7 +115,7 @@ describe('runSetup on a fresh spreadsheet', () => {
     assert.deepEqual(requestsStatus.rule.condition.values.map((x) => x.userEnteredValue), ['New', 'In conversation', 'Confirmed', 'Waitlist', 'Declined']);
 
     const text = lines.join('\n');
-    assert.match(text, /Added tabs: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications\n/);
+    assert.match(text, /Added tabs: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications, Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings\n/);
     assert.match(text, /Waitlist: wrote headers/);
     assert.match(text, /Waitlist \(timestamp, email, name, trip, source\) is filled by the site's waitlist forms/);
     assert.match(text, /HostApplications: wrote headers/);
@@ -130,6 +130,7 @@ describe('runSetup on a fresh spreadsheet', () => {
     assert.deepEqual(appendCalls.map((c) => c.url), [
       `${BASE}/values/'Trips'!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
       `${BASE}/values/'Weeks'!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      `${BASE}/values/'Settings'!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     ]);
   });
 });
@@ -155,9 +156,10 @@ describe('runSetup is idempotent', () => {
     assert.equal(sheet.validations.length, DROPDOWNS.length * 2);
 
     const text = lines.join('\n');
-    assert.match(text, /Tabs present: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications\n/);
+    assert.match(text, /Tabs present: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications, Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings\n/);
     assert.match(text, /Trips: already has data, not seeded/);
     assert.match(text, /Weeks: already has data, not seeded/);
+    assert.match(text, /Settings: already has data, not seeded/);
     for (const tab of TAB_NAMES) assert.match(text, new RegExp(`${tab}: headers ok`));
   });
 
@@ -178,7 +180,7 @@ describe('runSetup is idempotent', () => {
     assert.match(text, /Trips: wrote headers/);
     assert.match(text, /Trips: already has data, not seeded/);
     assert.match(text, /Invites: wrote headers/);
-    assert.match(text, /Added tabs: Weeks, Requests, Log, Waitlist, HostApplications\n/);
+    assert.match(text, /Added tabs: Weeks, Requests, Log, Waitlist, HostApplications, Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings\n/);
   });
 
   test('a Sheet set up before the Waitlist tab existed gains Waitlist with headers only; nothing else changes', async () => {
@@ -192,17 +194,18 @@ describe('runSetup is idempotent', () => {
     const sheet = fakeSpreadsheet(phase1);
     const before = JSON.stringify([...sheet.tabs]);
     const lines = await run(sheet);
-    assert.deepEqual([...sheet.tabs.keys()], [...Object.keys(phase1), 'Waitlist', 'HostApplications']);
+    assert.deepEqual([...sheet.tabs.keys()], [...Object.keys(phase1), 'Waitlist', 'HostApplications', ...WAVE2_TABS]);
     assert.deepEqual(sheet.tabs.get('Waitlist').values, [[...TAB_HEADERS.Waitlist]]);
     assert.deepEqual(sheet.tabs.get('HostApplications').values, [[...TAB_HEADERS.HostApplications]]);
     const after = new Map(sheet.tabs);
     after.delete('Waitlist');
     after.delete('HostApplications');
+    for (const tab of WAVE2_TABS) after.delete(tab);
     assert.equal(JSON.stringify([...after]), before, 'the five Phase 1 tabs are untouched');
-    assert.equal(sheet.calls.filter((c) => c.url.includes(':append')).length, 0, 'no seeding');
-    assert.equal(sheet.calls.filter((c) => c.method === 'PUT').length, 2, 'two header writes, for Waitlist and HostApplications');
+    assert.equal(sheet.calls.filter((c) => c.url.includes(':append')).length, 1, 'only Settings is seeded');
+    assert.equal(sheet.calls.filter((c) => c.method === 'PUT').length, 8, 'header writes for Waitlist, HostApplications and the six Wave 2 tabs');
     const text = lines.join('\n');
-    assert.match(text, /Added tabs: Waitlist, HostApplications\n/);
+    assert.match(text, /Added tabs: Waitlist, HostApplications, Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings\n/);
     assert.match(text, /Waitlist: wrote headers/);
     assert.match(text, /HostApplications: wrote headers/);
     for (const tab of Object.keys(phase1)) assert.match(text, new RegExp(`${tab}: headers ok`));
@@ -220,15 +223,16 @@ describe('runSetup is idempotent', () => {
     const sheet = fakeSpreadsheet(live);
     const before = JSON.stringify([...sheet.tabs]);
     const lines = await run(sheet);
-    assert.deepEqual([...sheet.tabs.keys()], [...Object.keys(live), 'HostApplications']);
+    assert.deepEqual([...sheet.tabs.keys()], [...Object.keys(live), 'HostApplications', ...WAVE2_TABS]);
     assert.deepEqual(sheet.tabs.get('HostApplications').values, [[...TAB_HEADERS.HostApplications]]);
     const after = new Map(sheet.tabs);
     after.delete('HostApplications');
+    for (const tab of WAVE2_TABS) after.delete(tab);
     assert.equal(JSON.stringify([...after]), before, 'the six existing tabs and their rows are untouched');
-    assert.equal(sheet.calls.filter((c) => c.url.includes(':append')).length, 0, 'no seeding');
-    assert.equal(sheet.calls.filter((c) => c.method === 'PUT').length, 1, 'one header write, for HostApplications');
+    assert.equal(sheet.calls.filter((c) => c.url.includes(':append')).length, 1, 'only Settings is seeded');
+    assert.equal(sheet.calls.filter((c) => c.method === 'PUT').length, 7, 'header writes for HostApplications and the six Wave 2 tabs');
     const text = lines.join('\n');
-    assert.match(text, /Added tabs: HostApplications\n/);
+    assert.match(text, /Added tabs: HostApplications, Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings\n/);
     assert.match(text, /HostApplications: wrote headers/);
     for (const tab of Object.keys(live)) assert.match(text, new RegExp(`${tab}: headers ok`));
 
@@ -245,6 +249,74 @@ describe('runSetup is idempotent', () => {
     await run(sheet);
     assert.equal(sheet.tabs.get('Trips').values.length, 2);
     assert.equal(sheet.tabs.get('Weeks').values.length, 2 + 7, 'a blank row does not count as data');
+  });
+});
+
+describe('Wave 2 tabs (CONCEPT02_WAVE2_PLAN.md sections 2 and 5)', () => {
+  const live = () => ({
+    Trips: [[...TAB_HEADERS.Trips], ['spain', 'The Spanish Offseason', 'open', 'x']],
+    Weeks: [[...TAB_HEADERS.Weeks], ['w1', 'spain', 'Jan 10–16', '2027-01-10', '2027-01-16', 'open', 'y']],
+    Requests: [[...TAB_HEADERS.Requests], ['CS-TEST0001', '2026-10-22T12:00:00.000Z', 'spain', 'private', 'Feb 7–13']],
+    Invites: [[...TAB_HEADERS.Invites], ['GUEST1', 'Ana Guest', '', '', 'Katie', '', 3, 'active', '', '']],
+    Log: [[...TAB_HEADERS.Log], ['2026-10-05T00:00:00Z', 'GUEST1', 'ok', 'deadbeefdeadbeef']],
+    Waitlist: [[...TAB_HEADERS.Waitlist]],
+    HostApplications: [[...TAB_HEADERS.HostApplications], ['2026-11-08T12:00:00.000Z', 'Sam', 'sam@example.com']],
+  });
+
+  test('the exact headers from the plan', () => {
+    assert.deepEqual(WAVE2_TABS, ['Groups', 'GroupMembers', 'ConciergeRequests', 'Proposals', 'Payments', 'Settings']);
+    assert.equal(TAB_HEADERS.Groups.join(','), 'group_id,request_id,trip_id,name,organizer_name,organizer_email,weeks,chosen_week,players,partners,tennis,payment_mode,notes,stage,review_needed,created_at,updated_at');
+    assert.equal(TAB_HEADERS.GroupMembers.join(','), 'member_id,group_id,name,email,role,invite_status,participation,planning_complete,level,tennis,room,roommate,interests,care_notes,proposal_status,payment_status,arrival_airport,arrival_date,arrival_flight,arrival_time,invited_at,joined_at,updated_at,removed');
+    assert.equal(TAB_HEADERS.ConciergeRequests.join(','), 'concierge_id,group_id,member_id,requester_name,category,subject,details,preferred_timing,status,offer,cost,assigned_to,history,created_at,updated_at');
+    assert.equal(TAB_HEADERS.Proposals.join(','), 'proposal_id,group_id,member_id,request_id,trip_id,week,role,room,players,partners,inclusions,addons,base_price,extras_total,package_total,currency,deposit_amount,balance_due_date,status,version,created_at,sent_at,accepted_at');
+    assert.equal(TAB_HEADERS.Payments.join(','), 'payment_id,proposal_id,group_id,member_id,payer_name,payer_email,type,amount,currency,method,provider_ref,status,due_date,paid_at,notes,created_at');
+    assert.deepEqual(TAB_HEADERS.Settings, ['key', 'value', 'note']);
+  });
+
+  test('the live Sheet gains the six tabs, their dropdowns and the five Settings rows; existing tabs are untouched', async () => {
+    const sheet = fakeSpreadsheet(live());
+    const before = JSON.stringify([...sheet.tabs].filter(([t]) => !WAVE2_TABS.includes(t)));
+    const lines = await run(sheet);
+    assert.equal(JSON.stringify([...sheet.tabs].filter(([t]) => !WAVE2_TABS.includes(t))), before);
+    for (const tab of WAVE2_TABS) assert.deepEqual(sheet.tabs.get(tab).values[0], [...TAB_HEADERS[tab]], tab);
+    for (const tab of WAVE2_TABS.filter((t) => t !== 'Settings')) assert.equal(sheet.tabs.get(tab).values.length, 1, `${tab} is headers only`);
+    assert.deepEqual(sheet.tabs.get('Settings').values.slice(1), [
+      ['deposit_per_person', 300, 'Deposit per traveler when travelers pay individually (USD)'],
+      ['deposit_per_group', 3000, 'Deposit when the organizer requests group payment (USD)'],
+      ['balance_due_days_before', 60, 'Balance due this many days before the chosen week starts'],
+      ['deposit_due_days', 7, 'Days after acceptance by which the deposit is due'],
+      ['currency', 'USD', 'Ledger currency'],
+    ]);
+    const expected = {
+      'Groups.stage': ['Inquiry', 'Planning', 'Proposal sent', 'Confirmed'],
+      'GroupMembers.participation': ['Interested', 'Still deciding', 'Not attending'],
+      'GroupMembers.invite_status': ['Not invited', 'Link shared', 'Responded', 'Invitation canceled'],
+      'ConciergeRequests.status': ['Received', 'Checking options', 'Approval needed', 'Approved', 'Declined', 'Unavailable', 'Confirmed', 'Canceled'],
+      'Proposals.status': ['draft', 'sent', 'accepted', 'declined'],
+      'Payments.type': ['deposit', 'balance', 'refund'],
+      'Payments.status': ['pending', 'paid', 'refunded', 'failed'],
+    };
+    for (const [name, values] of Object.entries(expected)) {
+      const [tab, column] = name.split('.');
+      const v = sheet.validations.find((x) => x.range.sheetId === sheet.tabs.get(tab).sheetId && x.range.startColumnIndex === TAB_HEADERS[tab].indexOf(column));
+      assert.ok(v, name);
+      assert.deepEqual(v.rule.condition.values.map((x) => x.userEnteredValue), values, name);
+    }
+    assert.ok(sheet.validations.every((v) => v.range.sheetId !== sheet.tabs.get('Settings').sheetId), 'no dropdowns on Settings');
+    const text = lines.join('\n');
+    assert.match(text, /Added tabs: Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings\n/);
+    assert.match(text, /Settings: seeded 5 rows/);
+    for (const tab of WAVE2_TABS) assert.match(text, new RegExp(`\\n${tab} \\(${TAB_HEADERS[tab][0]}, `), `${tab} in the summary`);
+  });
+
+  test('Settings is seeded once: an edited value survives a second run, and a non-empty tab is never reseeded', async () => {
+    const sheet = fakeSpreadsheet(live());
+    await run(sheet);
+    sheet.tabs.get('Settings').values[1][1] = 450;
+    const lines = await run(sheet);
+    assert.equal(sheet.tabs.get('Settings').values.length, 6);
+    assert.equal(sheet.tabs.get('Settings').values[1][1], 450);
+    assert.match(lines.join('\n'), /Settings: already has data, not seeded/);
   });
 });
 

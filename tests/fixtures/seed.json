@@ -69,5 +69,17 @@
   "requests": [],
   "log": [],
   "waitlist": [],
-  "host_applications": []
+  "host_applications": [],
+  "groups": [],
+  "group_members": [],
+  "concierge_requests": [],
+  "proposals": [],
+  "payments": [],
+  "settings": [
+    { "key": "deposit_per_person", "value": 300, "note": "Deposit per traveler when travelers pay individually (USD)" },
+    { "key": "deposit_per_group", "value": 3000, "note": "Deposit when the organizer requests group payment (USD)" },
+    { "key": "balance_due_days_before", "value": 60, "note": "Balance due this many days before the chosen week starts" },
+    { "key": "deposit_due_days", "value": 7, "note": "Days after acceptance by which the deposit is due" },
+    { "key": "currency", "value": "USD", "note": "Ledger currency" }
+  ]
 }

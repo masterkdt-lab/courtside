@@ -9,3 +9,4 @@ playwright-report/
 .vercel
 .jury/
 review/
+.env*

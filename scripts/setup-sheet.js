@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 // scripts/setup-sheet.js
 // Prepares Katie's Google Sheet (plan 4.2; polish brief section 3 adds the Waitlist tab;
-// CONCEPT02_PLAN.md adds the HostApplications tab). Idempotent: run it as often as needed, including
-// on a Sheet set up before the Waitlist or HostApplications tab existed; it adds the missing tab
-// with its headers and changes nothing else.
+// CONCEPT02_PLAN.md adds the HostApplications tab; CONCEPT02_WAVE2_PLAN.md adds Groups, GroupMembers,
+// ConciergeRequests, Proposals, Payments and Settings). Idempotent: run it as often as needed,
+// including on a Sheet set up before any of the later tabs existed; it adds the missing tabs with
+// their headers and dropdowns, seeds Settings once, and changes nothing else.
 //
-//   1. adds any missing tabs: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications
+//   1. adds any missing tabs: Trips, Weeks, Requests, Invites, Log, Waitlist, HostApplications,
+//      Groups, GroupMembers, ConciergeRequests, Proposals, Payments, Settings
 //   2. writes the exact header row (row 1) on each tab
 //   3. sets dropdown validation (strict, one of list) on Trips.status, Weeks.status,
-//      Requests.status, Requests.request_type and Invites.status (none on Waitlist or HostApplications)
-//   4. seeds Trips and Weeks from tests/fixtures/seed.json, only when those tabs have no data rows
+//      Requests.status, Requests.request_type, Invites.status, Groups.stage, GroupMembers.participation,
+//      GroupMembers.invite_status, ConciergeRequests.status, Proposals.status, Payments.type and
+//      Payments.status (none on Waitlist, HostApplications or Settings)
+//   4. seeds Trips, Weeks and Settings from tests/fixtures/seed.json, only when those tabs have no data rows
 //   5. never seeds Invites; prints an example Invites row for Katie instead
 //   6. never seeds Waitlist; the site fills it through POST /api/waitlist
 //   7. never seeds HostApplications; the #/application form fills it through POST /api/application
+//   8. never seeds Groups, GroupMembers, ConciergeRequests, Proposals or Payments; the group routes fill them
 //
 // Needs SHEET_ID, GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY, from .env or the shell,
 // and the Sheet shared with the service account as Editor.
@@ -22,7 +27,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TAB_HEADERS, TAB_NAMES, DROPDOWNS, toCellValue, str } from '../lib/store.columns.js';
+import { TAB_HEADERS, TAB_NAMES, DROPDOWNS, WAVE2_TABS, toCellValue, str } from '../lib/store.columns.js';
 import { createSheetsClient, missingEnv, tabRange } from '../lib/store.sheets.client.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -117,8 +122,8 @@ export async function runSetup({ client, seed, log = console.log }) {
   await client.batchUpdate(validation);
   log(`Dropdowns set: ${DROPDOWNS.map((d) => `${d.tab}.${d.column}`).join(', ')}`);
 
-  // 4. seed Trips and Weeks when empty
-  for (const [tab, key] of [['Trips', 'trips'], ['Weeks', 'weeks']]) {
+  // 4. seed Trips, Weeks and Settings when empty
+  for (const [tab, key] of [['Trips', 'trips'], ['Weeks', 'weeks'], ['Settings', 'settings']]) {
     const rows = Array.isArray(seed[key]) ? seed[key] : [];
     if (hasData[tab]) {
       log(`${tab}: already has data, not seeded`);
@@ -147,6 +152,15 @@ export async function runSetup({ client, seed, log = console.log }) {
   // 7. the HostApplications tab
   log('');
   log(`HostApplications (${TAB_HEADERS.HostApplications.join(', ')}) is filled by the #/application host form; headers only, nothing to seed, no dropdowns.`);
+
+  // 8. the Wave 2 tabs
+  log('');
+  log('Wave 2 group tabs (CONCEPT02_WAVE2_PLAN.md): filled by the group routes; never seeded except Settings.');
+  for (const tab of WAVE2_TABS) {
+    const dropdowns = DROPDOWNS.filter((d) => d.tab === tab).map((d) => d.column);
+    const seeded = tab === 'Settings' ? ' Seeded with the five rules only when empty; edit the value cells to change a rule.' : '';
+    log(`${tab} (${TAB_HEADERS[tab].join(', ')}): ${dropdowns.length ? `dropdowns on ${dropdowns.join(', ')}.` : 'no dropdowns.'}${seeded}`);
+  }
 }
 
 async function main() {

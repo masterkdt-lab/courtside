@@ -12,7 +12,7 @@ Pages:
 | anything else | `public/404.html` | The 404 page, served with status 404 by the dev server and by Vercel. |
 
 - `public/` is everything the browser can load: the SPA (`index.html`, `styles.css`, `v2.css`, `pages.js`, `app.js`, `assets/`, `fonts/`), the privacy page and its two stylesheets, `404.html`, `robots.txt`, `favicon.svg`, and `js/trips.js` (the trip lineup the server reads; the SPA does not load it).
-- `api/` holds the nine server routes. `lib/` holds the shared code. `middleware.js` redirects the old page URLs into the SPA.
+- `api/` holds the fourteen server routes (five of them the Wave 2 group routes). `lib/` holds the shared code. `middleware.js` redirects the old page URLs into the SPA.
 - `scripts/dev-server.js` runs the whole thing locally with no accounts. `scripts/setup-sheet.js` prepares the Google Sheet. The image scripts (`make-images.js`, `make-season-images.js`, `review-screenshots.js`) belong to the previous frontend and are not used by Concept 02.
 
 ## Run it locally
@@ -45,7 +45,7 @@ export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm test
 export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm run test:e2e
 ```
 
-`npm test` runs the store, validation, API (`/api/code`, `/api/session`, `/api/trips`, `/api/request`, `/api/lineup`, `/api/inquiry`, `/api/waitlist`, `/api/application`, `/api/event`), middleware and dev-server suites in mock mode with no network. `npm run test:e2e` starts a dev server on a free port with a temp mock file and drives the Concept 02 SPA over HTTP and in headless Chromium (Playwright; `npx playwright install chromium` once), checking that each wired form appends its row. It expects no `.env` in the repo.
+`npm test` runs the store, validation, API (`/api/code`, `/api/session`, `/api/trips`, `/api/request`, `/api/lineup`, `/api/inquiry`, `/api/waitlist`, `/api/application`, `/api/event`, and the Wave 2 `/api/group`, `/api/member`, `/api/concierge`, `/api/proposal`, `/api/payments`), middleware and dev-server suites in mock mode with no network. `npm run test:e2e` starts a dev server on a free port with a temp mock file and drives the Concept 02 SPA over HTTP and in headless Chromium (Playwright; `npx playwright install chromium` once), checking that each wired form appends its row. It expects no `.env` in the repo.
 
 ## Concept 02 frontend
 
@@ -73,6 +73,51 @@ export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm run test:e
 
 **Fonts.** `public/fonts/` holds the Concept 02 woff2 files the SPA uses (`fonts.css`) and, still, the `*-Trial.otf` files the previous design used for local preview; `privacy.html`'s `style.css` references the trial fonts. Buy the licences or remove the trial files before launch; `public/fonts/README.md` has the detail.
 
+## Concept 02, Wave 2: groups, concierge, proposals and the ledger
+
+`CONCEPT02_WAVE2_PLAN.md` is the contract. The group page, invitations, preferences, Trip home, concierge, proposal and payment screens now read and write the Sheet through five cookie-protected routes. Nothing is public and nothing is deleted.
+
+**Six new tabs**. `npm run setup-sheet` adds them, idempotently, with headers and dropdowns. It seeds `Settings` only when that tab is empty and leaves the existing tabs unchanged.
+
+| Tab | Columns | Dropdowns |
+| --- | --- | --- |
+| Groups | `group_id, request_id, trip_id, name, organizer_name, organizer_email, weeks, chosen_week, players, partners, tennis, payment_mode, notes, stage, review_needed, created_at, updated_at` | `stage`: Inquiry, Planning, Proposal sent, Confirmed |
+| GroupMembers | `member_id, group_id, name, email, role, invite_status, participation, planning_complete, level, tennis, room, roommate, interests, care_notes, proposal_status, payment_status, arrival_airport, arrival_date, arrival_flight, arrival_time, invited_at, joined_at, updated_at, removed` | `participation`: Interested, Still deciding, Not attending · `invite_status`: Not invited, Link shared, Responded, Invitation canceled |
+| ConciergeRequests | `concierge_id, group_id, member_id, requester_name, category, subject, details, preferred_timing, status, offer, cost, assigned_to, history, created_at, updated_at` | `status`: Received, Checking options, Approval needed, Approved, Declined, Unavailable, Confirmed, Canceled |
+| Proposals | `proposal_id, group_id, member_id, request_id, trip_id, week, role, room, players, partners, inclusions, addons, base_price, extras_total, package_total, currency, deposit_amount, balance_due_date, status, version, created_at, sent_at, accepted_at` | `status`: draft, sent, accepted, declined |
+| Payments | `payment_id, proposal_id, group_id, member_id, payer_name, payer_email, type, amount, currency, method, provider_ref, status, due_date, paid_at, notes, created_at` | `type`: deposit, balance, refund · `status`: pending, paid, refunded, failed |
+| Settings | `key, value, note` | none |
+
+**Settings keys**. Edit the `value` cell to change a rule. The site re-reads the tab within 60 seconds, and a missing or non-numeric value falls back to the default.
+
+| key | default | meaning |
+| --- | --- | --- |
+| `deposit_per_person` | 300 | Deposit per traveler when travelers pay individually |
+| `deposit_per_group` | 3000 | Deposit on the organizer's proposal when the organizer requests group payment (the others then owe 0) |
+| `balance_due_days_before` | 60 | Balance due this many days before the chosen week's `start_date` |
+| `deposit_due_days` | 7 | Deposit due this many days after acceptance |
+| `currency` | USD | Ledger currency |
+
+**Access**. A second signed HttpOnly cookie, `cs_member`, holds `{ scope:"member", groupId, memberId, exp }` and lasts 90 days (SameSite=Lax, Secure off localhost). It is signed with the same `COOKIE_SECRET` as `cs_session`. Three things set it: the group path of `POST /api/inquiry` (the organizer), `POST /api/member` `open` (a personal link `/#/join/CSM-…`) and `join` (the shared link `/#/join-group/CSG-…`). Every route below needs it (401 otherwise), except `open` and `join`. Organizers are members whose `role` starts with `Organizer`. Ids are `CSG-` groups, `CSM-` members, `CSR-` concierge, `CSP-` proposals and `CSY-` payments, each followed by 8 Crockford characters.
+
+**Routes**. All take and return JSON with `no-store`. Every write counts against the `group` rate limit (30 per 10 minutes per IP hash) and appends a Log row `{ code: <event>, result: <id> }`.
+
+| Route | Actions | Log codes |
+| --- | --- | --- |
+| `POST /api/inquiry` (group path) | also creates the Groups row and the organizer's GroupMembers row, sets `cs_member`, returns `groupId`, `memberId` | `group_create`, `member_add` |
+| `GET /api/group` | the group, `me`, the members (full rows for the organizer, name/role/participation/planningComplete for others), `weekLabels` | |
+| `POST /api/group` | `update` (organizer): name, chosenWeek, tennis, paymentMode; sets `review_needed` TRUE | `group_update` |
+| `POST /api/member` | `open`, `join` (no cookie); `add`, `invite`, `cancel`, `remove` (organizer); `respond`, `preferences`, `arrival` (self) | `member_<action>` |
+| `GET /api/concierge` | own requests (the organizer's view: the whole group), `history` as lines | |
+| `POST /api/concierge` | `create`; `cancel` (own, not Confirmed); `approve` / `decline` (own, only from Approval needed) | `concierge_<action>` |
+| `GET /api/proposal` | the traveler's proposal, created as `draft` on first read; while draft it follows approved extras and bumps `version` | |
+| `POST /api/proposal` | `accept` (draft or sent): proposal `accepted`, one pending `deposit` Payments row, the organizer's first accept moves the group to Proposal sent | `proposal_accept`, `payment_create` |
+| `GET /api/payments` | own ledger rows (the organizer's view: the whole group's), read-only | |
+
+**What Courtside edits in the Sheet**. On ConciergeRequests: `status` (Checking options, Approval needed, Unavailable, Confirmed), `offer`, `cost`, `assigned_to` and extra `history` lines. On Proposals: `base_price` and `status` → `sent`. On Payments: `status` → `paid` and `paid_at`. On Groups: `stage` after Proposal sent. The site never writes those columns except where a route above says so. Updates rewrite only the one row they change, and removed members stay as rows with `removed` TRUE.
+
+In mock mode these tabs live in `.data/mock.json` under `groups`, `group_members`, `concierge_requests`, `proposals`, `payments` and `settings`. A mock file from before Wave 2 gains them empty, and Settings then uses the defaults.
+
 ## Going live: what KC sets up
 
 Everything below is needed only for production. Nothing in the repo contains a secret.
@@ -89,7 +134,7 @@ export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && node scripts/s
 ```
 
    That writes `GOOGLE_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PRIVATE_KEY` into `.env` and prints only a length and a markers check. If the project lives in a Google Cloud organization created after May 2024, key creation is blocked by the `iam.managed.disableServiceAccountKeyCreation` policy until an Organization Policy Administrator overrides it to Off on the project.
-5. Run the setup script. It creates the seven tabs, writes the header rows, adds the dropdowns, seeds the trip and the seven weeks, and prints an example invite row. It is safe to run again, including on a Sheet set up before the Waitlist or HostApplications tab existed: it adds the missing tab with its headers and changes nothing else.
+5. Run the setup script. It creates the thirteen tabs (the six Wave 2 tabs included, Settings seeded once), writes the header rows, adds the dropdowns, seeds the trip and the seven weeks, and prints an example invite row. It is safe to run again, including on a Sheet set up before the Waitlist or HostApplications tab existed: it adds the missing tab with its headers and changes nothing else.
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH" && cd ~/Desktop/courtside && npm run setup-sheet
@@ -181,5 +226,4 @@ The previous flow, `POST /api/request`, still exists for the old builder: there 
 
 - Square deposits and balances, Mailchimp, GA4 conversion tracking, automated receipts and reminders, and the bookings/payments ledger and dashboard (KC's brief).
 - A guest confirmation email for `/api/inquiry` (the template `confirmGuest` in `lib/email.js` exists; the route sends Katie's notification only).
-- Wiring the local-only group, trip-home, concierge, proposal and payment demos to the Sheet, if they are kept.
 - A second bookable trip; the Trips and Weeks tabs already carry `trip_id`, and `/api/lineup` filters on `spain` today.

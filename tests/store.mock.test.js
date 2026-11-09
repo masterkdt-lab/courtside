@@ -29,7 +29,8 @@ test('seeds the data file from tests/fixtures/seed.json on first use', async () 
   assert.equal(trips.length, 1);
   assert.equal(fs.existsSync(process.env.MOCK_DATA_PATH), true);
   const data = readFile();
-  assert.deepEqual(Object.keys(data), ['trips', 'weeks', 'invites', 'requests', 'log', 'waitlist', 'host_applications']);
+  assert.deepEqual(Object.keys(data), ['trips', 'weeks', 'invites', 'requests', 'log', 'waitlist', 'host_applications', 'groups', 'group_members', 'concierge_requests', 'proposals', 'payments', 'settings']);
+  assert.deepEqual(data.settings.map((r) => [r.key, r.value]), [['deposit_per_person', 300], ['deposit_per_group', 3000], ['balance_due_days_before', 60], ['deposit_due_days', 7], ['currency', 'USD']]);
   assert.deepEqual(data.waitlist, []);
   assert.deepEqual(data.host_applications, []);
   assert.deepEqual(data, SEED);
