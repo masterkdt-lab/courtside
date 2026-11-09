@@ -133,8 +133,10 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     const res = await http(srv.base, '/');
     assert.equal(res.status, 200);
     const html = res.text;
-    assert.match(html, NOINDEX, 'noindex,nofollow');
-    assert.match(html, /<title>Courtside — Travel together<\/title>/);
+    assert.doesNotMatch(html, NOINDEX, 'the homepage is indexable');
+    assert.match(html, /<meta name="robots" content="index,follow/);
+    assert.match(html, /<script type="application\/ld\+json">/);
+    assert.match(html, /<title>Courtside Travel Co\. — Hosted tennis trips with your pro<\/title>/);
     assert.match(html, /<link rel="icon" href="\/favicon\.svg"/);
     assert.match(html, /<link rel="apple-touch-icon" href="\/assets\/icons\/apple-touch-icon\.png">/);
     assert.match(html, /<link rel="canonical" href="https:\/\/courtsidetravel\.co\/">/);
@@ -142,7 +144,7 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     assert.match(html, /<link rel="stylesheet" href="\/styles\.css">/);
     assert.match(html, /<script src="\/app\.js">/);
     assert.doesNotMatch(html, /prototypebar|data-view=|#\/guide|#\/host-desk|#\/operations/);
-    assert.doesNotMatch(html, /https?:\/\/(?!courtsidetravel\.co)/, 'no external URLs in the shell');
+    assert.doesNotMatch(html, /https?:\/\/(?!courtsidetravel\.co|schema\.org)/, 'no external URLs in the shell (schema.org is the JSON-LD vocabulary, not a request)');
 
     const page = await open();
     await visit(page, '#/');

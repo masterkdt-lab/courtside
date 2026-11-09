@@ -240,7 +240,8 @@ describe('POST /api/proposal accept', () => {
     assert.equal(res.json.payment, null);
     assert.equal(readMock().payments.length, 0);
     assert.equal(readMock().groups[0].stage, 'Inquiry', 'only the organizer moves the stage');
-    assert.equal(readMock().group_members.find((x) => x.member_id === guest.memberId).payment_status, 'Deposit pending');
+    const host = readMock().groups[0].organizer_name;
+    assert.equal(readMock().group_members.find((x) => x.member_id === guest.memberId).payment_status, `Group host ${host} owes`, 'never "Not due" when the host pays');
     await editMock((d) => { d.proposals.find((x) => x.proposal_id === orgP.proposalId).status = 'declined'; });
     const declined = await callRoute('proposal', { body: { action: 'accept', proposalId: orgP.proposalId }, cookie: org.cookie });
     assert.equal(declined.status, 409);

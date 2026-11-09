@@ -33,7 +33,7 @@ export const PAGES = Object.freeze({ '/': 'index.html', '/privacy': 'privacy.htm
 export const FILES = Object.freeze([
   '/styles.css', '/v2.css', '/pages.js', '/app.js', // the Concept 02 SPA
   '/style.css', '/marketing.css', // privacy.html
-  '/robots.txt', '/favicon.svg',
+  '/robots.txt', '/sitemap.xml', '/favicon.svg',
 ]);
 export const DIRS = Object.freeze({ '/assets/': 'assets', '/fonts/': 'fonts', '/js/': 'js' });
 // The paths middleware.js runs on; the same redirects apply here.
@@ -53,6 +53,7 @@ const MIME = Object.freeze({
   '.webp': 'image/webp',
   '.avif': 'image/avif',
   '.svg': 'image/svg+xml',
+  '.xml': 'application/xml; charset=utf-8',
   '.ico': 'image/x-icon',
   '.otf': 'font/otf',
   '.ttf': 'font/ttf',

@@ -69,7 +69,7 @@ const expectRedirect = async (from, to) => {
 
 test('the allow-list is the plan\'s: two pages, eight files, three directories, four redirect paths', () => {
   assert.deepEqual(PAGES, { '/': 'index.html', '/privacy': 'privacy.html' });
-  assert.deepEqual([...FILES], ['/styles.css', '/v2.css', '/pages.js', '/app.js', '/style.css', '/marketing.css', '/robots.txt', '/favicon.svg']);
+  assert.deepEqual([...FILES], ['/styles.css', '/v2.css', '/pages.js', '/app.js', '/style.css', '/marketing.css', '/robots.txt', '/sitemap.xml', '/favicon.svg']);
   assert.deepEqual(DIRS, { '/assets/': 'assets', '/fonts/': 'fonts', '/js/': 'js' });
   assert.deepEqual([...REDIRECT_PATHS], ['/', '/invite', '/site', '/site.html']);
   const under = (...parts) => path.join('public', ...parts);

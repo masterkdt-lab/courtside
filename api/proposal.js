@@ -22,8 +22,7 @@ import * as store from '../lib/store.js';
 import { isResponse, requireMember } from '../lib/access.js';
 import { getSecret } from '../lib/env.js';
 import {
-  MEMBER_PAYMENT_STATUS, MEMBER_PROPOSAL_STATUS, STAGES, TRIP_ID, addDays, approvedExtras, draftChanges, priceProposal, todayYmd, weeksById,
-} from '../lib/groups.js';
+  MEMBER_PAYMENT_STATUS, MEMBER_PROPOSAL_STATUS, STAGES, TRIP_ID, addDays, approvedExtras, draftChanges, priceProposal, todayYmd, weeksById, hostOwesStatus } from '../lib/groups.js';
 import { NOT_JSON, badRequest, conflict, json, notFound, rateLimited, readJson, serverError } from '../lib/http.js';
 import { clientIp, ipHash, paymentId as newPaymentId, proposalId as newProposalId } from '../lib/ids.js';
 import { logEvent } from '../lib/log.js';
@@ -115,7 +114,11 @@ export async function POST(request) {
     // A draft is brought up to date before it is accepted, so the figures match what the page showed.
     const { proposal: current, settings } = await loadProposal(ctx, iso);
     const proposal = await store.updateProposal(current.proposalId, { status: 'accepted', acceptedAt: iso });
-    await store.updateMember(ctx.memberId, { proposalStatus: MEMBER_PROPOSAL_STATUS.paymentPending, paymentStatus: MEMBER_PAYMENT_STATUS.depositPending });
+    const hostPays = !ctx.isOrganizer && !(proposal.depositAmount > 0) && ctx.group.paymentMode === 'Organizer requests group payment';
+    await store.updateMember(ctx.memberId, {
+      proposalStatus: MEMBER_PROPOSAL_STATUS.paymentPending,
+      paymentStatus: hostPays ? hostOwesStatus(ctx.group.organizerName) : MEMBER_PAYMENT_STATUS.depositPending,
+    });
 
     let payment = null;
     if (proposal.depositAmount > 0) {
