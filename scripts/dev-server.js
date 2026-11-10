@@ -42,7 +42,7 @@ export const PAGES = Object.freeze({
   '/privacy': 'privacy.html',
 });
 export const FILES = Object.freeze([
-  '/styles.css', '/v2.css', '/analytics.js', '/pages.js', '/app.js', // the Concept 02 SPA and its pages
+  '/styles.css', '/v2.css', '/analytics.js', '/gate.js', '/pages.js', '/app.js', // the Concept 02 SPA and its pages
   '/style.css', '/marketing.css', // 404.html
   '/robots.txt', '/sitemap.xml', '/favicon.svg',
 ]);

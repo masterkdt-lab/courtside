@@ -36,8 +36,9 @@ let srv;
 let browser;
 const contexts = new Set();
 
-async function open({ viewport = DESKTOP, ip = freshIp() } = {}) {
+async function open({ viewport = DESKTOP, ip = freshIp(), gated = false } = {}) {
   const context = await browser.newContext({ baseURL: srv.base, viewport, extraHTTPHeaders: { 'x-forwarded-for': ip } });
+  if (!gated) await context.addInitScript(() => { try { localStorage.setItem('courtside-gate', 'iminvited'); } catch {} });
   contexts.add(context);
   const external = [];
   await context.route((url) => !url.href.startsWith(srv.base), (route) => { external.push(route.request().url()); return route.abort(); });

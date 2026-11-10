@@ -30,8 +30,9 @@ let srv;
 let browser;
 const contexts = new Set();
 
-async function open({ viewport = DESKTOP, ip = freshIp(), gaId = '' } = {}) {
+async function open({ viewport = DESKTOP, ip = freshIp(), gaId = '', gated = false } = {}) {
   const context = await browser.newContext({ baseURL: srv.base, viewport, extraHTTPHeaders: { 'x-forwarded-for': ip } });
+  if (!gated) await context.addInitScript(() => { try { localStorage.setItem('courtside-gate', 'iminvited'); } catch {} });
   contexts.add(context);
   const external = [];
   const gtm = [];
@@ -125,6 +126,33 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     const consentDefault = await page.evaluate(() => (window.dataLayer || []).map((e) => Array.from(e)).find((e) => e[0] === 'consent' && e[1] === 'default'));
     assert.equal(consentDefault?.[2]?.analytics_storage, 'denied', 'Consent Mode defaults to denied');
     await page.close2();
+  });
+
+  test('soft launch gate: hides the site until the code, is lenient, remembers, skips /privacy and personal links', async () => {
+    const page = await open({ gated: true });
+    await page.goto('/trips');
+    await page.waitForSelector('#cs-gate input');
+    assert.equal(await page.locator('#main').isVisible(), false, 'site hidden behind the gate');
+    await page.fill('#cs-gate input', 'wrong');
+    await page.click('#cs-gate button');
+    await page.waitForFunction(() => document.querySelector('#cs-gate .gate-error').textContent.length > 0);
+    await page.fill('#cs-gate input', ' I’M INVITED ');
+    await page.click('#cs-gate button');
+    await page.waitForSelector('#cs-gate', { state: 'detached' });
+    await rendered(page);
+    assert.equal(await page.locator('#main').isVisible(), true);
+    await page.goto('/about');
+    await rendered(page);
+    assert.equal(await page.locator('#cs-gate').count(), 0, 'remembered on this device');
+    await page.close2();
+
+    const other = await open({ gated: true });
+    await other.goto('/privacy');
+    assert.equal(await other.locator('#cs-gate').count(), 0, '/privacy is not gated');
+    await other.goto('/#/join/CSM-NOPE');
+    assert.equal(await other.locator('#cs-gate').count(), 0, 'personal links are not gated');
+    assert.deepEqual(other.errors(), []);
+    await other.close2();
   });
 
   test('the sitemap lists the six indexable paths and /privacy', async () => {
