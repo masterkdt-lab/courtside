@@ -129,12 +129,12 @@ describe('templates', () => {
   test('notifyInquiry names the Concept 02 path, the guest, the invite (or its absence), the brief and the Sheet link', () => {
     const inquiry = {
       requestId: 'CS-ABCDEFGH', requestType: 'private', weeks: 'Feb 7–13', guestName: 'Ana Guest', guestEmail: 'ana.guest@example.com',
-      guestMobile: '', inviteCode: '', invitedBy: '', brief: 'CONCEPT 02 REQUEST · Private group\nTrip: The Spanish Offseason (Spain with Katie + Eva)',
+      guestMobile: '', inviteCode: '', invitedBy: '', brief: 'TRIP REQUEST · Private group\nTrip: The Spanish Offseason (Spain with Katie + Eva)',
     };
     const { subject, text } = notifyInquiry(inquiry, { sheetUrl: 'https://docs.google.com/spreadsheets/d/abc' });
     assert.equal(subject, 'New request CS-ABCDEFGH · Private group · Feb 7–13');
     for (const line of [
-      'New Concept 02 request for The Spanish Offseason', 'Request ID: CS-ABCDEFGH', 'Type: Private group', 'Weeks: Feb 7–13', 'Name: Ana Guest',
+      'New trip request for The Spanish Offseason', 'Request ID: CS-ABCDEFGH', 'Type: Private group', 'Weeks: Feb 7–13', 'Name: Ana Guest',
       'Email: ana.guest@example.com', 'Invite code: none (public trip page)', inquiry.brief, 'Sheet: https://docs.google.com/spreadsheets/d/abc',
     ]) assert.ok(text.includes(line), line);
     assert.ok(text.indexOf('Invite code') < text.indexOf(inquiry.brief), 'brief comes after the header lines');

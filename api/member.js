@@ -31,6 +31,7 @@ import { clientIp, ipHash, memberId as newMemberId } from '../lib/ids.js';
 import { logEvent } from '../lib/log.js';
 import { check } from '../lib/ratelimit.js';
 import { MEMBER_ORGANIZER_ACTIONS, MEMBER_PUBLIC_ACTIONS, validateMember } from '../lib/validate.js';
+import { withSheetScope } from '../lib/request-scope.js';
 
 export const RATE_LIMIT_BUCKET = 'group';
 export const LOG_PREFIX = 'member_';
@@ -41,7 +42,7 @@ export const CANCEL_SELF = 'You can’t cancel your own invitation.';
 const sameEmail = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
 const emailTaken = (members, email, exceptId = null) => members.some((m) => !m.removed && m.memberId !== exceptId && sameEmail(m.email, email));
 
-export async function POST(request) {
+async function handlePost(request) {
   const secret = getSecret();
   const hash = await ipHash(clientIp(request), secret);
   if (!check(RATE_LIMIT_BUCKET, hash).allowed) return rateLimited();
@@ -159,3 +160,7 @@ export async function POST(request) {
 }
 
 export { ROLES };
+
+// One request scope per call: every store read in the request shares one Sheets snapshot
+// (lib/request-scope.js, lib/store.sheets.js).
+export const POST = withSheetScope(handlePost);

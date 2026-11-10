@@ -10,6 +10,7 @@
 import * as store from '../lib/store.js';
 import { TRIP_ID } from '../lib/catalog.js';
 import { json } from '../lib/http.js';
+import { withSheetScope } from '../lib/request-scope.js';
 
 export const LINEUP_CACHE_TTL_MS = 60 * 1000;
 export const LINEUP_TRIP_ID = TRIP_ID;
@@ -42,7 +43,7 @@ export async function readLineup() {
   };
 }
 
-export async function GET() {
+async function handleGet() {
   try {
     const now = Date.now();
     if (!cache || now - cache.at >= LINEUP_CACHE_TTL_MS) cache = { at: now, data: await readLineup() };
@@ -52,3 +53,7 @@ export async function GET() {
     return json(500, { ok: false, reason: 'server_error' });
   }
 }
+
+// One request scope per call: every store read in the request shares one Sheets snapshot
+// (lib/request-scope.js, lib/store.sheets.js).
+export const GET = withSheetScope(handleGet);

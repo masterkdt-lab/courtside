@@ -7,8 +7,9 @@
 import * as store from '../lib/store.js';
 import { isResponse, requireMember } from '../lib/access.js';
 import { json, serverError } from '../lib/http.js';
+import { withSheetScope } from '../lib/request-scope.js';
 
-export async function GET(request) {
+async function handleGet(request) {
   try {
     const ctx = await requireMember(request);
     if (isResponse(ctx)) return ctx;
@@ -19,3 +20,7 @@ export async function GET(request) {
     return serverError();
   }
 }
+
+// One request scope per call: every store read in the request shares one Sheets snapshot
+// (lib/request-scope.js, lib/store.sheets.js).
+export const GET = withSheetScope(handleGet);

@@ -12,8 +12,9 @@ import { getSecret } from '../lib/env.js';
 import { clientIp, ipHash } from '../lib/ids.js';
 import { check } from '../lib/ratelimit.js';
 import { isSecureRequest, json, readJson } from '../lib/http.js';
+import { withSheetScope } from '../lib/request-scope.js';
 
-export async function POST(request) {
+async function handlePost(request) {
   const secret = getSecret();
   const hash = await ipHash(clientIp(request), secret);
   const body = await readJson(request);
@@ -55,3 +56,7 @@ export async function POST(request) {
     return json(500, { ok: false, reason: 'server_error' });
   }
 }
+
+// One request scope per call: every store read in the request shares one Sheets snapshot
+// (lib/request-scope.js, lib/store.sheets.js).
+export const POST = withSheetScope(handlePost);

@@ -33,6 +33,7 @@ import { logEvent } from '../lib/log.js';
 import { check } from '../lib/ratelimit.js';
 import { isHoneypotFilled, validateInquiry } from '../lib/validate.js';
 import { LINEUP_TRIP_ID, readLineup } from './lineup.js';
+import { withSheetScope } from '../lib/request-scope.js';
 
 export const DOUBLE_SUBMIT_TTL_MS = 60 * 1000;
 export const LOG_CODE = 'inquiry_submit';
@@ -44,8 +45,8 @@ export const REQUEST_TYPE_BY_PATH = Object.freeze({ group: 'private', match: 've
 export const PATH_LABEL = Object.freeze({ group: 'Private group', match: 'Group match' });
 export const FLEXIBLE_WEEKS = 'Flexible';
 export const TRIP_LINE = 'The Spanish Offseason (Spain with Katie + Eva)';
-export const SHOWN_PRICE = 'From $2,995 / player (concept pricing)';
-export const SUBMITTED_FROM = '#/request (Concept 02)';
+export const SHOWN_PRICE = 'From $2,995 / player';
+export const SUBMITTED_FROM = 'courtsidetravel.co trip request';
 export const NOT_SURE = 'Not sure yet';
 export const TRIP_CLOSED_MESSAGE = 'Requests for The Spanish Offseason are closed.';
 const LOG_MODE_NOTIFY_FALLBACK = 'notify@example.com';
@@ -72,7 +73,7 @@ export function buildBrief(value, weeksText) {
   const group = value.path === 'group';
   const orNotSure = (v) => (v === '' || v === undefined || v === null ? NOT_SURE : String(v));
   return [
-    `CONCEPT 02 REQUEST · ${PATH_LABEL[value.path]}`,
+    `TRIP REQUEST · ${PATH_LABEL[value.path]}`,
     `Trip: ${TRIP_LINE}`,
     `Weeks: ${weeksText}`,
     `Players: ${group ? orNotSure(value.players) : '—'}`,
@@ -227,7 +228,7 @@ async function save({ value, weeksById, session, hash, request }) {
   return { status: 200, body, headers };
 }
 
-export async function POST(request) {
+async function handlePost(request) {
   const secret = getSecret();
   const hash = await ipHash(clientIp(request), secret);
   if (!check(RATE_LIMIT_BUCKET, hash).allowed) return json(429, { ok: false, reason: 'rate_limited' });
@@ -282,3 +283,7 @@ export async function POST(request) {
     return json(500, { ok: false, reason: 'server_error' });
   }
 }
+
+// One request scope per call: every store read in the request shares one Sheets snapshot
+// (lib/request-scope.js, lib/store.sheets.js).
+export const POST = withSheetScope(handlePost);

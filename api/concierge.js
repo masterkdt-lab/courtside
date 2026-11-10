@@ -24,6 +24,7 @@ import { clientIp, conciergeId as newConciergeId, ipHash } from '../lib/ids.js';
 import { logEvent } from '../lib/log.js';
 import { check } from '../lib/ratelimit.js';
 import { validateConcierge } from '../lib/validate.js';
+import { withSheetScope } from '../lib/request-scope.js';
 
 export const RATE_LIMIT_BUCKET = 'group';
 export const LOG_PREFIX = 'concierge_';
@@ -38,7 +39,7 @@ export const CONFLICTS = Object.freeze({
 
 const mine = (rows, ctx) => (ctx.isOrganizer ? rows : rows.filter((r) => r.memberId === ctx.memberId));
 
-export async function GET(request) {
+async function handleGet(request) {
   try {
     const ctx = await requireMember(request);
     if (isResponse(ctx)) return ctx;
@@ -50,7 +51,7 @@ export async function GET(request) {
   }
 }
 
-export async function POST(request) {
+async function handlePost(request) {
   const secret = getSecret();
   const hash = await ipHash(clientIp(request), secret);
   if (!check(RATE_LIMIT_BUCKET, hash).allowed) return rateLimited();
@@ -116,3 +117,8 @@ export async function POST(request) {
     return serverError();
   }
 }
+
+// One request scope per call: every store read in the request shares one Sheets snapshot
+// (lib/request-scope.js, lib/store.sheets.js).
+export const GET = withSheetScope(handleGet);
+export const POST = withSheetScope(handlePost);

@@ -102,7 +102,7 @@ describe('a valid group request', () => {
     assert.match(row.submitted_at, ISO);
     assert.ok(Date.parse(row.submitted_at) >= started - 1000);
     const brief = [
-      'CONCEPT 02 REQUEST · Private group',
+      'TRIP REQUEST · Private group',
       'Trip: The Spanish Offseason (Spain with Katie + Eva)',
       'Weeks: Feb 7–13',
       'Players: 6',
@@ -113,8 +113,8 @@ describe('a valid group request', () => {
       'Name: Ana Guest',
       'Email: ana.guest@example.com',
       'Notes: Celebrating a birthday that week.',
-      'Shown price: From $2,995 / player (concept pricing)',
-      'Submitted from: #/request (Concept 02)',
+      'Shown price: From $2,995 / player',
+      'Submitted from: courtsidetravel.co trip request',
     ].join('\n');
     assert.deepEqual({ ...row, submitted_at: 'ISO' }, {
       request_id: json.requestId,
@@ -216,7 +216,7 @@ describe('a valid match request', () => {
     const json = await expectJson(await post(matchBody()), 200);
     const [row] = readMock().requests;
     const brief = [
-      'CONCEPT 02 REQUEST · Group match',
+      'TRIP REQUEST · Group match',
       'Trip: The Spanish Offseason (Spain with Katie + Eva)',
       'Weeks: Jan 17–23, Jan 24–30',
       'Players: —',
@@ -227,8 +227,8 @@ describe('a valid match request', () => {
       'Name: Sam Match',
       'Email: sam@example.com',
       'Notes: —',
-      'Shown price: From $2,995 / player (concept pricing)',
-      'Submitted from: #/request (Concept 02)',
+      'Shown price: From $2,995 / player',
+      'Submitted from: courtsidetravel.co trip request',
     ].join('\n');
     assert.deepEqual({ ...row, submitted_at: 'ISO' }, {
       request_id: json.requestId,
@@ -661,14 +661,14 @@ describe('pure helpers', () => {
     };
     const brief = buildBrief(value, 'Jan 10–16');
     assert.deepEqual(brief.split('\n').map((l) => l.split(':')[0]), [
-      'CONCEPT 02 REQUEST · Group match', 'Trip', 'Weeks', 'Players', 'Partners', 'Party', 'Tennis level', 'Tennis rhythm', 'Name', 'Email', 'Notes', 'Shown price', 'Submitted from',
+      'TRIP REQUEST · Group match', 'Trip', 'Weeks', 'Players', 'Partners', 'Party', 'Tennis level', 'Tennis rhythm', 'Name', 'Email', 'Notes', 'Shown price', 'Submitted from',
     ]);
     assert.ok(brief.includes(`Trip: ${TRIP_LINE}`));
     assert.ok(brief.includes(`Shown price: ${SHOWN_PRICE}`));
     assert.ok(brief.endsWith(`Submitted from: ${SUBMITTED_FROM}`));
     assert.equal(TRIP_LINE, 'The Spanish Offseason (Spain with Katie + Eva)');
-    assert.equal(SHOWN_PRICE, 'From $2,995 / player (concept pricing)');
-    assert.equal(SUBMITTED_FROM, '#/request (Concept 02)');
+    assert.equal(SHOWN_PRICE, 'From $2,995 / player');
+    assert.equal(SUBMITTED_FROM, 'courtsidetravel.co trip request');
 
     const now = new Date('2026-11-08T12:00:00.000Z');
     const row = buildRow({ id: 'CS-TEST0001', value, weeksById, session: { code: 'GUEST1', invitedBy: 'Katie', issuedTo: 'Ana', exp: 1 }, now });
