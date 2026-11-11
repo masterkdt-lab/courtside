@@ -161,7 +161,7 @@ describe('a valid group request', () => {
     const [katie, guest] = sentLog;
     assert.deepEqual(guest.to, ['ana.guest@example.com']);
     assert.equal(guest.subject, 'Your Spanish Offseason request is in');
-    assert.match(guest.html, /Katie is so excited to get back to you/);
+    assert.match(guest.html, /I&#39;m so excited your request came in!/); assert.match(guest.text, /\nBesos!\nKatie\n/);
     assert.match(guest.html, /Feb 7–13, 2027/);
     assert.match(guest.html, /hero-1200x600\.jpg/);
     assert.match(guest.text, /Reference: CS-/);

@@ -111,7 +111,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await visit(page, '/trips/spanish-offseason');
     assert.match(await mainText(page), /Request your place/);
     await visit(page, '/hosts/katie');
-    assert.match(await mainText(page), /Katie’s full bio is coming soon\./);
+    assert.match(await mainText(page), /Pennsylvania roots\. A world of courts\. Let's play!/);
     assert.match(await mainText(page), /A LONG-TERM AMBITION/);
     await visit(page, '/trips');
     assert.match(await mainText(page), /More journeys coming soon\./);

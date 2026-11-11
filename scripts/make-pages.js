@@ -93,7 +93,8 @@ export const PAGES = Object.freeze([
     },
     noscript: '<h1>Katie Delich.</h1><p>Great tennis. Good people. Somewhere worth sharing.</p>'
       + '<p>Katie brings her community into the places and relationships she loves. In Spain, that means time on court with Eva, the Costa Blanca and a week that leaves room for life beyond tennis. She brings the connection. Courtside takes care of the journey.</p>'
-      + '<p>Katie’s full bio is coming soon.</p><p><a href="/trips/spanish-offseason">Explore Spain with Katie: The Spanish Offseason</a></p>',
+      + "<p>Hi, I'm Katie! Tennis pro, podcast host, and co-founder of Courtside Travel Co. Basically, if it involves a racquet and a plane ticket, I'm in!</p><p>Tennis has taken me from Division I competition at Robert Morris University to teaching in the Maldives, the Caribbean, Dubai, Hawaii, Mexico, Spain, Palm Desert, Virginia and Napa. Along the way, I've led the tennis program at Silverado Resort, earned USPTA Elite Professional and PTR P-1 certifications, and been named one of Tennis Channel's Top 50 US Coaches.</p><p>But the best trips aren't only about what happens on court! I love discovering local food, exploring somewhere new and making sure the people without racquets have a great time too. That's the spirit I bring to Courtside: great tennis, real connection and plenty to look forward to after the last point.</p><p>I also host 2 Truths, 1 Dream and have served on the boards of RSPA NorCal and Food For Life Vrindavan, supporting girls' education and well-being in India.</p><p>Pennsylvania roots. A world of courts. Let's play!</p>"
+      + '<p><a href="/trips/spanish-offseason">Explore Spain with Katie: The Spanish Offseason</a></p>',
   },
   {
     route: 'about',
