@@ -111,7 +111,11 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await visit(page, '/trips/spanish-offseason');
     assert.match(await mainText(page), /Request your place/);
     await visit(page, '/hosts/katie');
+    assert.doesNotMatch(await mainText(page), /Pennsylvania roots/, 'the letter starts folded');
+    await page.click('.notecard-open');
+    await page.waitForFunction(() => document.querySelector('.notecard-more p:last-of-type')?.offsetHeight > 0);
     assert.match(await mainText(page), /Pennsylvania roots\. A world of courts\. Let's play!/);
+    assert.equal(await page.locator('#main a.btn', { hasText: 'Explore Spain with Katie' }).count(), 2);
     assert.match(await mainText(page), /A LONG-TERM AMBITION/);
     await visit(page, '/trips');
     assert.match(await mainText(page), /More journeys coming soon\./);

@@ -131,7 +131,7 @@ test('analytics.js carries Courtside\'s GA4 measurement ID (KC, 2026-11-09)', ()
 test('public copy: no concept, prototype or verification wording on the public views', () => {
   const pages = read('pages.js');
   assert.doesNotMatch(pages, /concept|prototype|walkthrough|illustrative|\bsample\b|\bdemo\b|unconfirmed|verified before/i);
-  assert.match(pages, /Hi, I'm Katie! Tennis pro, podcast host/);
+  assert.match(pages, /<h2>Hi, I'm Katie!<\/h2><p>Tennis pro, podcast host/);
   assert.match(pages, /COMING SOON/);
   assert.match(pages, /Payment and cancellation terms are coming soon, and you’ll see them before any commitment\./);
   assert.match(read('app.js'), /More journeys coming soon\./);
