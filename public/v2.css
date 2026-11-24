@@ -101,3 +101,8 @@ html.cs-popup-open{overflow:hidden}
 .mosaic .side img[src$="katie.jpg"]{object-position:50% 22%}
 @media(max-width:800px){.soft-choice .options{grid-template-columns:1fr}}
 .pg-form-wrap{padding-top:0}.pg-form-wrap .soft-form{max-width:640px}#pg-form{scroll-margin-top:24px}
+/* Footer "Cookie settings" (public/analytics.js adds it as a <button class="linkbutton">): styled like the footer links
+   beside it, so it sits on the same line with the same size and colour. */
+.footlinks{align-items:baseline;row-gap:10px}
+.linkbutton{background:none;border:0;padding:0;margin:0;font:inherit;line-height:inherit;color:inherit;cursor:pointer;text-align:left}
+.linkbutton:hover{color:var(--rust)}
