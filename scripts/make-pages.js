@@ -57,7 +57,7 @@ export const PAGES = Object.freeze([
     description: 'Bring your people. Your group, your trip: tell Courtside where you want to go and Katie will reach out to plan a private tennis trip.',
     image: 'home.jpg',
     jsonld: { '@context': 'https://schema.org', '@graph': [crumbs(['Courtside', '/'], ['Private groups', '/private-groups'])] },
-    noscript: '<h1>Bring your people.</h1><p>Your group, your trip. Tell us where you want to go and Katie will reach out. Turn on JavaScript to send the request form, or email team@courtsidetravel.co.</p>',
+    noscript: '<h1>Bring your people.</h1><p>You’ve built something special with your group. Take that connection somewhere extraordinary. Courtside plans, coordinates and supports the trip. You enjoy the journey together.</p><h2>Exceptional on court. Wonderful to travel with.</h2><p>Your group, your trip. We handle the details. Start with a conversation: turn on JavaScript to send the request form, or email team@courtsidetravel.co.</p>',
   },
   {
     route: 'trips',

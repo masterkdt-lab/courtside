@@ -344,8 +344,11 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.click('#navtoggle');
     await page.click('#mobilenav a[href="/private-groups"]');
     await pathIs(page, '/private-groups');
-    await textShows(page, 'Bring your people.');
-    await textShows(page, 'Your group, your trip. Tell us where you want to go and Katie will reach out.');
+    await textShows(page, 'PRIVATE GROUPS — FOR YOUR CLUB, TEAM OR FRIENDS');
+    await textShows(page, 'You’ve built something special with your group. Take that connection somewhere extraordinary.');
+    await textShows(page, 'Exceptional on court. Wonderful to travel with.');
+    for (const h of ['Your group, your trip.', 'We handle the details.', 'Start with a conversation.']) await textShows(page, h);
+    assert.match(await page.locator('#main .hero h1').innerText(), /Bring\s+your people\./);
     await page.click('#main button[type=submit]');
     await textShows(page, 'Add your name, email and where you want to go.');
     await page.fill('#main input[name=name]', 'Punta Tester');

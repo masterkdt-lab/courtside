@@ -100,3 +100,4 @@ html.cs-popup-open{overflow:hidden}
 .cs-modal:focus{outline:none}
 .mosaic .side img[src$="katie.jpg"]{object-position:50% 22%}
 @media(max-width:800px){.soft-choice .options{grid-template-columns:1fr}}
+.pg-form-wrap{padding-top:0}.pg-form-wrap .soft-form{max-width:640px}#pg-form{scroll-margin-top:24px}
