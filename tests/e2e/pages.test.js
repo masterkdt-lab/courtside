@@ -346,7 +346,10 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await pathIs(page, '/private-groups');
     await textShows(page, 'BUILD YOUR OWN TENNIS CAMP');
     assert.match(await page.locator('#main .hero h1').innerText(), /Your dream tennis\s+escape starts here!/);
-    await textShows(page, 'Hosted by Katie Dellich | Courtside Travel Co. · Approximately 2 minutes. No commitment required.');
+    await textShows(page, 'Hosted by Katie Dellich | Courtside Travel Co.');
+    assert.doesNotMatch(await mainText(page), /Approximately 2 minutes|No commitment required/);
+    await page.click('#main .hero .btn');
+    await page.waitForFunction(() => document.activeElement?.id === 'pg-name');
     await page.click('#main button[type=submit]');
     await textShows(page, 'Add your name and email so Katie can reach you.');
     await page.fill('#main input[name=name]', 'Punta Tester');
