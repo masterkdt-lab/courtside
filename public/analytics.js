@@ -14,7 +14,7 @@
   const GA_MEASUREMENT_ID = 'G-E7TV4W9JDN';
 
   const KEY = 'courtside-consent';
-  const api = { pageView() {}, lead() {}, openSettings() {} };
+  const api = { pageView() {}, lead() {}, event() {}, openSettings() {}, holdBanner() {} };
   window.courtsideAnalytics = api;
   if (!/^G-[A-Z0-9]{4,}$/.test(GA_MEASUREMENT_ID)) return;
 
@@ -111,7 +111,17 @@
     sendPage();
   };
   api.lead = (type) => { if (loaded) gtag('event', 'generate_lead', { lead_type: String(type || '') }); };
+  // Any other event (2026-11-24: the /spain pop-up's buttons, the private groups form's steps). Never personal data.
+  api.event = (name, params = {}) => { if (loaded) gtag('event', String(name), params); };
   api.openSettings = () => { returnFocus = document.activeElement; show(true); };
+  // While the /spain pop-up is open the banner waits (on a phone the pop-up covered it), then shows once it closes,
+  // if the visitor still hasn't chosen (public/app.js showSpainPopup / closeSpainPopup).
+  let held = false;
+  api.holdBanner = (on) => {
+    held = !!on;
+    if (choice === 'granted' || choice === 'denied') return;
+    if (held) hide(); else show(false);
+  };
 
   if (choice === 'granted') load();
 
@@ -126,7 +136,7 @@
       b.addEventListener('click', api.openSettings);
       links.appendChild(b);
     }
-    if (choice !== 'granted' && choice !== 'denied') show(false);
+    if (choice !== 'granted' && choice !== 'denied' && !held && !document.getElementById('cs-popup')) show(false);
     if (!window.courtsideSPA) api.pageView(window.location.pathname, document.title);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

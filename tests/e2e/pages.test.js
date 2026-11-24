@@ -403,6 +403,42 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.close2();
   });
 
+  test('analytics: the banner waits for the /spain pop-up; pop-up clicks and private-group steps are sent as events', async () => {
+    const page = await open({ viewport: MOBILE, gaId: FAKE_ID, gated: true });
+    await visit(page, '/spain');
+    await page.waitForSelector('#cs-popup');
+    assert.equal(await bannerVisible(page), false, 'no banner under the pop-up');
+    await page.click('#cs-popup .cs-close');
+    await page.waitForFunction(() => { const b = document.getElementById('cs-consent'); return b && !b.hidden; });
+    await page.click('#cs-consent [data-consent=granted]');
+    await page.waitForFunction(() => window.__gtagStub === 1);
+    await visit(page, '/spain');
+    await page.waitForSelector('#cs-popup');
+    assert.equal(await bannerVisible(page), false, 'decided: no banner');
+    await page.click('#cs-popup a.cs-btn');
+    await pathIs(page, '/hosts/katie');
+    const events = async () => (await dataLayer(page)).filter((a) => a[0] === 'event').map((a) => [a[1], a[2]]);
+    let ev = await events();
+    assert.ok(ev.some(([n, p]) => n === 'popup_view' && p.popup === 'katies_back'));
+    assert.ok(ev.some(([n, p]) => n === 'popup_click' && p.link === 'meet_katie'));
+    await page.route('**/api/private-groups', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true,"requestId":"PG-AAAAAAAA"}' }));
+    await visit(page, '/#/build-your-camp');
+    await page.fill('#main input[name=name]', 'GA Tester');
+    await page.fill('#main input[name=email]', 'ga.tester@example.com');
+    await page.click('#main button[type=submit]:has-text("Continue")');
+    await textShows(page, 'STEP 2 OF 3');
+    await page.click('#main button[type=submit]:has-text("Confirm my trip")');
+    await textShows(page, 'STEP 3 OF 3');
+    await page.click('#main button[type=submit]:has-text("Exciting things ahead")');
+    await page.waitForSelector('.pg-thanks');
+    ev = await events();
+    assert.deepEqual(ev.filter(([n]) => n === 'private_group_step').map(([, p]) => `${p.step_number}:${p.step_name}`), ['1:contact', '2:trip_details', '3:complete']);
+    assert.ok(ev.some(([n, p]) => n === 'generate_lead' && p.lead_type === 'private_group_request'));
+    assert.doesNotMatch(JSON.stringify(ev), /ga\.tester|GA Tester|PG-/, 'no personal data or ids in events');
+    assert.deepEqual(page.errors(), []);
+    await page.close2();
+  });
+
   test('soft launch: guests never see the group, proposal or payment screens', async () => {
     const page = await open();
     for (const hash of ['#/received', '#/group', '#/proposal', '#/payment', '#/trip-home', '#/preferences', '#/join/CSM-ABCDEFGH', '#/match-home']) {
