@@ -55,7 +55,8 @@ async function deleteEmail(client, email, TAB = SOFT_LAUNCH_TAB) {
   const res = await client.getValues(tabRange(TAB, 'A1:Z'));
   const rows = res.values || [];
   const hits = [];
-  rows.forEach((r, i) => { if (i > 0 && String(r[2] || '').trim().toLowerCase() === email.toLowerCase()) hits.push(i); });
+  const col = Math.max(0, (rows[0] || []).indexOf('Email')); // the Email column, found by its header
+  rows.forEach((r, i) => { if (i > 0 && String(r[col] || '').trim().toLowerCase() === email.toLowerCase()) hits.push(i); });
   if (!hits.length) { console.log('No rows with that email.'); return; }
   const sheetId = (await sheetIds(client)).get(TAB);
   // bottom-up so earlier indexes stay valid
