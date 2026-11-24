@@ -352,20 +352,38 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.click('#main .hero a.btn');
     await page.waitForFunction(() => location.hash === '#/build-your-camp');
     await textShows(page, 'Build your own tennis camp.');
+    await textShows(page, 'STEP 1 OF 3');
     await page.click('#main button[type=submit]');
     await textShows(page, 'Add your name and email so Katie can reach you.');
     await page.fill('#main input[name=name]', 'Punta Tester');
     await page.fill('#main input[name=email]', 'punta.tester@example.com');
     await page.fill('#main input[name=where]', 'Punta Mita');
     await page.fill('#main input[name=when]', 'March next year');
+    await page.click('#main button[type=submit]:has-text("Continue")');
+    await textShows(page, 'STEP 2 OF 3');
+    let rows = readMock().private_groups;
+    assert.equal(rows.length, 1, 'step 1 creates the row');
+    assert.deepEqual([rows[0].Stage, rows[0]['Your name'], rows[0]['1. Where'], rows[0]['3. Tennis players']], ['Started', 'Punta Tester', 'Punta Mita', '']);
+    const id = rows[0]['Request ID'];
+    assert.match(id, /^PG-[0-9A-Z]{8}$/);
     await page.click('label:has(input[value="5–7 players"])');
     await page.click('label:has(input[value="3 days"])');
     await page.click('label:has(input[value="Mixed levels"])');
     await page.click('label:has(input[value="Doubles strategy"])');
     await page.click('label:has(input[value="Live-ball drills"])');
     await page.click(`label:has(input[value="I'll arrange my own"])`);
+    await page.click('#main button[type=submit]:has-text("Confirm my trip")');
+    await textShows(page, 'STEP 3 OF 3');
+    rows = readMock().private_groups;
+    assert.equal(rows.length, 1, 'step 2 updates the same row');
+    assert.deepEqual([rows[0].Stage, rows[0]['6. Focus']], ['Trip details', 'Doubles strategy, Live-ball drills']);
+    assert.equal((await sentEmails()).filter((m) => /Private group request/.test(m.subject)).length, 0, 'no team email before the end');
+    await page.click('#main button.back');
+    await textShows(page, 'STEP 2 OF 3');
+    assert.equal(await page.locator('input[value="5–7 players"]').isChecked(), true, 'Back keeps the answers');
+    await page.click('#main button[type=submit]:has-text("Confirm my trip")');
     await page.fill('#main textarea[name=notes]', 'Eight of us');
-    await page.click('#main button[type=submit]');
+    await page.click('#main button[type=submit]:has-text("Exciting things ahead")');
     await page.waitForSelector('.pg-thanks');
     assert.equal(await page.evaluate(() => location.hash), '#/build-your-camp', 'the thank-you is on the same page');
     await textShows(page, 'Katie will reach out personally within a day or two.');
@@ -375,8 +393,8 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     assert.equal(data.private_groups.length, 1);
     const r = data.private_groups[0];
     assert.deepEqual(
-      [r['Your name'], r.Email, r['1. Where'], r['2. When'], r['3. Tennis players'], r['4. Days of tennis'], r['5. Group level'], r['6. Focus'], r['7. Accommodations'], r['8. Anything else'], r.Source],
-      ['Punta Tester', 'punta.tester@example.com', 'Punta Mita', 'March next year', '5–7 players', '3 days', 'Mixed levels', 'Doubles strategy, Live-ball drills', "I'll arrange my own", 'Eight of us', 'site'],
+      [r['Request ID'], r.Stage, r['Your name'], r.Email, r['1. Where'], r['2. When'], r['3. Tennis players'], r['4. Days of tennis'], r['5. Group level'], r['6. Focus'], r['7. Accommodations'], r['8. Anything else'], r.Source],
+      [id, 'Complete', 'Punta Tester', 'punta.tester@example.com', 'Punta Mita', 'March next year', '5–7 players', '3 days', 'Mixed levels', 'Doubles strategy, Live-ball drills', "I'll arrange my own", 'Eight of us', 'site'],
     );
     const mail = (await sentEmails()).filter((m) => /Private group request/.test(m.subject));
     assert.equal(mail.length, 1);

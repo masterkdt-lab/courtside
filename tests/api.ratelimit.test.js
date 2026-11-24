@@ -23,7 +23,7 @@ describe('ratelimit', () => {
       event: { limit: 60, windowMs: 600_000 },
       group: { limit: 30, windowMs: 600_000 },
       'soft-launch': { limit: 5, windowMs: 600_000 },
-      'private-groups': { limit: 5, windowMs: 600_000 },
+      'private-groups': { limit: 20, windowMs: 600_000 },
     });
   });
 

@@ -326,23 +326,42 @@ const pgValue=v=>v.replace('’',"'");
 function pgPills(name,type){return `<div class="pg-pills">${PG_OPTIONS[name].map((o,i)=>`<label class="pg-pill"><input type="${type}" name="${name}" value="${esc(pgValue(o))}" id="pg-${name}-${i}"><span>${esc(o)}</span></label>`).join('')}</div>`}
 function pgQuestion(legend,body,hint=''){return `<fieldset class="pg-q"><legend>${legend}</legend>${hint?`<p class="pg-hint">${hint}</p>`:''}${body}</fieldset>`}
 function privateGroups(){return `<section class="hero"><div class="hero-copy"><div class="eyebrow">BUILD YOUR OWN TENNIS CAMP</div><h1 class="pg-h1">Your dream tennis<br>escape <em>starts here!</em></h1><p>Tell us a little about your ideal getaway. We’ll design a personalized tennis experience around your group, your schedule, and your style.</p><p class="small muted">Hosted by Katie Dellich | Courtside Travel Co.</p><div class="actions"><a class="btn" href="#/build-your-camp">Apply here ↗</a></div></div><div class="hero-photo">${img('hero.webp','A tennis player serving on a sunlit clay court')}</div></section>`}
-// The form on its own page (KC, 2026-11-24: "a page like #/start"), reached from the Apply here button.
-function privateGroupForm(){return `<div class="flow soft-flow"><div class="flow-main" id="pg-form"><div class="eyebrow">BUILD YOUR OWN TENNIS CAMP</div><h1>Build your own tennis camp.</h1><p>Tell us a little about your ideal getaway. We’ll design a personalized tennis experience around your group, your schedule, and your style.</p><p class="small muted">Hosted by Katie Dellich | Courtside Travel Co.</p><form class="pg-form" onsubmit="submitPrivateGroup(event)" novalidate>
-<div class="pg-q"><label for="pg-name">Your name</label><input id="pg-name" name="name" autocomplete="name" required></div>
-<div class="pg-q"><label for="pg-email">Email</label><input id="pg-email" name="email" type="email" autocomplete="email" required></div>
-<div class="pg-q"><label for="pg-where">1. Where would you like to go?</label><input id="pg-where" name="where"></div>
-<div class="pg-q"><label for="pg-when">2. When would you like to go?</label><p class="pg-hint">(we will make sure Katie is available 😊)</p><input id="pg-when" name="when"></div>
-${pgQuestion('3. How many tennis players are you thinking?',pgPills('players','radio'))}
-${pgQuestion('4. How many days of tennis?',pgPills('days','radio'))}
-${pgQuestion('5. How would you describe your group’s level?',pgPills('level','radio'))}
-${pgQuestion('6. What would you love to focus on?',pgPills('focus','checkbox'),'Pick any.')}
-${pgQuestion('7. What about accommodations?',pgPills('accommodations','radio'))}
-<div class="pg-q"><label for="pg-notes">8. Anything else that would make this trip special?</label><textarea id="pg-notes" name="notes" rows="4" placeholder="Restaurants, wellness, non-playing guests, special occasions, preferred dates..."></textarea></div>
-${honeypot()}${formStatus()}<button class="btn full" type="submit">Send request</button></form></div></div>`}
-async function submitPrivateGroup(e){e.preventDefault();const f=e.target,el=f.elements,v=n=>(el[n]?.value||'').trim(),one=n=>(f.querySelector(`input[name="${n}"]:checked`)||{}).value||'';showError(f,'');
-if(!v('name')||!v('email')){showError(f,'Add your name and email so Katie can reach you.');(v('name')?el.email:el.name).focus();return}
-setBusy(f,'Sending…');const r=await send('/api/private-groups',{name:v('name'),email:v('email'),where:v('where'),when:v('when'),players:one('players'),days:one('days'),level:one('level'),focus:[...f.querySelectorAll('input[name=focus]:checked')].map(x=>x.value),accommodations:one('accommodations'),notes:v('notes'),source:requestSource(),website:el.website?.value||''});
-if(r.ok){clearBusy(f);lead('private_group_request');const card=document.getElementById('pg-form');card.innerHTML=`<div class="pg-thanks" tabindex="-1"><div class="successmark" aria-hidden="true">✓</div><div class="eyebrow">REQUEST SENT</div><h2>Thank you.</h2><p>Katie will reach out personally within a day or two.</p><div class="actions"><a class="btn" href="/trips">Explore trips ↗</a></div></div>`;card.scrollIntoView({behavior:'smooth',block:'start'});card.querySelector('.pg-thanks').focus({preventScroll:true});return}clearBusy(f);showError(f,errorText(r))}
+// The form on its own page (KC, 2026-11-24: "a page like #/start"), in three steps, saved to the Sheet as the guest
+// goes: 1 contact + where/when (Continue), 2 questions 3–7 (Confirm my trip), 3 question 8 (Exciting things ahead).
+// Each step sends every answer so far to /api/private-groups with the request id from step 1. Answers stay in this
+// tab's sessionStorage, so Back and a reload keep them.
+const PG_KEY='courtside-private-group';
+let pg=(()=>{try{return JSON.parse(sessionStorage.getItem(PG_KEY)||'null')}catch{return null}})()||{step:1,requestId:'',a:{focus:[]}};
+function pgSave(){try{sessionStorage.setItem(PG_KEY,JSON.stringify(pg))}catch{}}
+const pgv=k=>esc(pg.a[k]||'');
+function pgPillsSet(name,type){return `<div class="pg-pills">${PG_OPTIONS[name].map((o,i)=>{const v=pgValue(o),on=type==='checkbox'?(pg.a[name]||[]).includes(v):pg.a[name]===v;return `<label class="pg-pill"><input type="${type}" name="${name}" value="${esc(v)}" id="pg-${name}-${i}"${on?' checked':''}><span>${esc(o)}</span></label>`}).join('')}</div>`}
+function pgStepBody(){
+if(pg.step===1)return `<div class="pg-q"><label for="pg-name">Your name</label><input id="pg-name" name="name" autocomplete="name" required value="${pgv('name')}"></div>
+<div class="pg-q"><label for="pg-email">Email</label><input id="pg-email" name="email" type="email" autocomplete="email" required value="${pgv('email')}"></div>
+<div class="pg-q"><label for="pg-where">1. Where would you like to go?</label><input id="pg-where" name="where" value="${pgv('where')}"></div>
+<div class="pg-q"><label for="pg-when">2. When would you like to go?</label><p class="pg-hint">(we will make sure Katie is available 😊)</p><input id="pg-when" name="when" value="${pgv('when')}"></div>`;
+if(pg.step===2)return `${pgQuestion('3. How many tennis players are you thinking?',pgPillsSet('players','radio'))}
+${pgQuestion('4. How many days of tennis?',pgPillsSet('days','radio'))}
+${pgQuestion('5. How would you describe your group’s level?',pgPillsSet('level','radio'))}
+${pgQuestion('6. What would you love to focus on?',pgPillsSet('focus','checkbox'),'Pick any.')}
+${pgQuestion('7. What about accommodations?',pgPillsSet('accommodations','radio'))}`;
+return `<div class="pg-q"><label for="pg-notes">8. Anything else that would make this trip special?</label><textarea id="pg-notes" name="notes" rows="5" placeholder="Restaurants, wellness, non-playing guests, special occasions, preferred dates...">${pgv('notes')}</textarea></div>`}
+const PG_BUTTON={1:'Continue',2:'Confirm my trip',3:'Exciting things ahead'};
+function pgStepHtml(){return `<div class="progress" aria-hidden="true">${[1,2,3].map(n=>`<span class="${n<=pg.step?'done':''}"></span>`).join('')}</div><p class="pg-step">Step ${pg.step} of 3</p><form class="pg-form" onsubmit="submitPrivateGroup(event)" novalidate>${pgStepBody()}${honeypot()}${formStatus()}<div class="pg-actions">${pg.step>1?'<button type="button" class="back" onclick="pgBack()">← Back</button>':''}<button class="btn" type="submit">${PG_BUTTON[pg.step]}${pg.step<3?' ↗':''}</button></div></form>`}
+function privateGroupForm(){if(pg.done){pg={step:1,requestId:'',a:{focus:[]}};pgSave()}return `<div class="flow soft-flow"><div class="flow-main" id="pg-form"><div class="eyebrow">BUILD YOUR OWN TENNIS CAMP</div><h1>Build your own tennis camp.</h1><p>Tell us a little about your ideal getaway. We’ll design a personalized tennis experience around your group, your schedule, and your style.</p><p class="small muted">Hosted by Katie Dellich | Courtside Travel Co.</p><div id="pg-step">${pgStepHtml()}</div></div></div>`}
+function pgCapture(f){const el=f.elements,one=n=>(f.querySelector(`input[name="${n}"]:checked`)||{}).value||'';
+if(pg.step===1){for(const k of ['name','email','where','when'])pg.a[k]=(el[k]?.value||'').trim()}
+else if(pg.step===2){for(const k of ['players','days','level','accommodations'])pg.a[k]=one(k);pg.a.focus=[...f.querySelectorAll('input[name=focus]:checked')].map(x=>x.value)}
+else pg.a.notes=(el.notes?.value||'').trim();pgSave()}
+function pgRender(){const box=document.getElementById('pg-step');if(!box)return;box.innerHTML=pgStepHtml();document.getElementById('pg-form').scrollIntoView({behavior:'smooth',block:'start'});box.querySelector('input,textarea')?.focus({preventScroll:true})}
+function pgBack(){const f=document.querySelector('#pg-step form');if(f)pgCapture(f);pg.step=Math.max(1,pg.step-1);pgSave();pgRender()}
+async function submitPrivateGroup(e){e.preventDefault();const f=e.target;showError(f,'');pgCapture(f);
+if(pg.step===1&&(!pg.a.name||!pg.a.email)){showError(f,'Add your name and email so Katie can reach you.');(pg.a.name?f.elements.email:f.elements.name).focus();return}
+const a=pg.a;setBusy(f,'Saving…');const r=await send('/api/private-groups',{step:pg.step,requestId:pg.requestId,name:a.name,email:a.email,where:a.where||'',when:a.when||'',players:a.players||'',days:a.days||'',level:a.level||'',focus:a.focus||[],accommodations:a.accommodations||'',notes:a.notes||'',source:requestSource(),website:f.elements.website?.value||''});
+if(!r.ok){clearBusy(f);showError(f,errorText(r));return}
+pg.requestId=r.data?.requestId||pg.requestId;
+if(pg.step<3){pg.step++;pgSave();pgRender();return}
+pg.done=true;pgSave();lead('private_group_request');const card=document.getElementById('pg-form');card.innerHTML=`<div class="pg-thanks" tabindex="-1"><div class="successmark" aria-hidden="true">✓</div><div class="eyebrow">REQUEST SENT</div><h2>Thank you.</h2><p>Katie will reach out personally within a day or two.</p><div class="actions"><a class="btn" href="/trips">Explore trips ↗</a></div></div>`;card.scrollIntoView({behavior:'smooth',block:'start'});card.querySelector('.pg-thanks').focus({preventScroll:true})}
 function privateThanks(){return `<section class="success"><div class="center"><div class="successmark" aria-hidden="true">✓</div><div class="eyebrow">REQUEST SENT</div><h1>Thank you.</h1><p>Katie will reach out personally within a day or two.</p><div class="actions"><a class="btn" href="/trips">Explore trips ↗</a></div></div></section>`}
 function render(){viewToken++;modalDirty=false;closeModal();closeSpainPopup();let r=route();if(r==='main'){r='';}if(isDemoRoute(r)&&!demoOn())r='';
 // Soft launch (KC, 2026-11-23): the request flow is one screen posting to /api/soft-launch, and the group / proposal /

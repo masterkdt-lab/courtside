@@ -127,3 +127,9 @@ html.cs-popup-open{overflow:hidden}
 .hero h1.pg-h1{font-size:clamp(36px,4.3vw,60px);letter-spacing:-1.5px;white-space:nowrap}
 @media(max-width:800px){.hero h1.pg-h1{font-size:clamp(32px,10.4vw,46px);letter-spacing:-1px}}
 .flow-main .pg-form{margin-top:30px}
+.pg-step{font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--muted);margin:10px 0 0}
+#pg-step .progress{margin:30px 0 0}
+#pg-step .pg-form{margin-top:26px}
+.pg-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:4px}
+.pg-actions .btn{margin-left:auto;min-width:220px}
+@media(max-width:800px){.pg-actions .btn{min-width:0;flex:1}}
