@@ -97,8 +97,6 @@ export const PAGES = Object.freeze([
     },
     noscript: '<h1>The Spanish Offseason</h1><p>Costa Blanca, Spain · six nights · hosted by <a href="/hosts/katie">Katie</a>. Soft launch · January 10 – March 6, 2027. Weeks are forming.</p>'
       + '<p>Join Katie on Spain’s Costa Blanca. Play at Club de Tenis Almoradí, settle into La Finca Resort and make time for the coast, good food and each other. Katie enjoys the week with you. Courtside handles the planning and coordination, so everyone can be present.</p>'
-      + '<h2>The week, at a glance.</h2><ul><li>Six-night resort stay</li><li>Four tennis mornings</li><li>Daily breakfast</li><li>Scheduled club transfers</li><li>Welcome + farewell dinners</li><li>Courtside trip support</li></ul>'
-      + '<p>Final inclusions, host schedule and supplier availability are confirmed in your personal proposal. Airfare, personal spending and optional extras are excluded.</p>'
       + '<h2>Your Sunday–Saturday rhythm.</h2><p>Sunday: arrive and join the welcome dinner. Monday–Tuesday: clay mornings with Katie, open afternoons. Wednesday: golf, spa, exploring or nothing at all. Thursday–Friday: more tennis and a farewell dinner. Saturday: breakfast and departure.</p>'
       + '<p>$3,500 per player for the tennis experience, paid to Courtside. Lodging and travel are booked separately through Fora, about $1,500 per guest. Private groups of 4–12 players; non-playing partners welcome; solo travelers can ask Courtside to help find a group. A request starts a conversation: no payment, and your place is confirmed only after the booking steps in your personal proposal.</p>',
   },

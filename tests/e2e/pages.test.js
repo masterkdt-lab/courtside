@@ -195,17 +195,17 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
 
     await page.goBack();
     await pathIs(page, '/trips/spanish-offseason');
-    await textShows(page, 'The week, at a glance.');
+    await textShows(page, 'Your Sunday–Saturday rhythm.');
     await page.goBack();
     await pathIs(page, '/trips');
     await textShows(page, 'Where tennis');
     await page.goForward();
     await pathIs(page, '/trips/spanish-offseason');
-    await textShows(page, 'The week, at a glance.');
+    await textShows(page, 'Your Sunday–Saturday rhythm.');
 
     await page.reload();
     await rendered(page);
-    await textShows(page, 'The week, at a glance.');
+    await textShows(page, 'Your Sunday–Saturday rhythm.');
     assert.equal(await page.title(), PAGES.find((p) => p.route === 'trip').title);
 
     // Into the request form (soft launch: one screen at the hash route /#/start).
@@ -217,7 +217,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     assert.equal(await page.evaluate(() => window.__sameDocument), true);
     await page.goBack();
     await pathIs(page, '/trips/spanish-offseason');
-    await textShows(page, 'The week, at a glance.');
+    await textShows(page, 'Your Sunday–Saturday rhythm.');
 
     // The breadcrumb and the footer.
     await page.click('#main .breadcrumb a[href="/trips"]');
@@ -313,7 +313,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
       await visit(page, '/spain');
       await page.click('#cs-popup a.cs-outline');
       await pathIs(page, '/trips/spanish-offseason');
-      await textShows(page, 'The week, at a glance.');
+      await textShows(page, 'Your Sunday–Saturday rhythm.');
       assert.deepEqual(page.errors(), []);
       await page.close2();
     }
