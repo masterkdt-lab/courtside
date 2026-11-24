@@ -344,26 +344,35 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.click('#navtoggle');
     await page.click('#mobilenav a[href="/private-groups"]');
     await pathIs(page, '/private-groups');
-    await textShows(page, 'PRIVATE GROUPS — FOR YOUR CLUB, TEAM OR FRIENDS');
-    await textShows(page, 'You’ve built something special with your group. Take that connection somewhere extraordinary.');
-    await textShows(page, 'Exceptional on court. Wonderful to travel with.');
-    for (const h of ['Your group, your trip.', 'We handle the details.', 'Start with a conversation.']) await textShows(page, h);
-    assert.match(await page.locator('#main .hero h1').innerText(), /Bring\s+your people\./);
+    await textShows(page, 'BUILD YOUR OWN TENNIS CAMP');
+    assert.match(await page.locator('#main .hero h1').innerText(), /Your dream tennis\s+escape starts here!/);
+    await textShows(page, 'Hosted by Katie Dellich | Courtside Travel Co. · Approximately 2 minutes. No commitment required.');
     await page.click('#main button[type=submit]');
-    await textShows(page, 'Add your name, email and where you want to go.');
+    await textShows(page, 'Add your name and email so Katie can reach you.');
     await page.fill('#main input[name=name]', 'Punta Tester');
     await page.fill('#main input[name=email]', 'punta.tester@example.com');
-    await page.fill('#main input[name=destination]', 'Punta Mita, next year');
+    await page.fill('#main input[name=where]', 'Punta Mita');
+    await page.fill('#main input[name=when]', 'March next year');
+    await page.click('label:has(input[value="5–7 players"])');
+    await page.click('label:has(input[value="3 days"])');
+    await page.click('label:has(input[value="Mixed levels"])');
+    await page.click('label:has(input[value="Doubles strategy"])');
+    await page.click('label:has(input[value="Live-ball drills"])');
+    await page.click(`label:has(input[value="I'll arrange my own"])`);
     await page.fill('#main textarea[name=notes]', 'Eight of us');
     await page.click('#main button[type=submit]');
-    await page.waitForFunction(() => location.hash === '#/private-thanks');
+    await page.waitForSelector('.pg-thanks');
+    assert.equal(await pathIs(page, '/private-groups').then(() => true), true, 'the thank-you is on the same page');
     await textShows(page, 'Katie will reach out personally within a day or two.');
     const data = readMock();
     assert.equal((data.requests || []).length, 0);
     assert.equal((data.soft_launch || []).length, 0);
     assert.equal(data.private_groups.length, 1);
     const r = data.private_groups[0];
-    assert.deepEqual([r['Full name'], r.Email, r.Destination, r.Notes, r.Source], ['Punta Tester', 'punta.tester@example.com', 'Punta Mita, next year', 'Eight of us', 'site']);
+    assert.deepEqual(
+      [r['Your name'], r.Email, r['1. Where'], r['2. When'], r['3. Tennis players'], r['4. Days of tennis'], r['5. Group level'], r['6. Focus'], r['7. Accommodations'], r['8. Anything else'], r.Source],
+      ['Punta Tester', 'punta.tester@example.com', 'Punta Mita', 'March next year', '5–7 players', '3 days', 'Mixed levels', 'Doubles strategy, Live-ball drills', "I'll arrange my own", 'Eight of us', 'site'],
+    );
     const mail = (await sentEmails()).filter((m) => /Private group request/.test(m.subject));
     assert.equal(mail.length, 1);
     assert.deepEqual(page.errors(), []);
