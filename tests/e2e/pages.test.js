@@ -357,6 +357,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await textShows(page, 'Add your name and email so Katie can reach you.');
     await page.fill('#main input[name=name]', 'Punta Tester');
     await page.fill('#main input[name=email]', 'punta.tester@example.com');
+    await page.fill('#main input[name=phone]', '+1 415 555 0199');
     await page.fill('#main input[name=where]', 'Punta Mita');
     await page.fill('#main input[name=when]', 'March next year');
     await page.click('#main button[type=submit]:has-text("Continue")');
@@ -393,8 +394,8 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     assert.equal(data.private_groups.length, 1);
     const r = data.private_groups[0];
     assert.deepEqual(
-      [r['Request ID'], r.Stage, r['Your name'], r.Email, r['1. Where'], r['2. When'], r['3. Tennis players'], r['4. Days of tennis'], r['5. Group level'], r['6. Focus'], r['7. Accommodations'], r['8. Anything else'], r.Source],
-      [id, 'Complete', 'Punta Tester', 'punta.tester@example.com', 'Punta Mita', 'March next year', '5–7 players', '3 days', 'Mixed levels', 'Doubles strategy, Live-ball drills', "I'll arrange my own", 'Eight of us', 'site'],
+      [r['Request ID'], r.Stage, r['Your name'], r.Email, r.Phone, r['1. Where'], r['2. When'], r['3. Tennis players'], r['4. Days of tennis'], r['5. Group level'], r['6. Focus'], r['7. Accommodations'], r['8. Anything else'], r.Source],
+      [id, 'Complete', 'Punta Tester', 'punta.tester@example.com', '+1 415 555 0199', 'Punta Mita', 'March next year', '5–7 players', '3 days', 'Mixed levels', 'Doubles strategy, Live-ball drills', "I'll arrange my own", 'Eight of us', 'site'],
     );
     const mail = (await sentEmails()).filter((m) => /Private group request/.test(m.subject));
     assert.equal(mail.length, 1);

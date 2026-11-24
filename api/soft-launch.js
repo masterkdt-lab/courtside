@@ -49,6 +49,7 @@ export function buildRow(value, now = new Date()) {
     timestampPt: pacificTimestamp(now),
     name: value.name,
     email: value.email,
+    phone: value.phone || '',
     kind: value.kind,
     timing: value.timing || '',
     notes: value.notes || '',
@@ -69,7 +70,7 @@ async function save({ value }) {
     if (!sent.ok) console.error(`[api/soft-launch] team email failed: ${sent.error}`);
   }
   // Team alert to Jeff and Katie (lib/email-team-alert.js), best effort, Reply-To the guest.
-  const alert = teamAlert({ type: row.kind === 'Whole week' ? 'wholeWeek' : 'joinWeek', contact: { name: row.name, email: row.email }, answers: softLaunchAnswers(row), submitted: row.timestampPt, sheetUrl: await sheetTabUrl('Soft Launch') });
+  const alert = teamAlert({ type: row.kind === 'Whole week' ? 'wholeWeek' : 'joinWeek', contact: { name: row.name, email: row.email, phone: row.phone }, answers: softLaunchAnswers(row), submitted: row.timestampPt, sheetUrl: await sheetTabUrl('Soft Launch') });
   const alerted = await sendEmail({ to: TEAM_ALERT_TO, ...alert });
   if (!alerted.ok) console.error(`[api/soft-launch] team alert failed: ${alerted.error}`);
   const confirm = await sendEmail({ to: row.email, replyTo: String(env.NOTIFY_EMAILS ?? '').split(',')[0].trim(), ...confirmSoftLaunch(row) });

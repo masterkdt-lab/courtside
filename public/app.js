@@ -301,12 +301,13 @@ function softRequest(){return `<div class="flow soft-flow"><div class="flow-main
 <form class="soft-form" onsubmit="submitSoftLaunch(event)" novalidate><fieldset class="soft-choice"><legend>How would you like to come?</legend><div class="options"><label class="option"><input type="radio" name="kind" value="Join a week" required>Join a week<small>Come on your own or with a friend or partner, and join a group.</small></label><label class="option"><input type="radio" name="kind" value="Whole week" required>Reserve the whole week for my group<small>Bring your own people for a private week.</small></label></div></fieldset>
 <label for="soft-name">Full name</label><input id="soft-name" name="name" autocomplete="name" required>
 <label for="soft-email">Email</label><input id="soft-email" name="email" type="email" autocomplete="email" required>
+<label for="soft-phone">Phone <span class="muted">· optional</span></label><input id="soft-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel">
 <label for="soft-timing">Preferred timing <span class="muted">· optional</span></label><input id="soft-timing" name="timing" placeholder="Soft launch · January 10 – March 6, 2027">
 <label for="soft-notes">Notes <span class="muted">· optional</span></label><textarea id="soft-notes" name="notes"></textarea>
 ${consentRow('soft-consent','I’m happy for Courtside to keep these details to prepare a proposal.')}${honeypot()}${formStatus()}<button class="btn full" type="submit">Send request</button></form></div></div>`}
 async function submitSoftLaunch(e){e.preventDefault();const f=e.target,el=f.elements,kind=(f.querySelector('input[name=kind]:checked')||{}).value||'';showError(f,'');
 if(!kind){showError(f,'Choose “Join a week” or “Reserve the whole week for my group.”');return}if(!el.name.value.trim()||!el.email.value.trim()){showError(f,'Add your name and email.');return}if(!el.consent.checked){showError(f,'Please tick the consent box so Katie can reply.');return}
-setBusy(f,'Sending…');const r=await send('/api/soft-launch',{kind,name:el.name.value.trim(),email:el.email.value.trim(),timing:el.timing.value.trim(),notes:el.notes.value.trim(),consent:true,source:requestSource(),website:el.website?.value||''});
+setBusy(f,'Sending…');const r=await send('/api/soft-launch',{kind,name:el.name.value.trim(),email:el.email.value.trim(),phone:(el.phone?.value||'').trim(),timing:el.timing.value.trim(),notes:el.notes.value.trim(),consent:true,source:requestSource(),website:el.website?.value||''});
 if(r.ok){clearBusy(f);lead('soft_launch_request');go('thanks');return}clearBusy(f);showError(f,errorText(r))}
 function softThanks(){return `<section class="success"><div class="center"><div class="successmark" aria-hidden="true">✓</div><div class="eyebrow">REQUEST SENT</div><h1>Thank you.</h1><p>Katie will reach out personally within a day or two.</p><div class="actions"><a class="btn" href="/trips/spanish-offseason">Back to the Spanish Offseason ↗</a></div></div></section>`}
 // The pop-up on /spain: closes with the X, a tap outside, or Escape; focus returns to the page.
@@ -338,6 +339,7 @@ function pgPillsSet(name,type){return `<div class="pg-pills">${PG_OPTIONS[name].
 function pgStepBody(){
 if(pg.step===1)return `<div class="pg-q"><label for="pg-name">Your name</label><input id="pg-name" name="name" autocomplete="name" required value="${pgv('name')}"></div>
 <div class="pg-q"><label for="pg-email">Email</label><input id="pg-email" name="email" type="email" autocomplete="email" required value="${pgv('email')}"></div>
+<div class="pg-q"><label for="pg-phone">Phone <span class="muted">· optional</span></label><input id="pg-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" value="${pgv('phone')}"></div>
 <div class="pg-q"><label for="pg-where">1. Where would you like to go?</label><input id="pg-where" name="where" value="${pgv('where')}"></div>
 <div class="pg-q"><label for="pg-when">2. When would you like to go?</label><p class="pg-hint">(we will make sure Katie is available 😊)</p><input id="pg-when" name="when" value="${pgv('when')}"></div>`;
 if(pg.step===2)return `${pgQuestion('3. How many tennis players are you thinking?',pgPillsSet('players','radio'))}
@@ -350,7 +352,7 @@ const PG_BUTTON={1:'Continue',2:'Confirm my trip',3:'Exciting things ahead'};
 function pgStepHtml(){return `<div class="progress" aria-hidden="true">${[1,2,3].map(n=>`<span class="${n<=pg.step?'done':''}"></span>`).join('')}</div><p class="pg-step">Step ${pg.step} of 3</p><form class="pg-form" onsubmit="submitPrivateGroup(event)" novalidate>${pgStepBody()}${honeypot()}${formStatus()}<div class="pg-actions">${pg.step>1?'<button type="button" class="back" onclick="pgBack()">← Back</button>':''}<button class="btn" type="submit">${PG_BUTTON[pg.step]}${pg.step<3?' ↗':''}</button></div></form>`}
 function privateGroupForm(){if(pg.done){pg={step:1,requestId:'',a:{focus:[]}};pgSave()}return `<div class="flow soft-flow"><div class="flow-main" id="pg-form"><div class="eyebrow">BUILD YOUR OWN TENNIS CAMP</div><h1>Build your own tennis camp.</h1><p>Tell us a little about your ideal getaway. We’ll design a personalized tennis experience around your group, your schedule, and your style.</p><p class="small muted">Hosted by Katie Dellich | Courtside Travel Co.</p><div id="pg-step">${pgStepHtml()}</div></div></div>`}
 function pgCapture(f){const el=f.elements,one=n=>(f.querySelector(`input[name="${n}"]:checked`)||{}).value||'';
-if(pg.step===1){for(const k of ['name','email','where','when'])pg.a[k]=(el[k]?.value||'').trim()}
+if(pg.step===1){for(const k of ['name','email','phone','where','when'])pg.a[k]=(el[k]?.value||'').trim()}
 else if(pg.step===2){for(const k of ['players','days','level','accommodations'])pg.a[k]=one(k);pg.a.focus=[...f.querySelectorAll('input[name=focus]:checked')].map(x=>x.value)}
 else pg.a.notes=(el.notes?.value||'').trim();pgSave()}
 function pgRender(){const box=document.getElementById('pg-step');if(!box)return;box.innerHTML=pgStepHtml();document.getElementById('pg-form').scrollIntoView({behavior:'smooth',block:'start'});box.querySelector('input,textarea')?.focus({preventScroll:true})}
@@ -360,12 +362,12 @@ async function pgResumeFromLink(){const id=query().get('r');if(!id||!/^PG-[0-9A-
 let data=null;try{const res=await fetch('/api/private-groups?r='+encodeURIComponent(id),{headers:{accept:'application/json'}});if(res.ok)data=await res.json()}catch{}if(!data||!data.ok||route()!=='build-your-camp')return;
 const card=document.getElementById('pg-form');if(!card)return;
 if(data.complete){pg={step:3,requestId:id,a:{},done:true};pgSave();card.innerHTML=`<div class="pg-thanks" tabindex="-1"><div class="successmark" aria-hidden="true">✓</div><div class="eyebrow">ALREADY SENT</div><h2>Thank you.</h2><p>Your trip request is with Katie. She’ll reach out personally.</p><div class="actions"><a class="btn" href="/trips">Explore trips ↗</a></div></div>`;return}
-const a=data.answers||{};pg={step:data.step||2,requestId:id,a:{name:a.name||'',email:a.email||'',where:a.where||'',when:a.when||'',players:a.players||'',days:a.days||'',level:a.level||'',focus:Array.isArray(a.focus)?a.focus:[],accommodations:a.accommodations||'',notes:a.notes||''}};pgSave();
+const a=data.answers||{};pg={step:data.step||2,requestId:id,a:{name:a.name||'',email:a.email||'',phone:a.phone||'',where:a.where||'',when:a.when||'',players:a.players||'',days:a.days||'',level:a.level||'',focus:Array.isArray(a.focus)?a.focus:[],accommodations:a.accommodations||'',notes:a.notes||''}};pgSave();
 const box=document.getElementById('pg-step');if(box)box.innerHTML=pgStepHtml()}
 function pgBack(){const f=document.querySelector('#pg-step form');if(f)pgCapture(f);pg.step=Math.max(1,pg.step-1);pgSave();pgRender()}
 async function submitPrivateGroup(e){e.preventDefault();const f=e.target;showError(f,'');pgCapture(f);
 if(pg.step===1&&(!pg.a.name||!pg.a.email)){showError(f,'Add your name and email so Katie can reach you.');(pg.a.name?f.elements.email:f.elements.name).focus();return}
-const a=pg.a;setBusy(f,'Saving…');const r=await send('/api/private-groups',{step:pg.step,requestId:pg.requestId,name:a.name,email:a.email,where:a.where||'',when:a.when||'',players:a.players||'',days:a.days||'',level:a.level||'',focus:a.focus||[],accommodations:a.accommodations||'',notes:a.notes||'',source:requestSource(),website:f.elements.website?.value||''});
+const a=pg.a;setBusy(f,'Saving…');const r=await send('/api/private-groups',{step:pg.step,requestId:pg.requestId,name:a.name,email:a.email,phone:a.phone||'',where:a.where||'',when:a.when||'',players:a.players||'',days:a.days||'',level:a.level||'',focus:a.focus||[],accommodations:a.accommodations||'',notes:a.notes||'',source:requestSource(),website:f.elements.website?.value||''});
 if(!r.ok){clearBusy(f);showError(f,errorText(r));return}
 pg.requestId=r.data?.requestId||pg.requestId;
 if(pg.step<3){pg.step++;pgSave();pgRender();return}

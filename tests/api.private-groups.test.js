@@ -25,7 +25,7 @@ const setUpdated = (id, text) => {
 };
 
 test('the three steps write one row, Started → Trip details → Complete, and email the team only at the end', async () => {
-  const a = await step({ step: 1, name: 'Ana Guest', email: 'ana@example.com', where: 'Punta Mita', when: 'March' });
+  const a = await step({ step: 1, name: 'Ana Guest', email: 'ana@example.com', phone: '+1 (415) 555-0134', where: 'Punta Mita', when: 'March' });
   assert.equal(a.ok, true);
   assert.match(a.requestId, /^PG-[0-9A-Z]{8}$/);
   assert.equal(rows().length, 1);
@@ -34,7 +34,8 @@ test('the three steps write one row, Started → Trip details → Complete, and 
   assert.equal(rows().length, 1);
   assert.deepEqual([rows()[0].Stage, rows()[0]['3. Tennis players'], rows()[0]['6. Focus']], ['Trip details', '5–7 players', 'Doubles strategy']);
   assert.equal(sentLog.length, 0);
-  await step({ step: 3, requestId: a.requestId, name: 'Ana Guest', email: 'ana@example.com', where: 'Punta Mita', notes: 'Eight of us' });
+  await step({ step: 3, requestId: a.requestId, name: 'Ana Guest', email: 'ana@example.com', phone: '+1 (415) 555-0134', where: 'Punta Mita', notes: 'Eight of us' });
+  assert.equal(rows()[0].Phone, '+1 (415) 555-0134');
   assert.equal(rows()[0].Stage, 'Complete');
   assert.equal(sentLog.filter((m) => /Private group request/.test(m.subject)).length, 1);
   const alert = sentLog.filter((m) => m.subject === 'New private group request: Ana Guest');
@@ -43,6 +44,8 @@ test('the three steps write one row, Started → Trip details → Complete, and 
   assert.match(alert[0].text, /Another person requested a trip\.\nPrivate group form/);
   assert.match(alert[0].text, /Email: ana@example\.com/);
   assert.match(alert[0].html, /mailto:ana%40example\.com/);
+  assert.match(alert[0].text, /Phone: \+1 \(415\) 555-0134/);
+  assert.match(alert[0].html, /href="tel:\+14155550134"/);
 });
 
 test('reminders: one email to a guest who stopped 12+ hours ago, never to finished, recent, old or already-reminded rows', async () => {
@@ -113,4 +116,18 @@ test('soft launch: the team alert to Jeff and Katie names what they want, Reply-
   assert.match(join.text, /Preferred timing: late January/);
   assert.doesNotMatch(whole.text, /Preferred timing|Notes:/, 'empty answers are skipped');
   assert.match(join.text, /Submitted: \d{4}-\d{2}-\d{2} \d{1,2}:\d{2} (AM|PM) \(Pacific\)/);
+});
+
+test('phone: optional, any usual format, nonsense rejected', async () => {
+  const bad = await step({ step: 1, name: 'B', email: 'b@example.com', phone: 'call me maybe' });
+  assert.equal(bad.ok, false);
+  assert.match(bad.errors.phone, /phone number/);
+  const none = await step({ step: 1, name: 'N', email: 'n@example.com' });
+  assert.equal(none.ok, true);
+  const { POST: softPost, _resetDoubleSubmit: resetSoft } = await import('../api/soft-launch.js');
+  resetSoft();
+  await softPost(jsonRequest('/api/soft-launch', { consent: true, kind: 'Join a week', name: 'Ph One', email: 'ph@example.com', phone: '415-555-0100' }));
+  assert.equal(readMock().soft_launch.at(-1).Phone, '415-555-0100');
+  const alert = sentLog.find((m) => /Ph One wants to join a group/.test(m.subject));
+  assert.match(alert.text, /Phone: 415-555-0100/);
 });
