@@ -9,6 +9,10 @@
 // guests already received from Courtside or their group host.
 (function () {
   'use strict';
+  // Gate OFF (KC, 2026-11-24): every page opens with no code. Everything below is kept so the gate can come back:
+  // set GATE_ENABLED to true.
+  var GATE_ENABLED = false;
+  if (!GATE_ENABLED) return;
   var CODE = "I'minvited!";
   var KEY = 'courtside-gate';
   var norm = function (s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };

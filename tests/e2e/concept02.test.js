@@ -485,7 +485,7 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     assert.doesNotMatch(privacy.text, /href="\/pros"|href="\/?#\/(trip|trips|host|about|apply|invite)"/);
     const missing = await http(srv.base, '/nothing-here');
     assert.equal(missing.status, 404);
-    assert.match(missing.text, /href="\/invite"/);
+    assert.doesNotMatch(missing.text, /href="\/invite"/, 'no invitation links (KC, 2026-11-24)');
     assert.doesNotMatch(missing.text, /href="\/#\//);
     assert.ok(fs.existsSync(path.join(ROOT, 'public', 'js', 'trips.js')), 'public/js/trips.js stays for lib/lineup.js');
   });
