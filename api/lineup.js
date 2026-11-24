@@ -57,3 +57,13 @@ async function handleGet() {
 // One request scope per call: every store read in the request shares one Sheets snapshot
 // (lib/request-scope.js, lib/store.sheets.js).
 export const GET = withSheetScope(handleGet);
+
+// POST /api/private-groups is served here through a rewrite (vercel.json; Hobby's 12-function limit): see
+// lib/private-groups.js. Only that address is answered; a POST to /api/lineup itself stays 405. GET above is unchanged.
+import { POST as privateGroupsPost } from '../lib/private-groups.js';
+export async function POST(request) {
+  let pathname = '';
+  try { pathname = new URL(request.url).pathname; } catch { /* unparseable: not the rewrite */ }
+  if (pathname.replace(/\/+$/, '') === '/api/private-groups') return privateGroupsPost(request);
+  return new Response(JSON.stringify({ ok: false, reason: 'method_not_allowed' }), { status: 405, headers: { 'content-type': 'application/json; charset=utf-8', allow: 'GET' } });
+}

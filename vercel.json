@@ -4,9 +4,20 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.courtsidetravel.co" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.courtsidetravel.co"
+        }
+      ],
       "destination": "https://courtsidetravel.co/:path*",
       "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/private-groups",
+      "destination": "/api/lineup"
     }
   ]
 }

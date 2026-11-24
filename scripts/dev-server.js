@@ -118,9 +118,12 @@ export function resolveStatic(pathname) {
 }
 
 // -> the api/<name>.js file for an /api/<name> path, or null when the name is unsafe or no such file exists.
+// The same API rewrites as vercel.json (Hobby's 12-function limit: /api/private-groups runs in api/lineup.js).
+export const API_REWRITES = Object.freeze({ 'private-groups': 'lineup' });
+
 export function resolveApi(name) {
   if (!API_NAME.test(name)) return null;
-  const file = path.join(API_DIR, `${name}.js`);
+  const file = path.join(API_DIR, `${API_REWRITES[name] || name}.js`);
   return fs.existsSync(file) ? file : null;
 }
 
@@ -170,7 +173,7 @@ async function writeWebResponse(res, response) {
 async function handleApi(req, res, name) {
   const file = resolveApi(name);
   if (!file) return sendJson(res, 404, { ok: false, reason: 'not_found' });
-  const mod = await import(new URL(`../api/${name}.js`, import.meta.url));
+  const mod = await import(new URL(`../api/${API_REWRITES[name] || name}.js`, import.meta.url));
   const handler = mod[req.method];
   if (typeof handler !== 'function') {
     const allow = ['GET', 'POST'].filter((m) => typeof mod[m] === 'function').join(', ');
