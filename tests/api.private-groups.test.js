@@ -37,6 +37,12 @@ test('the three steps write one row, Started → Trip details → Complete, and 
   await step({ step: 3, requestId: a.requestId, name: 'Ana Guest', email: 'ana@example.com', where: 'Punta Mita', notes: 'Eight of us' });
   assert.equal(rows()[0].Stage, 'Complete');
   assert.equal(sentLog.filter((m) => /Private group request/.test(m.subject)).length, 1);
+  const alert = sentLog.filter((m) => m.subject === 'New private group request: Ana Guest');
+  assert.equal(alert.length, 1);
+  assert.deepEqual(alert[0].to, ['jk@nextwave.bet', 'katie.dellich@gmail.com']);
+  assert.match(alert[0].text, /Another person requested a trip\.\nPrivate group form/);
+  assert.match(alert[0].text, /Email: ana@example\.com/);
+  assert.match(alert[0].html, /mailto:ana%40example\.com/);
 });
 
 test('reminders: one email to a guest who stopped 12+ hours ago, never to finished, recent, old or already-reminded rows', async () => {
@@ -52,14 +58,24 @@ test('reminders: one email to a guest who stopped 12+ hours ago, never to finish
   _resetSentLog();
   const first = await runReminders({ now });
   assert.deepEqual([first.due, first.sent], [1, 1]);
-  assert.equal(sentLog.length, 1);
-  assert.equal(sentLog[0].to?.[0] ?? sentLog[0].to, 'stuck@example.com');
-  assert.match(sentLog[0].subject, /almost ready to plan/);
-  assert.match(sentLog[0].text, /You started planning your tennis camp to Mallorca\./);
-  assert.match(sentLog[0].text, new RegExp(`/#/build-your-camp\\?r=${stuck}`));
+  const reminder = sentLog.filter((m) => /almost ready to plan/.test(m.subject));
+  assert.equal(reminder.length, 1);
+  assert.deepEqual(reminder[0].to, ['stuck@example.com']);
+  assert.match(reminder[0].text, /You started planning your tennis camp to Mallorca\./);
+  assert.match(reminder[0].text, new RegExp(`/#/build-your-camp\\?r=${stuck}`));
+  const alert = sentLog.filter((m) => /^Unfinished request:/.test(m.subject));
+  assert.equal(alert.length, 1, 'one unfinished alert to Jeff and Katie');
+  assert.equal(alert[0].subject, 'Unfinished request: Stuck Guest started the private group form');
+  assert.deepEqual(alert[0].to, ['jk@nextwave.bet', 'katie.dellich@gmail.com']);
+  assert.match(alert[0].text, /Someone started a private group request but didn’t finish\./);
+  assert.match(alert[0].text, /Stopped at: Step 1 of 3/);
+  assert.match(alert[0].text, /1\. Where would you like to go\?: Mallorca/);
+  assert.doesNotMatch(alert[0].text, /3\. How many tennis players/, 'empty answers are skipped');
   assert.notEqual(rows().find((r) => r['Request ID'] === stuck)['Reminder sent (PT)'], '');
+  _resetSentLog();
   const second = await runReminders({ now });
   assert.equal(second.sent, 0, 'one reminder per guest');
+  assert.equal(sentLog.length, 0, 'and no second alert');
 });
 
 test('parsePacific reads back what the site writes, in winter and summer', () => {
@@ -82,4 +98,19 @@ test('the reminder job needs the cron secret; the resume link returns the saved 
   assert.deepEqual([res.answers.where, res.answers.players, res.answers.focus], ['Charleston', '2–4 players', ['Live-ball drills']]);
   assert.equal((await GET(getRequest('/api/private-groups?r=PG-00000000'))).status, 404);
   assert.equal((await GET(getRequest('/api/lineup'))).status, 200, '/api/lineup itself unchanged');
+});
+
+test('soft launch: the team alert to Jeff and Katie names what they want, Reply-To the guest', async () => {
+  const { POST: softPost, _resetDoubleSubmit: resetSoft } = await import('../api/soft-launch.js');
+  resetSoft();
+  const send = (body) => softPost(jsonRequest('/api/soft-launch', { consent: true, ...body }));
+  await send({ kind: 'Join a week', name: 'Jo Joiner', email: 'jo@example.com', timing: 'late January' });
+  await send({ kind: 'Whole week', name: 'Pat Private', email: 'pat@example.com' });
+  const join = sentLog.find((m) => m.subject === 'New trip request: Jo Joiner wants to join a group');
+  const whole = sentLog.find((m) => m.subject === 'New trip request: Pat Private wants their own private group');
+  assert.ok(join && whole);
+  assert.deepEqual(join.to, ['jk@nextwave.bet', 'katie.dellich@gmail.com']);
+  assert.match(join.text, /Preferred timing: late January/);
+  assert.doesNotMatch(whole.text, /Preferred timing|Notes:/, 'empty answers are skipped');
+  assert.match(join.text, /Submitted: \d{4}-\d{2}-\d{2} \d{1,2}:\d{2} (AM|PM) \(Pacific\)/);
 });

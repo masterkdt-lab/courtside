@@ -14,6 +14,7 @@
 import * as store from '../lib/store.js';
 import { emailMode, notifySoftLaunch, sendEmail } from '../lib/email.js';
 import { confirmSoftLaunch } from '../lib/email-confirm.js';
+import { TEAM_ALERT_TO, sheetTabUrl, softLaunchAnswers, teamAlert } from '../lib/email-team-alert.js';
 import { getSecret } from '../lib/env.js';
 import { json, readJson } from '../lib/http.js';
 import { clientIp, ipHash } from '../lib/ids.js';
@@ -67,6 +68,10 @@ async function save({ value }) {
     const sent = await sendEmail({ to: notifyTo, ...notifySoftLaunch(row, { sheetUrl: String(env.SHEET_URL ?? '').trim() }) });
     if (!sent.ok) console.error(`[api/soft-launch] team email failed: ${sent.error}`);
   }
+  // Team alert to Jeff and Katie (lib/email-team-alert.js), best effort, Reply-To the guest.
+  const alert = teamAlert({ type: row.kind === 'Whole week' ? 'wholeWeek' : 'joinWeek', contact: { name: row.name, email: row.email }, answers: softLaunchAnswers(row), submitted: row.timestampPt, sheetUrl: await sheetTabUrl('Soft Launch') });
+  const alerted = await sendEmail({ to: TEAM_ALERT_TO, ...alert });
+  if (!alerted.ok) console.error(`[api/soft-launch] team alert failed: ${alerted.error}`);
   const confirm = await sendEmail({ to: row.email, replyTo: String(env.NOTIFY_EMAILS ?? '').split(',')[0].trim(), ...confirmSoftLaunch(row) });
   if (!confirm.ok) console.error(`[api/soft-launch] guest confirmation failed: ${confirm.error}`);
 
