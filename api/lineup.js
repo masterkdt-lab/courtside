@@ -56,11 +56,20 @@ async function handleGet() {
 
 // One request scope per call: every store read in the request shares one Sheets snapshot
 // (lib/request-scope.js, lib/store.sheets.js).
-export const GET = withSheetScope(handleGet);
+// GET /api/private-groups-reminders (the daily cron) and GET /api/private-groups?r=… (resume) also arrive here through
+// rewrites (vercel.json; Hobby's 12-function limit): see lib/private-groups.js. /api/lineup itself is unchanged.
+async function routeGet(request) {
+  let pathname = '';
+  try { pathname = new URL(request.url).pathname.replace(/\/+$/, ''); } catch { /* not a rewrite */ }
+  if (pathname === '/api/private-groups-reminders') return remindersGet(request);
+  if (pathname === '/api/private-groups') return resumeGet(request);
+  return handleGet(request);
+}
+export const GET = withSheetScope(routeGet);
 
 // POST /api/private-groups is served here through a rewrite (vercel.json; Hobby's 12-function limit): see
 // lib/private-groups.js. Only that address is answered; a POST to /api/lineup itself stays 405. GET above is unchanged.
-import { POST as privateGroupsPost } from '../lib/private-groups.js';
+import { POST as privateGroupsPost, remindersGet, resumeGet } from '../lib/private-groups.js';
 export async function POST(request) {
   let pathname = '';
   try { pathname = new URL(request.url).pathname; } catch { /* unparseable: not the rewrite */ }

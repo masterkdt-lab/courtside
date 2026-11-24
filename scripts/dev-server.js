@@ -119,7 +119,7 @@ export function resolveStatic(pathname) {
 
 // -> the api/<name>.js file for an /api/<name> path, or null when the name is unsafe or no such file exists.
 // The same API rewrites as vercel.json (Hobby's 12-function limit: /api/private-groups runs in api/lineup.js).
-export const API_REWRITES = Object.freeze({ 'private-groups': 'lineup' });
+export const API_REWRITES = Object.freeze({ 'private-groups': 'lineup', 'private-groups-reminders': 'lineup' });
 
 export function resolveApi(name) {
   if (!API_NAME.test(name)) return null;

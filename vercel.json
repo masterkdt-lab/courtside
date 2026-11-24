@@ -18,6 +18,16 @@
     {
       "source": "/api/private-groups",
       "destination": "/api/lineup"
+    },
+    {
+      "source": "/api/private-groups-reminders",
+      "destination": "/api/lineup"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/private-groups-reminders",
+      "schedule": "0 17 * * *"
     }
   ]
 }
