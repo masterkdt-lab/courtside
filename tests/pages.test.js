@@ -93,7 +93,7 @@ test('structured data: the homepage keeps its graph; the trip page has a Tourist
 
 test('the sitemap lists the six indexable paths and /privacy, not /invite', () => {
   const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
-  assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/privacy'].map((p) => `${SITE}${p}`));
+  assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/privacy', '/private-groups'].map((p) => `${SITE}${p}`));
   assert.match(read('robots.txt'), /^Sitemap: https:\/\/courtsidetravel\.co\/sitemap\.xml$/m);
 });
 

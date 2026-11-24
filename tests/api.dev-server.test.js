@@ -68,7 +68,7 @@ const expectRedirect = async (from, to) => {
   assert.equal(res.headers.get('cache-control'), 'no-store', from);
 };
 
-test('the allow-list: nine pages, eleven files, three directories, four redirect paths', () => {
+test('the allow-list: ten pages, eleven files, three directories, four redirect paths', () => {
   assert.deepEqual(PAGES, {
     '/': 'index.html',
     '/trips': 'trips.html',
@@ -78,6 +78,7 @@ test('the allow-list: nine pages, eleven files, three directories, four redirect
     '/apply': 'apply.html',
     '/invite': 'invite.html',
     '/spain': 'spain.html',
+    '/private-groups': 'private-groups.html',
     '/privacy': 'privacy.html',
   });
   assert.deepEqual([...FILES], ['/styles.css', '/v2.css', '/analytics.js', '/gate.js', '/pages.js', '/app.js', '/style.css', '/marketing.css', '/robots.txt', '/sitemap.xml', '/favicon.svg']);

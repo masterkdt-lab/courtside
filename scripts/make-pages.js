@@ -48,6 +48,17 @@ export const PAGES = Object.freeze([
     jsonld: null,
     noscript: '<h1>Katie’s back.</h1><p>And Courtside starts in Spain: six nights on the Costa Blanca with Katie. Clay mornings, long lunches and good people.</p><p>Soft launch · January 10 – March 6, 2027. Weeks are forming.</p><p><a href="/hosts/katie">Meet Katie</a> · <a href="/trips/spanish-offseason">Explore Spain</a></p>',
   },
+  // Private groups (KC, 2026-11-24): custom group trips anywhere; the form posts to /api/private-groups.
+  {
+    route: 'private-groups',
+    path: '/private-groups',
+    file: 'private-groups.html',
+    title: 'Private groups — custom tennis trips with Katie | Courtside Travel Co.',
+    description: 'Bring your people. Your group, your trip: tell Courtside where you want to go and Katie will reach out to plan a private tennis trip.',
+    image: 'home.jpg',
+    jsonld: { '@context': 'https://schema.org', '@graph': [crumbs(['Courtside', '/'], ['Private groups', '/private-groups'])] },
+    noscript: '<h1>Bring your people.</h1><p>Your group, your trip. Tell us where you want to go and Katie will reach out. Turn on JavaScript to send the request form, or email team@courtsidetravel.co.</p>',
+  },
   {
     route: 'trips',
     path: '/trips',

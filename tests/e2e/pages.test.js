@@ -164,7 +164,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     const res = await http(srv.base, '/sitemap.xml');
     assert.equal(res.status, 200);
     const locs = [...res.text.matchAll(/<loc>https:\/\/courtsidetravel\.co([^<]*)<\/loc>/g)].map((m) => m[1]);
-    assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/privacy']);
+    assert.deepEqual(locs, ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/apply', '/privacy', '/private-groups']);
   });
 
   test('old /#/trip-style links land on the new path (the address is replaced, not pushed)', async () => {
@@ -327,6 +327,54 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
       assert.deepEqual(page.errors(), []);
       await page.close2();
     }
+  });
+
+  test('nov 24: three-item nav, no "Powered by", the timing placeholder, and a Private groups request lands in its own tab', async () => {
+    for (const viewport of [DESKTOP, MOBILE]) {
+      const page = await open({ viewport });
+      for (const path of ['/', '/trips', '/trips/spanish-offseason', '/hosts/katie', '/about', '/private-groups', '/privacy']) {
+        await page.goto(path);
+        assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /powered by/i, `${path} has no Powered by`);
+        const nav = await page.locator('header nav a').allTextContents();
+        if (path !== '/privacy' || nav.length) assert.deepEqual(nav.map((t) => t.trim()), ['Explore trips', 'Meet Katie', 'Private groups'], `${path} nav`);
+      }
+      await page.goto('/');
+      assert.deepEqual((await page.locator('#mobilenav a').allTextContents()).map((t) => t.trim()), ['Explore trips', 'Meet Katie', 'Private groups']);
+      assert.equal(await page.locator('header a[href="/apply"], header a[href="/invite"], #mobilenav a[href="/apply"], footer a[href="/apply"]').count(), 0, 'no Host with us / Enter invitation links in the shell');
+      await page.goto('/#/start');
+      assert.equal(await page.locator('#main input[name=timing]').getAttribute('placeholder'), 'Soft launch · January 10 – March 6, 2027');
+      assert.equal(await page.locator('#main input[name=timing]').getAttribute('required'), null, 'timing stays optional');
+      await page.close2();
+    }
+    const nf = await http(srv.base, '/nope');
+    assert.doesNotMatch(nf.text, /powered by/i, '404 has no Powered by');
+
+    const page = await open({ viewport: MOBILE });
+    await visit(page, '/');
+    await page.click('#navtoggle');
+    await page.click('#mobilenav a[href="/private-groups"]');
+    await pathIs(page, '/private-groups');
+    await textShows(page, 'Bring your people.');
+    await textShows(page, 'Your group, your trip. Tell us where you want to go and Katie will reach out.');
+    await page.click('#main button[type=submit]');
+    await textShows(page, 'Add your name, email and where you want to go.');
+    await page.fill('#main input[name=name]', 'Punta Tester');
+    await page.fill('#main input[name=email]', 'punta.tester@example.com');
+    await page.fill('#main input[name=destination]', 'Punta Mita, next year');
+    await page.fill('#main textarea[name=notes]', 'Eight of us');
+    await page.click('#main button[type=submit]');
+    await page.waitForFunction(() => location.hash === '#/private-thanks');
+    await textShows(page, 'Katie will reach out personally within a day or two.');
+    const data = readMock();
+    assert.equal((data.requests || []).length, 0);
+    assert.equal((data.soft_launch || []).length, 0);
+    assert.equal(data.private_groups.length, 1);
+    const r = data.private_groups[0];
+    assert.deepEqual([r['Full name'], r.Email, r.Destination, r.Notes, r.Source], ['Punta Tester', 'punta.tester@example.com', 'Punta Mita, next year', 'Eight of us', 'site']);
+    const mail = (await sentEmails()).filter((m) => /Private group request/.test(m.subject));
+    assert.equal(mail.length, 1);
+    assert.deepEqual(page.errors(), []);
+    await page.close2();
   });
 
   test('soft launch: guests never see the group, proposal or payment screens', async () => {

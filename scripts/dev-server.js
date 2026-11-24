@@ -40,6 +40,7 @@ export const PAGES = Object.freeze({
   '/apply': 'apply.html',
   '/invite': 'invite.html',
   '/spain': 'spain.html', // soft launch: the Instagram link (home + pop-up, skips the gate)
+  '/private-groups': 'private-groups.html', // private group trips (2026-11-24)
   '/privacy': 'privacy.html',
 });
 export const FILES = Object.freeze([
