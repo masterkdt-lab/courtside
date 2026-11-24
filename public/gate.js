@@ -15,6 +15,12 @@
   var passed = false;
   try { passed = localStorage.getItem(KEY) === norm(CODE); } catch (e) { /* storage blocked: ask each visit */ }
   if (passed) return;
+  // Soft launch (KC, 2026-11-23): the Instagram link /spain lets the visitor in, and the rest of the site stays
+  // open on that device, as if they had entered the code.
+  if (/^\/spain\/?$/.test(location.pathname)) {
+    try { localStorage.setItem(KEY, norm(CODE)); } catch (e) { /* this visit only */ }
+    return;
+  }
   if (/^\/privacy/.test(location.pathname) || /^#\/join/.test(location.hash)) return;
 
   var root = document.documentElement;

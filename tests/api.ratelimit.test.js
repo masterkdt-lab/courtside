@@ -22,6 +22,7 @@ describe('ratelimit', () => {
       application: { limit: 3, windowMs: 600_000 },
       event: { limit: 60, windowMs: 600_000 },
       group: { limit: 30, windowMs: 600_000 },
+      'soft-launch': { limit: 5, windowMs: 600_000 },
     });
   });
 

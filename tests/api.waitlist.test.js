@@ -199,16 +199,16 @@ describe('validation (400 with complete-sentence messages; nothing written)', ()
 
 describe('Concept 02 sources (concept02-waitlist, concept02-home): interest instead of tripId', () => {
   const concept = (overrides = {}) => ({
-    email: 'Sam.Pro@Example.com', name: 'Sam', interest: 'Spain with Katie + Eva', source: 'concept02-waitlist', consent: true, website: '', ...overrides,
+    email: 'Sam.Pro@Example.com', name: 'Sam', interest: 'Spain with Katie', source: 'concept02-waitlist', consent: true, website: '', ...overrides,
   });
 
   test('the five interests are the SPA\'s; three map to a trips.js trip, two to nothing', () => {
-    assert.deepEqual([...INTERESTS], ['Spain with Katie + Eva', 'Katie’s future trips', 'Future Courtside experiences', 'Mallorca · future idea', 'Charleston · future idea']);
+    assert.deepEqual([...INTERESTS], ['Spain with Katie', 'Katie’s future trips', 'Future Courtside experiences', 'Mallorca · future idea', 'Charleston · future idea']);
     assert.equal(INTERESTS[1].charCodeAt(5), 0x2019, 'the curly apostrophe, as in the SPA');
     assert.deepEqual(INTERESTS.map(interestTripId), ['spain', '', '', 'mallorca', 'charleston']);
     assert.deepEqual(INTERESTS.map(interestTripName), ['The Spanish Offseason', 'Katie’s future trips', 'Future Courtside experiences', 'Mallorca', 'Charleston']);
     assert.equal(normalizeInterest("Katie's future trips"), 'Katie’s future trips');
-    assert.equal(normalizeInterest('Spain with Katie + Eva'), 'Spain with Katie + Eva');
+    assert.equal(normalizeInterest('Spain with Katie'), 'Spain with Katie');
   });
 
   test('Spain → the Spain trip name and a Log result of spain; the row keeps the source; tripId is optional', async () => {
@@ -240,7 +240,7 @@ describe('Concept 02 sources (concept02-waitlist, concept02-home): interest inst
   });
 
   test('interest: required and one of the five; a straight apostrophe is accepted and stored curly', async () => {
-    for (const bad of [undefined, '', 'Spain', 'spain', 'Geneva · future idea', 'Spain with Katie and Eva', 1, ['Spain with Katie + Eva']]) {
+    for (const bad of [undefined, '', 'Spain', 'spain', 'Geneva · future idea', 'Spain with Katie and Eva', 1, ['Spain with Katie']]) {
       const body = concept();
       if (bad === undefined) delete body.interest; else body.interest = bad;
       assert.equal((await errorsOf(body)).interest, 'Choose what you are interested in.', JSON.stringify(bad));
@@ -258,7 +258,7 @@ describe('Concept 02 sources (concept02-waitlist, concept02-home): interest inst
     assert.deepEqual(readMock().waitlist.map((r) => r.trip), ['The Spanish Offseason', 'Mallorca', 'Charleston'], 'the interest decides, not tripId');
     await expectJson(await post(good({ interest: 'bogus' })), 200);
     assert.equal(readMock().waitlist.at(-1).trip, 'Charleston');
-    const noTrip = good({ interest: 'Spain with Katie + Eva' });
+    const noTrip = good({ interest: 'Spain with Katie' });
     delete noTrip.tripId;
     assert.equal((await errorsOf(noTrip)).tripId, 'Choose a trip from the lineup.', 'card still needs tripId');
   });

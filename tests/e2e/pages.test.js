@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { after, before, beforeEach, describe, test } from 'node:test';
-import { NOINDEX, ROOT, freshIp, http, readMock, resetMock, startServer, useTempMock } from './helpers.js';
+import { NOINDEX, ROOT, freshIp, http, readMock, resetMock, sentEmails, startServer, useTempMock } from './helpers.js';
 import { PAGES } from '../../scripts/make-pages.js';
 
 let playwright = null;
@@ -97,9 +97,10 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
       const title = res.text.match(/<title>([^<]*)<\/title>/)[1];
       assert.ok(!seen.has(title), `${p.path} has its own title`);
       seen.add(title);
-      assert.match(res.text, new RegExp(`<link rel="canonical" href="https://courtsidetravel\\.co${p.path}">`));
+      assert.match(res.text, new RegExp(`<link rel="canonical" href="https://courtsidetravel\\.co${p.canonical || p.path}">`));
       assert.match(res.text, /<noscript><section class="wrap"><h1>/);
-      if (p.path === '/invite') assert.match(res.text, NOINDEX);
+      if (p.path === '/spain') assert.match(res.text, /<meta name="robots" content="noindex,follow">/);
+      else if (p.path === '/invite') assert.match(res.text, NOINDEX);
       else assert.doesNotMatch(res.text, NOINDEX);
       await visit(page, p.path);
       assert.equal(await page.title(), p.title, `${p.path}: the SPA keeps the page title`);
@@ -199,7 +200,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     assert.equal(await page.title(), PAGES.find((p) => p.route === 'trip').title);
     await page.click('#main a.hostinline');
     await pathIs(page, '/hosts/katie');
-    await textShows(page, 'Katie Delich.');
+    await textShows(page, 'Katie Dellich.');
     assert.equal(await page.evaluate(() => window.__sameDocument), true, 'no full page load so far');
 
     await page.goBack();
@@ -217,17 +218,13 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await textShows(page, 'The week, at a glance.');
     assert.equal(await page.title(), PAGES.find((p) => p.route === 'trip').title);
 
-    // Into the private flow: the hash route lives at /#/…
+    // Into the request form (soft launch: one screen at the hash route /#/start).
     await page.evaluate(() => { window.__sameDocument = true; });
     await page.click('#main a[href="#/start"]');
     await hashIs(page, '#/start');
-    await textShows(page, 'How would you');
-    await page.click('#main a[href="#/request/group"]');
-    await hashIs(page, '#/request/group');
-    await page.waitForSelector('input[name=week][value=w1]');
+    await textShows(page, 'Request your place.');
+    await page.waitForSelector('#main input[name=kind]');
     assert.equal(await page.evaluate(() => window.__sameDocument), true);
-    await page.goBack();
-    await hashIs(page, '#/start');
     await page.goBack();
     await pathIs(page, '/trips/spanish-offseason');
     await textShows(page, 'The week, at a glance.');
@@ -247,30 +244,99 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.close2();
   });
 
-  test('a group request started from the trip page goes end to end through the hash routes', async () => {
+  test('soft launch: the one-screen request writes one Soft Launch row (each choice), sends the emails and thanks the guest', async () => {
     const page = await open();
     await visit(page, '/trips/spanish-offseason');
+    assert.match(await mainText(page), /\$3,500 per player for the tennis experience, paid to Courtside\. Lodging and travel are booked separately through Fora, about \$1,500 per guest\./);
+    assert.match(await mainText(page), /Soft launch · January 10 – March 6, 2027\. Weeks are forming\./);
     await page.click('#main a[href="#/start"]');
     await hashIs(page, '#/start');
-    await page.click('#main a[href="#/request/group"]');
-    await page.waitForSelector('input[name=week][value=w2]');
-    await page.check('input[name=week][value=w2]');
-    await page.click('form[data-draft] button.btn');
-    await textShows(page, 'STEP 2');
-    await page.click('form[data-draft] button.btn');
-    await textShows(page, 'STEP 3');
-    await page.fill('input[name=name]', 'Path Tester');
-    await page.fill('input[name=email]', 'path.tester@example.com');
-    await page.click('form[data-draft] button.btn');
-    await textShows(page, 'REVIEW');
-    await page.check('input[name=consent]');
-    await page.click('form[data-draft] button.btn');
-    await hashIs(page, '#/received');
-    const rows = readMock().requests;
-    assert.equal(rows.length, 1);
-    assert.equal(rows[0].guest_email, 'path.tester@example.com');
-    assert.equal(rows[0].weeks, 'Jan 17–23');
-    assert.deepEqual(page.errors(), []);
+    await page.click('#main button[type=submit]');
+    await textShows(page, 'Choose “Join a week”');
+    await page.check('#main input[name=kind][value="Join a week"]');
+    await page.fill('#main input[name=name]', 'Path Tester');
+    await page.fill('#main input[name=email]', 'path.tester@example.com');
+    await page.fill('#main input[name=timing]', 'late January');
+    await page.check('#main input[name=consent]');
+    await page.click('#main button[type=submit]');
+    await hashIs(page, '#/thanks');
+    await textShows(page, 'Katie will reach out personally within a day or two.');
+    assert.equal(await page.locator('#main a.btn[href="/trips/spanish-offseason"]').count(), 1);
+    await page.close2();
+
+    const ig = await open({ viewport: MOBILE, gated: true });
+    await visit(ig, '/spain');
+    await ig.click('.cs-actions a[href="/trips/spanish-offseason"]');
+    await pathIs(ig, '/trips/spanish-offseason');
+    await ig.click('#main a[href="#/start"]');
+    await ig.check('#main input[name=kind][value="Whole week"]');
+    await ig.fill('#main input[name=name]', 'Group Tester');
+    await ig.fill('#main input[name=email]', 'group.tester@example.com');
+    await ig.check('#main input[name=consent]');
+    await ig.click('#main button[type=submit]');
+    await hashIs(ig, '#/thanks');
+
+    const data = readMock();
+    assert.equal((data.requests || []).length, 0, 'nothing in the old Requests tab');
+    assert.equal((data.groups || []).length, 0, 'nothing in the old Groups tab');
+    assert.equal(data.soft_launch.length, 2);
+    const [a, b] = data.soft_launch;
+    assert.deepEqual([a['Full name'], a.Email, a['Join or Whole week'], a['Preferred timing'], a.Consent, a.Source, a.Status], ['Path Tester', 'path.tester@example.com', 'Join a week', 'late January', 'Yes', 'site', '']);
+    assert.deepEqual([b['Join or Whole week'], b.Source], ['Whole week', 'instagram /spain']);
+    assert.match(a['Timestamp (PT)'], /^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2} (AM|PM)$/);
+    const sentLog = await sentEmails();
+    const team = sentLog.filter((m) => /Soft launch request/.test(m.subject));
+    assert.equal(team.length, 2, 'one team email per request');
+    assert.equal(sentLog.filter((m) => m.subject === 'Your Spanish Offseason request is in').length, 2, 'one guest confirmation per request');
+    assert.deepEqual(ig.errors(), []);
+    await ig.close2();
+  });
+
+  test('soft launch: /spain skips the gate, shows the pop-up (X, outside tap, Escape), and the buttons lead to Katie and Spain', async () => {
+    for (const viewport of [DESKTOP, MOBILE]) {
+      const page = await open({ viewport, gated: true });
+      await visit(page, '/spain');
+      assert.equal(await page.locator('#cs-gate').count(), 0, '/spain skips the gate');
+      await page.waitForSelector('#cs-popup');
+      const pop = (await page.locator('#cs-popup').innerText()).replace(/\s+/g, ' ');
+      assert.match(pop, /Katie’s back\./);
+      assert.match(pop, /And Courtside starts in Spain: six nights on the Costa Blanca with Katie\. Clay mornings, long lunches and good people\./);
+      assert.match(pop, /Spain · January 10 – March 6, 2027/i);
+      assert.equal(await page.locator('#cs-popup h1 em').innerText(), 'back.');
+      assert.equal(await page.locator('#cs-popup form, #cs-popup input').count(), 0, 'no form in the pop-up');
+      await page.click('#cs-popup .cs-close');
+      assert.equal(await page.locator('#cs-popup').count(), 0, 'X closes it');
+      await visit(page, '/spain');
+      await page.waitForSelector('#cs-popup');
+      await page.mouse.click(5, 5);
+      assert.equal(await page.locator('#cs-popup').count(), 0, 'a tap outside closes it');
+      await visit(page, '/spain');
+      await page.waitForSelector('#cs-popup');
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#cs-popup').count(), 0, 'Escape closes it');
+      await visit(page, '/spain');
+      await page.click('#cs-popup a.cs-btn');
+      await pathIs(page, '/hosts/katie');
+      assert.equal(await page.locator('#cs-popup').count(), 0);
+      assert.equal(await page.locator('#cs-gate').count(), 0, 'the rest of the site stays open after /spain');
+      assert.equal(await page.locator('#main .host-end a.btn[href="/trips/spanish-offseason"]').count(), 1, 'Meet Katie ends with a button to Spain');
+      await visit(page, '/spain');
+      await page.click('#cs-popup a.cs-outline');
+      await pathIs(page, '/trips/spanish-offseason');
+      await textShows(page, 'The week, at a glance.');
+      assert.deepEqual(page.errors(), []);
+      await page.close2();
+    }
+  });
+
+  test('soft launch: guests never see the group, proposal or payment screens', async () => {
+    const page = await open();
+    for (const hash of ['#/received', '#/group', '#/proposal', '#/payment', '#/trip-home', '#/preferences', '#/join/CSM-ABCDEFGH', '#/match-home']) {
+      await page.goto(`/${hash}`);
+      await pathIs(page, '/trips/spanish-offseason');
+    }
+    await visit(page, '/');
+    assert.equal(await page.locator('a[href="/#/group"], a[href="/#/trip-home"]').count(), 0, 'no My group / My trip links');
     await page.close2();
   });
 
@@ -282,9 +348,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.click('#mobilenav a[href="/hosts/katie"]');
     await pathIs(page, '/hosts/katie');
     assert.equal(await page.locator('#mobilenav').isVisible(), false);
-    await page.click('#navtoggle');
-    await page.click('#mobilenav a[href="/#/group"]');
-    await page.waitForFunction(() => location.pathname === '/' && ['#/group', '#/find-group'].includes(location.hash));
+    assert.equal(await page.locator('#mobilenav a[href="/#/group"], #mobilenav a[href="/#/trip-home"]').count(), 0, 'soft launch: no My group / My trip');
     assert.deepEqual(page.errors(), []);
     await page.close2();
   });
@@ -322,13 +386,11 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     // SPA navigations: public paths as they are, private hash routes as the route name only.
     await page.click('#main a[href="/trips/spanish-offseason"]');
     await pathIs(page, '/trips/spanish-offseason');
-    await page.evaluate(() => { location.hash = '/join/CSM-ABCDEFGH'; });
-    await page.waitForFunction(() => location.hash.startsWith('#/join') || location.hash === '#/find-group');
     await page.evaluate(() => { location.hash = '/invite?code=GUEST1'; });
     await page.waitForFunction(() => location.pathname === '/trips/spanish-offseason' && location.hash === '');
     await page.waitForTimeout(200);
     const views = (await pageViews(page)).map((v) => v.page_location.slice(srv.base.length));
-    assert.deepEqual(views.slice(0, 3), ['/trips', '/trips/spanish-offseason', '/#/join']);
+    assert.deepEqual(views.slice(0, 2), ['/trips', '/trips/spanish-offseason']);
     assert.ok(views.includes('/#/invite'), views.join(' '));
     const serialized = JSON.stringify(await dataLayer(page));
     assert.doesNotMatch(serialized, /CSM-|CSG-|GUEST1|@/, 'no ids, codes or emails reach analytics');

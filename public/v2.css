@@ -59,3 +59,44 @@
 .notecard.open .notecard-more p:nth-child(2){animation-delay:.08s}.notecard.open .notecard-more p:nth-child(3){animation-delay:.16s}.notecard.open .notecard-more p:nth-child(4){animation-delay:.24s}
 .notecard-more .actions{margin-top:30px}
 .notecard.open .notecard-foot{display:none}
+
+/* Soft launch (KC, 2026-11-23). The /spain pop-up, built to the reference popup-v1.html: same layout, type, colours,
+   spacing and photo crop (public/assets/katie.jpg at center 30%; a bottom sheet with a 250px photo under 600px). */
+html.cs-popup-open{overflow:hidden}
+.cs-scrim{position:fixed;inset:0;z-index:300;background:rgba(36,33,27,.58);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:24px;animation:cs-fade .25s ease}
+.cs-modal{position:relative;width:900px;max-width:100%;min-height:500px;background:var(--paper);display:grid;grid-template-columns:42% 58%;border-radius:4px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.35);color:var(--ink);font-family:'DM Sans',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.cs-photo{background:url('/assets/katie.jpg') center 30%/cover no-repeat}
+.cs-content{padding:46px 50px 36px;display:flex;flex-direction:column}
+.cs-logo{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:26px;letter-spacing:-1.4px;line-height:.95;display:inline-flex;flex-direction:column;align-items:flex-start;margin-bottom:30px}
+.cs-logo small{font:600 7px 'DM Sans',sans-serif;letter-spacing:3px;margin-top:6px;font-style:normal}
+.cs-eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--green);margin-bottom:14px}
+.cs-modal h1{font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:50px;line-height:1.04;letter-spacing:-1.6px;margin:0}
+.cs-modal h1 em{color:var(--rust);font-style:italic}
+.cs-body{font-size:15px;line-height:1.6;color:#57534a;margin:18px 0 0;max-width:420px}
+.cs-meta{margin-top:16px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cs-meta b{color:var(--green);font-weight:600}
+.cs-actions{margin-top:24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cs-btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:14px 24px;border-radius:3px;font-size:13px;font-weight:600;letter-spacing:.4px;min-height:48px;background:var(--green);color:#fff;border:1px solid var(--green);text-decoration:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.cs-btn:hover{background:#263d2e}
+.cs-outline{display:inline-flex;align-items:center;justify-content:center;padding:14px 22px;min-height:48px;border:1px solid #bdb8ab;border-radius:3px;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;background:transparent}
+.cs-outline:hover{background:#eae9e1}
+.cs-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(248,246,240,.92);font-size:20px;line-height:38px;text-align:center;color:var(--ink);cursor:pointer;z-index:2;padding:0}
+@keyframes cs-fade{from{opacity:0}to{opacity:1}}
+@media (max-width:600px){
+ .cs-scrim{align-items:flex-end;padding:0}
+ .cs-modal{grid-template-columns:1fr;grid-template-rows:250px auto;border-radius:14px 14px 0 0;min-height:0;width:100%}
+ .cs-content{padding:24px 22px 26px}
+ .cs-logo{display:none}
+ .cs-modal h1{font-size:36px;letter-spacing:-1px}
+ .cs-body{font-size:14.5px;margin-top:12px}
+ .cs-meta{margin-top:12px}
+ .cs-actions{margin-top:18px}.cs-actions a{flex:1}
+}
+/* The one-screen soft-launch request form and the end of Katie's page. */
+.soft-flow{grid-template-columns:minmax(0,640px);justify-content:center}
+.soft-choice{border:0;padding:0;margin:26px 0 0}.soft-choice legend{font-size:12px;font-weight:500;padding:0;margin-bottom:2px}
+.soft-choice .options{margin-top:8px}.soft-form .btn.full{margin-top:22px}
+.host-end{padding-top:20px;padding-bottom:80px}.host-end h2 em{color:var(--rust)}
+.cs-modal:focus{outline:none}
+.mosaic .side img[src$="katie.jpg"]{object-position:50% 22%}
+@media(max-width:800px){.soft-choice .options{grid-template-columns:1fr}}

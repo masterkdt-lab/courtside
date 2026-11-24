@@ -52,7 +52,7 @@ describe('API routes on the Sheets store: reads per request', () => {
     assert.deepEqual(readKinds(fake), ['batchGet']);
     assert.equal(fake.rows('Groups').at(-1).group_id, organizer.groupId);
     assert.equal(fake.rows('GroupMembers').at(-1).member_id, organizer.memberId);
-    assert.match(fake.rows('Requests').at(-1).brief, /Shown price: From \$2,995 \/ player\nSubmitted from: courtsidetravel\.co trip request$/);
+    assert.match(fake.rows('Requests').at(-1).brief, /Shown price: \$3,500 per player for the tennis experience, paid to Courtside\. Lodging and travel are booked separately through Fora, about \$1,500 per guest\.\nSubmitted from: courtsidetravel\.co trip request$/);
   });
 
   test('POST /api/member add (organizer) then the others read only once', async () => {

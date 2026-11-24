@@ -30,20 +30,34 @@ const crumbs = (...items) => ({
   itemListElement: items.map(([name, p], i) => ({ '@type': 'ListItem', position: i + 1, name, item: `${SITE}${p}` })),
 });
 
-const TRIP_DESCRIPTION = 'Six nights on Spain’s Costa Blanca with Katie + Eva: clay mornings at Club de Tenis Almoradí, a stay at La Finca Resort, open afternoons and long lunches. January–February 2027, private groups of 4–12 players.';
+const TRIP_DESCRIPTION = 'Six nights on Spain’s Costa Blanca with Katie: clay mornings at Club de Tenis Almoradí, a stay at La Finca Resort, open afternoons and long lunches. Soft launch · January 10 – March 6, 2027. Weeks are forming.';
 
 // The public pages. route is the SPA route (app.js PUBLIC_PATHS); title must match app.js PAGE_TITLES.
 export const PAGES = Object.freeze([
+  // Soft launch (KC, 2026-11-23): the Instagram link. /spain is the home page plus the "Katie's back." pop-up
+  // (public/app.js showSpainPopup); it skips the invite gate (public/gate.js) and points search engines at /.
+  {
+    route: 'spain',
+    path: '/spain',
+    canonical: '/',
+    file: 'spain.html',
+    title: 'Katie’s back. The Spanish Offseason — Courtside Travel Co.',
+    description: 'And Courtside starts in Spain: six nights on the Costa Blanca with Katie. Clay mornings, long lunches and good people. Soft launch · January 10 – March 6, 2027. Weeks are forming.',
+    robots: 'noindex,follow',
+    image: 'home.jpg',
+    jsonld: null,
+    noscript: '<h1>Katie’s back.</h1><p>And Courtside starts in Spain: six nights on the Costa Blanca with Katie. Clay mornings, long lunches and good people.</p><p>Soft launch · January 10 – March 6, 2027. Weeks are forming.</p><p><a href="/hosts/katie">Meet Katie</a> · <a href="/trips/spanish-offseason">Explore Spain</a></p>',
+  },
   {
     route: 'trips',
     path: '/trips',
     file: 'trips.html',
     title: 'Hosted tennis trips — Courtside Travel Co.',
-    description: 'Small, hosted tennis trips with a pro you know. Start with The Spanish Offseason on Spain’s Costa Blanca with Katie + Eva, January–February 2027. More journeys coming soon.',
+    description: 'Small, hosted tennis trips with a pro you know. Start with The Spanish Offseason on Spain’s Costa Blanca with Katie. Soft launch · January 10 – March 6, 2027. Weeks are forming. More journeys coming soon.',
     image: 'home.jpg',
     jsonld: { '@context': 'https://schema.org', '@graph': [crumbs(['Courtside', '/'], ['Trips', '/trips'])] },
     noscript: '<h1>Where tennis takes you next.</h1><p>The Courtside collection. Start with Spain. More journeys coming soon.</p>'
-      + '<h2><a href="/trips/spanish-offseason">The Spanish Offseason</a></h2><p>Costa Blanca, Spain · hosted by Katie + Eva · January–February 2027. Six nights. Real clay courts. Long lunches. A week with the people you love to play with.</p>'
+      + '<h2><a href="/trips/spanish-offseason">The Spanish Offseason</a></h2><p>Costa Blanca, Spain · hosted by Katie. Soft launch · January 10 – March 6, 2027. Weeks are forming. Six nights. Real clay courts. Long lunches. A week with the people you love to play with.</p>'
       + '<h2>A little more Mallorca</h2><p>The Mediterranean · coming soon. Hosts, dates and details coming soon.</p>'
       + '<h2>Courtside in Charleston</h2><p>South Carolina · coming soon. Hosts, dates and details coming soon.</p>',
   },
@@ -52,7 +66,7 @@ export const PAGES = Object.freeze([
     path: '/trips/spanish-offseason',
     file: 'trips/spanish-offseason.html',
     title: 'The Spanish Offseason — a hosted tennis week in Spain | Courtside Travel Co.',
-    description: `${TRIP_DESCRIPTION.replace(', private groups of 4–12 players.', '.')} From $2,995 per player.`,
+    description: `${TRIP_DESCRIPTION} $3,500 per player for the tennis experience, paid to Courtside. Lodging and travel are booked separately through Fora, about $1,500 per guest.`,
     image: 'home.jpg',
     jsonld: {
       '@context': 'https://schema.org',
@@ -63,36 +77,36 @@ export const PAGES = Object.freeze([
           name: 'The Spanish Offseason',
           description: TRIP_DESCRIPTION,
           url: `${SITE}/trips/spanish-offseason`,
-          image: [`${SITE}/assets/coast.jpg`, `${SITE}/assets/court.jpg`, `${SITE}/assets/spain.jpg`],
+          image: [`${SITE}/assets/hero.webp`, `${SITE}/assets/katie.jpg`, `${SITE}/assets/spain.jpg`],
           touristType: 'Tennis players',
           provider: ORG,
         },
         crumbs(['Courtside', '/'], ['Trips', '/trips'], ['The Spanish Offseason', '/trips/spanish-offseason']),
       ],
     },
-    noscript: '<h1>The Spanish Offseason</h1><p>Costa Blanca, Spain · six nights · January–February 2027 · hosted by <a href="/hosts/katie">Katie + Eva</a>.</p>'
-      + '<p>Join Katie and Eva on Spain’s Costa Blanca. Play at Club de Tenis Almoradí, settle into La Finca Resort and make time for the coast, good food and each other. Katie enjoys the week with you. Courtside handles the planning and coordination, so everyone can be present.</p>'
+    noscript: '<h1>The Spanish Offseason</h1><p>Costa Blanca, Spain · six nights · hosted by <a href="/hosts/katie">Katie</a>. Soft launch · January 10 – March 6, 2027. Weeks are forming.</p>'
+      + '<p>Join Katie on Spain’s Costa Blanca. Play at Club de Tenis Almoradí, settle into La Finca Resort and make time for the coast, good food and each other. Katie enjoys the week with you. Courtside handles the planning and coordination, so everyone can be present.</p>'
       + '<h2>The week, at a glance.</h2><ul><li>Six-night resort stay</li><li>Four tennis mornings</li><li>Daily breakfast</li><li>Scheduled club transfers</li><li>Welcome + farewell dinners</li><li>Courtside trip support</li></ul>'
       + '<p>Final inclusions, host schedule and supplier availability are confirmed in your personal proposal. Airfare, personal spending and optional extras are excluded.</p>'
-      + '<h2>Your Sunday–Saturday rhythm.</h2><p>Sunday: arrive and join the welcome dinner. Monday–Tuesday: clay mornings with Katie + Eva, open afternoons. Wednesday: golf, spa, exploring or nothing at all. Thursday–Friday: more tennis and a farewell dinner. Saturday: breakfast and departure.</p>'
-      + '<p>From $2,995 per player (shared-room starting estimate). Private groups of 4–12 players; non-playing partners welcome; solo travelers can ask Courtside to help find a group. A request starts a conversation: no payment, and your place is confirmed only after the booking steps in your personal proposal.</p>',
+      + '<h2>Your Sunday–Saturday rhythm.</h2><p>Sunday: arrive and join the welcome dinner. Monday–Tuesday: clay mornings with Katie, open afternoons. Wednesday: golf, spa, exploring or nothing at all. Thursday–Friday: more tennis and a farewell dinner. Saturday: breakfast and departure.</p>'
+      + '<p>$3,500 per player for the tennis experience, paid to Courtside. Lodging and travel are booked separately through Fora, about $1,500 per guest. Private groups of 4–12 players; non-playing partners welcome; solo travelers can ask Courtside to help find a group. A request starts a conversation: no payment, and your place is confirmed only after the booking steps in your personal proposal.</p>',
   },
   {
     route: 'host',
     path: '/hosts/katie',
     file: 'hosts/katie.html',
-    title: 'Katie Delich, your host — Courtside Travel Co.',
-    description: 'Meet Katie Delich, your host for The Spanish Offseason: a week of tennis on Spain’s Costa Blanca with Katie + Eva, planned and coordinated by Courtside Travel Co.',
+    title: 'Katie Dellich, your host — Courtside Travel Co.',
+    description: 'Meet Katie Dellich, your host for The Spanish Offseason: a week of tennis on Spain’s Costa Blanca with Katie, planned and coordinated by Courtside Travel Co.',
     image: 'pros.jpg',
     jsonld: {
       '@context': 'https://schema.org',
       '@graph': [
-        { '@type': 'Person', '@id': `${SITE}/hosts/katie#person`, name: 'Katie Delich', jobTitle: 'Host', url: `${SITE}/hosts/katie` },
-        crumbs(['Courtside', '/'], ['Katie Delich', '/hosts/katie']),
+        { '@type': 'Person', '@id': `${SITE}/hosts/katie#person`, name: 'Katie Dellich', jobTitle: 'Host', url: `${SITE}/hosts/katie` },
+        crumbs(['Courtside', '/'], ['Katie Dellich', '/hosts/katie']),
       ],
     },
-    noscript: '<h1>Katie Delich.</h1><p>Great tennis. Good people. Somewhere worth sharing.</p>'
-      + '<p>Katie brings her community into the places and relationships she loves. In Spain, that means time on court with Eva, the Costa Blanca and a week that leaves room for life beyond tennis. She brings the connection. Courtside takes care of the journey.</p>'
+    noscript: '<h1>Katie Dellich.</h1><p>Great tennis. Good people. Somewhere worth sharing.</p>'
+      + '<p>Katie brings her community into the places and relationships she loves. In Spain, that means mornings on clay, the Costa Blanca and a week that leaves room for life beyond tennis. She brings the connection. Courtside takes care of the journey.</p>'
       + "<p>Hi, I'm Katie! Tennis pro, podcast host, and co-founder of Courtside Travel Co. Basically, if it involves a racquet and a plane ticket, I'm in!</p><p>Tennis has taken me from Division I competition at Robert Morris University to teaching in the Maldives, the Caribbean, Dubai, Hawaii, Mexico, Spain, Palm Desert, Virginia and Napa. Along the way, I've led the tennis program at Silverado Resort, earned USPTA Elite Professional and PTR P-1 certifications, and been named one of Tennis Channel's Top 50 US Coaches.</p><p>But the best trips aren't only about what happens on court! I love discovering local food, exploring somewhere new and making sure the people without racquets have a great time too. That's the spirit I bring to Courtside: great tennis, real connection and plenty to look forward to after the last point.</p><p>I also host 2 Truths, 1 Dream and have served on the boards of RSPA NorCal and Food For Life Vrindavan, supporting girls' education and well-being in India.</p><p>Pennsylvania roots. A world of courts. Let's play!</p>"
       + '<p><a href="/trips/spanish-offseason">Explore Spain with Katie: The Spanish Offseason</a></p>',
   },
@@ -158,7 +172,7 @@ function swap(html, re, replacement, label) {
 const BANNER = '<!-- Generated by scripts/make-pages.js from public/index.html: edit the template or the script, then run node scripts/make-pages.js. -->\n';
 
 function head(html, page) {
-  const url = `${SITE}${page.path}`;
+  const url = `${SITE}${page.canonical || page.path}`;
   const image = `${SITE}/assets/og/${page.image}`;
   html = swap(html, /<title>[^<]*<\/title>/, `<title>${text(page.title)}</title>`, '<title>');
   html = swap(html, /<meta name="description" content="[^"]*">/, `<meta name="description" content="${attr(page.description)}">`, 'description');

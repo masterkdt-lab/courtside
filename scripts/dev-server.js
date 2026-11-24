@@ -39,6 +39,7 @@ export const PAGES = Object.freeze({
   '/about': 'about.html',
   '/apply': 'apply.html',
   '/invite': 'invite.html',
+  '/spain': 'spain.html', // soft launch: the Instagram link (home + pop-up, skips the gate)
   '/privacy': 'privacy.html',
 });
 export const FILES = Object.freeze([

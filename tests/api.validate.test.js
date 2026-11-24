@@ -140,7 +140,7 @@ describe('private', () => {
     assert.equal(errorsOf(privateBody({ addons: ['eva'] })).addons, 'Choose add-ons from the list.');
     assert.equal(errorsOf(privateBody({ addons: [{ qty: 2 }] })).addons, 'Choose add-ons from the list.');
     assert.equal(errorsOf(privateBody({ addons: [{ id: 'golf', qty: 2 }, { id: 'golf', qty: 3 }] })).addons, 'Each add-on can be chosen once.');
-    assert.equal(errorsOf(privateBody({ addons: [{ id: 'eva' }] })).addons, 'Enter how many for Extra session with Eva.');
+    assert.equal(errorsOf(privateBody({ addons: [{ id: 'eva' }] })).addons, 'Enter how many for Extra session with Katie.');
     assert.equal(errorsOf(privateBody({ addons: [{ id: 'padel', qty: 0 }] })).addons, 'Enter how many for Padel.');
     assert.equal(errorsOf(privateBody({ addons: [{ id: 'massage', qty: 'two' }] })).addons, 'Enter how many for Massage.');
     assert.equal(errorsOf(privateBody({ addons: [{ id: 'dinner', qty: 1.5 }] })).addons, 'Enter how many for Extra curated dinner.');

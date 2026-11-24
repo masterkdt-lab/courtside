@@ -103,7 +103,7 @@ describe('a valid group request', () => {
     assert.ok(Date.parse(row.submitted_at) >= started - 1000);
     const brief = [
       'TRIP REQUEST · Private group',
-      'Trip: The Spanish Offseason (Spain with Katie + Eva)',
+      'Trip: The Spanish Offseason (Spain with Katie)',
       'Weeks: Feb 7–13',
       'Players: 6',
       'Partners: 2',
@@ -113,7 +113,7 @@ describe('a valid group request', () => {
       'Name: Ana Guest',
       'Email: ana.guest@example.com',
       'Notes: Celebrating a birthday that week.',
-      'Shown price: From $2,995 / player',
+      'Shown price: $3,500 per player for the tennis experience, paid to Courtside. Lodging and travel are booked separately through Fora, about $1,500 per guest.',
       'Submitted from: courtsidetravel.co trip request',
     ].join('\n');
     assert.deepEqual({ ...row, submitted_at: 'ISO' }, {
@@ -217,7 +217,7 @@ describe('a valid match request', () => {
     const [row] = readMock().requests;
     const brief = [
       'TRIP REQUEST · Group match',
-      'Trip: The Spanish Offseason (Spain with Katie + Eva)',
+      'Trip: The Spanish Offseason (Spain with Katie)',
       'Weeks: Jan 17–23, Jan 24–30',
       'Players: —',
       'Partners: —',
@@ -227,7 +227,7 @@ describe('a valid match request', () => {
       'Name: Sam Match',
       'Email: sam@example.com',
       'Notes: —',
-      'Shown price: From $2,995 / player',
+      'Shown price: $3,500 per player for the tennis experience, paid to Courtside. Lodging and travel are booked separately through Fora, about $1,500 per guest.',
       'Submitted from: courtsidetravel.co trip request',
     ].join('\n');
     assert.deepEqual({ ...row, submitted_at: 'ISO' }, {
@@ -666,8 +666,8 @@ describe('pure helpers', () => {
     assert.ok(brief.includes(`Trip: ${TRIP_LINE}`));
     assert.ok(brief.includes(`Shown price: ${SHOWN_PRICE}`));
     assert.ok(brief.endsWith(`Submitted from: ${SUBMITTED_FROM}`));
-    assert.equal(TRIP_LINE, 'The Spanish Offseason (Spain with Katie + Eva)');
-    assert.equal(SHOWN_PRICE, 'From $2,995 / player');
+    assert.equal(TRIP_LINE, 'The Spanish Offseason (Spain with Katie)');
+    assert.equal(SHOWN_PRICE, '$3,500 per player for the tennis experience, paid to Courtside. Lodging and travel are booked separately through Fora, about $1,500 per guest.');
     assert.equal(SUBMITTED_FROM, 'courtsidetravel.co trip request');
 
     const now = new Date('2026-11-08T12:00:00.000Z');

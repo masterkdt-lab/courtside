@@ -18,10 +18,10 @@ export const TRIPS = Object.freeze([
     timing: 'Winter 2027',
     blurb: 'seven Sunday–Saturday weeks, January 10 – February 27, 2027',
     status: 'invitation',
-    price: 'from $2,995 per player, six nights',
+    price: '$3,500 per player for the tennis experience, six nights',
     photo: {
       key: 'spain-card-43',
-      alt: 'Katie and Eva celebrating together on a clay court in Spain',
+      alt: 'Katie celebrating on a clay court in Spain',
       position: null,
     },
     hostIds: ['katie', 'eva'],

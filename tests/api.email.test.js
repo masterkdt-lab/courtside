@@ -129,7 +129,7 @@ describe('templates', () => {
   test('notifyInquiry names the Concept 02 path, the guest, the invite (or its absence), the brief and the Sheet link', () => {
     const inquiry = {
       requestId: 'CS-ABCDEFGH', requestType: 'private', weeks: 'Feb 7–13', guestName: 'Ana Guest', guestEmail: 'ana.guest@example.com',
-      guestMobile: '', inviteCode: '', invitedBy: '', brief: 'TRIP REQUEST · Private group\nTrip: The Spanish Offseason (Spain with Katie + Eva)',
+      guestMobile: '', inviteCode: '', invitedBy: '', brief: 'TRIP REQUEST · Private group\nTrip: The Spanish Offseason (Spain with Katie)',
     };
     const { subject, text } = notifyInquiry(inquiry, { sheetUrl: 'https://docs.google.com/spreadsheets/d/abc' });
     assert.equal(subject, 'New request CS-ABCDEFGH · Private group · Feb 7–13');

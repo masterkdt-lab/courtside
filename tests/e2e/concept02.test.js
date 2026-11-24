@@ -38,9 +38,12 @@ const contexts = new Set();
 // A context with its own IP (rate limits), external requests aborted and recorded, and a collector for
 // every uncaught exception and console.error (Chromium's own "Failed to load resource" lines for the
 // non-2xx API answers a test provokes on purpose are kept apart in page.resourceErrors()).
-async function open({ viewport = DESKTOP, ip = freshIp(), gated = false } = {}) {
+async function open({ viewport = DESKTOP, ip = freshIp(), gated = false, demo = true } = {}) {
   const context = await browser.newContext({ baseURL: srv.base, viewport, extraHTTPHeaders: { 'x-forwarded-for': ip } });
   if (!gated) await context.addInitScript(() => { try { localStorage.setItem('courtside-gate', 'iminvited'); } catch {} });
+  // Soft launch (2026-11-23): the old request, group, proposal and payment screens are hidden from guests and stay
+  // reachable behind the demo flag, which is how these suites keep testing them.
+  if (demo) await context.addInitScript(() => { try { localStorage.setItem('courtside-demo', '1'); } catch {} });
   contexts.add(context);
   const external = [];
   await context.route((url) => !url.href.startsWith(srv.base), (route) => { external.push(route.request().url()); return route.abort(); });
@@ -304,8 +307,8 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
     const text = await mainText(page);
     assert.match(text, new RegExp(`YOUR GROUP REQUEST · ${row.request_id}`));
     assert.match(text, /Possible dates Flexible/);
-    assert.doesNotMatch(text, DEMO_WORDS);
-    assert.equal(await page.locator('#main a[href="#/operations"]').count(), 0);
+    // Soft launch: #/match-home is hidden from guests and reached here only behind the demo flag, which also shows the
+    // team preview links, so the no-demo-wording checks no longer apply to this screen.
     await shot(page, '1440-match-home');
     assert.deepEqual(page.errors(), []);
     await page.close2();
@@ -442,7 +445,7 @@ describe('Concept 02 frontend (mock store)', { skip: playwright ? false : 'playw
   });
 
   test('demo views: #/host-desk shows the home page without the flag and the desk with ?demo=1', async () => {
-    const page = await open();
+    const page = await open({ demo: false });
     await visit(page, '#/host-desk');
     assert.match(await mainText(page), /Tennis takes you further\./);
     await visit(page, '#/operations');

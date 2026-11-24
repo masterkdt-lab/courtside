@@ -30,7 +30,7 @@ test('each public page has its own title, description, canonical, og/twitter tag
   const descriptions = new Set([meta(read('index.html'), 'description')]);
   for (const page of PAGES) {
     const html = read(page.file);
-    const url = `${SITE}${page.path}`;
+    const url = `${SITE}${page.canonical || page.path}`;
     const title = one(html, /<title>([^<]*)<\/title>/, `${page.path} title`);
     assert.equal(title, page.title.replace(/&/g, '&amp;'));
     titles.add(title);
@@ -47,7 +47,7 @@ test('each public page has its own title, description, canonical, og/twitter tag
     const noscript = one(html, /<noscript>([\s\S]*?)<\/noscript>/, 'noscript');
     assert.match(noscript, /<h1>/, `${page.path} noscript has a heading`);
     assert.ok(noscript.replace(/<[^>]+>/g, '').length > 60, `${page.path} noscript has a summary`);
-    assert.equal(meta(html, 'robots'), page.path === '/invite' ? 'noindex,nofollow' : 'index,follow,max-image-preview:large');
+    assert.equal(meta(html, 'robots'), page.robots || (page.path === '/invite' ? 'noindex,nofollow' : 'index,follow,max-image-preview:large'));
     // Asset and script paths are absolute, so the nested pages (/trips/spanish-offseason) load them.
     assert.doesNotMatch(html, /(src|href)="(?!\/|https:|#|mailto:)/, `${page.path}: relative URLs`);
     assert.match(html, /<script src="\/analytics\.js"><\/script><script src="\/pages\.js"><\/script><script src="\/app\.js"><\/script>/);
@@ -84,7 +84,7 @@ test('structured data: the homepage keeps its graph; the trip page has a Tourist
   const katie = jsonld(read('hosts/katie.html'));
   const person = katie[0]['@graph'].find((n) => n['@type'] === 'Person');
   assert.deepEqual(Object.keys(person).sort(), ['@id', '@type', 'jobTitle', 'name', 'url']);
-  assert.equal(person.name, 'Katie Delich');
+  assert.equal(person.name, 'Katie Dellich');
   assert.equal(person.jobTitle, 'Host');
 
   assert.deepEqual(jsonld(read('invite.html')), [], 'the gate has no structured data');
