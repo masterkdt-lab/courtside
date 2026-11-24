@@ -348,8 +348,10 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     assert.match(await page.locator('#main .hero h1').innerText(), /Your dream tennis\s+escape starts here!/);
     await textShows(page, 'Hosted by Katie Dellich | Courtside Travel Co.');
     assert.doesNotMatch(await mainText(page), /Approximately 2 minutes|No commitment required/);
-    await page.click('#main .hero .btn');
-    await page.waitForFunction(() => document.activeElement?.id === 'pg-name');
+    assert.equal(await page.locator('#main input[name=name]').count(), 0, 'the form is on its own page');
+    await page.click('#main .hero a.btn');
+    await page.waitForFunction(() => location.hash === '#/build-your-camp');
+    await textShows(page, 'Build your own tennis camp.');
     await page.click('#main button[type=submit]');
     await textShows(page, 'Add your name and email so Katie can reach you.');
     await page.fill('#main input[name=name]', 'Punta Tester');
@@ -365,7 +367,7 @@ describe('Real page addresses and consent (mock store)', { skip: playwright ? fa
     await page.fill('#main textarea[name=notes]', 'Eight of us');
     await page.click('#main button[type=submit]');
     await page.waitForSelector('.pg-thanks');
-    assert.equal(await pathIs(page, '/private-groups').then(() => true), true, 'the thank-you is on the same page');
+    assert.equal(await page.evaluate(() => location.hash), '#/build-your-camp', 'the thank-you is on the same page');
     await textShows(page, 'Katie will reach out personally within a day or two.');
     const data = readMock();
     assert.equal((data.requests || []).length, 0);
